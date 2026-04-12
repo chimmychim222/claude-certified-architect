@@ -1,0 +1,13 @@
+# Redirect old HTML filename to root
+[[redirects]]
+  from = "/claude-certified-architect.html"
+  to = "/"
+  status = 301
+
+# Custom headers for SEO and security
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

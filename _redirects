@@ -1,0 +1,2 @@
+# Redirect old page path to canonical root URL (301 permanent)
+/claude-certified-architect.html  /  301
