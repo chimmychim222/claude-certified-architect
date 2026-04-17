@@ -56,10 +56,17 @@ footer a{color:var(--text3)}
 footer a:hover{color:var(--accent)}
 .links-row{margin-bottom:12px}
 .links-row a{margin:0 8px}
+.hamburger{display:none;flex-direction:column;gap:5px;padding:8px;cursor:pointer;background:none;border:none;min-width:44px;min-height:44px;align-items:center;justify-content:center}
+.hamburger span{display:block;width:22px;height:2px;background:var(--text2);border-radius:2px;transition:all .3s}
+.hamburger.open span:nth-child(1){transform:rotate(45deg) translate(5px,5px)}
+.hamburger.open span:nth-child(2){opacity:0}
+.hamburger.open span:nth-child(3){transform:rotate(-45deg) translate(5px,-5px)}
 @media(max-width:640px){
-  nav .nav-links{gap:0}
-  nav .nav-links a{padding:6px 10px;font-size:.8rem}
-  nav .logo{font-size:.9rem}
+  .hamburger{display:flex}
+  nav .nav-links{display:none;position:absolute;top:100%;left:0;right:0;flex-direction:column;background:rgba(245,243,234,.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:12px 16px;gap:4px;box-shadow:0 8px 24px rgba(0,0,0,.08);flex-wrap:nowrap}
+  nav .nav-links.mobile-open{display:flex}
+  nav .nav-links a{width:100%;padding:12px 16px;font-size:.9rem;border-radius:6px}
+  nav .inner{position:relative}
   nav .logo span{display:none}
   .hero{padding:110px 0 40px}
   .hero h1{font-size:1.6rem}
@@ -74,11 +81,12 @@ footer a:hover{color:var(--accent)}
 <nav>
   <div class="inner">
     <a class="logo" href="/">Claude Architect <span>Certification</span></a>
-    <div class="nav-links">
-      <a href="/">Home</a>
-      <a href="/cca-foundations-exam">Exam</a>
-      <a href="/cca-practice-questions" class="active">Questions</a>
-      <a href="/cca-exam-guide">Guide</a>
+    <button class="hamburger" id="hamburger" onclick="toggleNav()" aria-label="Toggle navigation"><span></span><span></span><span></span></button>
+    <div class="nav-links" id="nav-links">
+      <a href="/" onclick="closeNav()">Home</a>
+      <a href="/cca-foundations-exam" onclick="closeNav()">Exam</a>
+      <a href="/cca-practice-questions" class="active" onclick="closeNav()">Questions</a>
+      <a href="/cca-exam-guide" onclick="closeNav()">Guide</a>
     </div>
   </div>
 </nav>
@@ -172,5 +180,19 @@ footer a:hover{color:var(--accent)}
   </div>
 </footer>
 
+<script>
+function toggleNav(){
+  document.getElementById('nav-links').classList.toggle('mobile-open');
+  document.getElementById('hamburger').classList.toggle('open');
+}
+function closeNav(){
+  document.getElementById('nav-links').classList.remove('mobile-open');
+  document.getElementById('hamburger').classList.remove('open');
+}
+document.addEventListener('click',function(e){
+  var nav=document.querySelector('nav');
+  if(!nav.contains(e.target)) closeNav();
+});
+</script>
 </body>
 </html>
