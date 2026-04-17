@@ -57,7 +57,7 @@
   --blue:#4a7fb5;--orange:#d97757;
   --radius:8px;--radius-sm:6px;
 }
-@keyframes fadeInUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 html{scroll-behavior:smooth}
 body{font-family:Georgia,'Times New Roman',serif;background:var(--bg);color:var(--text);line-height:1.7;overflow-x:hidden;min-height:100vh}
 a{color:var(--accent);text-decoration:underline;text-underline-offset:3px;transition:color .2s}
@@ -84,10 +84,16 @@ nav .logout-btn:hover{color:var(--red);border-color:var(--red)}
 
 /* ── HERO ── */
 .hero{padding:150px 0 90px;text-align:center;position:relative;overflow:hidden}
-.hero .badge{display:inline-block;padding:7px 18px;border-radius:20px;background:rgba(217,119,87,.08);border:1px solid rgba(217,119,87,.18);color:var(--accent);font-size:.78rem;font-weight:600;margin-bottom:22px;letter-spacing:.8px;text-transform:uppercase;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;animation:fadeInUp .6s ease both}
-.hero h1{font-size:clamp(2rem,5vw,3.4rem);font-weight:700;line-height:1.12;margin-bottom:18px;color:var(--text);animation:fadeInUp .6s ease .1s both}
-.hero p{font-size:1.1rem;color:var(--text2);max-width:620px;margin:0 auto 36px;animation:fadeInUp .6s ease .2s both}
-.hero-stats{display:flex;gap:40px;justify-content:center;margin-top:48px;flex-wrap:wrap;animation:fadeInUp .6s ease .4s both}
+.hero .badge{display:inline-block;padding:7px 18px;border-radius:20px;background:rgba(217,119,87,.08);border:1px solid rgba(217,119,87,.18);color:var(--accent);font-size:.78rem;font-weight:600;margin-bottom:22px;letter-spacing:.8px;text-transform:uppercase;font-family:-apple-system,system-ui,'Segoe UI',sans-serif}
+.hero h1{font-size:clamp(2rem,5vw,3.4rem);font-weight:700;line-height:1.12;margin-bottom:18px;color:var(--text)}
+.hero p{font-size:1.1rem;color:var(--text2);max-width:620px;margin:0 auto 36px}
+.hero-stats{display:flex;gap:40px;justify-content:center;margin-top:48px;flex-wrap:wrap}
+/* Hero animations — only applied via JS after load to prevent iOS invisible-text bug */
+.hero-animated .badge{animation:fadeInUp .6s ease both}
+.hero-animated h1{animation:fadeInUp .6s ease .1s both}
+.hero-animated p{animation:fadeInUp .6s ease .2s both}
+.hero-animated .hero-stats{animation:fadeInUp .6s ease .4s both}
+.hero-animated .hero-btns{animation:fadeInUp .6s ease .3s both}
 .hero-stats .stat{text-align:center;padding:16px 24px;border-radius:var(--radius);background:var(--surface);border:1px solid var(--border);transition:all .3s ease}
 .hero-stats .stat:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.06)}
 .hero-stats .stat .num{font-size:1.8rem;font-weight:800;color:var(--accent)}
@@ -250,7 +256,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
   .hamburger{display:flex}
   nav .nav-links{display:none;position:absolute;top:100%;left:0;right:0;flex-direction:column;background:rgba(245,243,234,.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:12px 16px;gap:4px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
   nav .nav-links.mobile-open{display:flex}
-  nav .nav-links button{width:100%;text-align:left;padding:12px 16px;border-radius:var(--radius-sm)}
+  nav .nav-links button,nav .nav-links>a{width:100%;text-align:left;padding:12px 16px;border-radius:var(--radius-sm)}
   nav .user-area{width:100%;margin-left:0;padding-left:0;border-left:none;padding-top:10px;margin-top:6px;border-top:1px solid var(--border)}
   nav .inner{position:relative}
 
@@ -361,8 +367,9 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
 .reveal-scale.visible{opacity:1;transform:scale(1)}
 /* Respect user motion preferences */
 @media(prefers-reduced-motion:reduce){
-  .reveal,.reveal-left,.reveal-right,.reveal-scale{opacity:1;transform:none;transition:none}
-  .testimonial-track{animation:none !important}
+  *{animation-duration:0.01ms !important;animation-delay:0ms !important;transition-duration:0.01ms !important}
+  .reveal,.reveal-left,.reveal-right,.reveal-scale{opacity:1;transform:none}
+  .hero .badge,.hero h1,.hero p,.hero-stats{opacity:1;transform:none}
 }
 .stagger-1{transition-delay:.1s}
 .stagger-2{transition-delay:.2s}
@@ -494,7 +501,7 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
     <div class="badge">OFFICIAL PRACTICE EXAM 2026</div>
     <h1>Claude Certified Architect</h1>
     <p>Prepare for the <a href="/cca-foundations-exam" title="CCA Foundations Exam Practice Test">CCA Foundations exam</a> with realistic, scenario-based questions designed to match the official format. Study all 5 exam domains and pass with confidence.</p>
-    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;animation:fadeInUp .6s ease .3s both">
+    <div class="hero-btns" style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
       <button class="btn-primary" onclick="showSection('pricing')">Enroll Now — $49</button>
       <button class="btn-secondary" onclick="showSection('lessons')">View Lesson Plan</button>
     </div>
@@ -3007,18 +3014,24 @@ if (!enrolled) showSection('home');
 (function(){
   const revealEls = document.querySelectorAll('.reveal,.reveal-left,.reveal-right,.reveal-scale');
   if (!revealEls.length) return;
-  const obs = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
+  // Fallback: if IntersectionObserver doesn't fire within 2s, make everything visible
+  var fallbackTimer = setTimeout(function(){
+    revealEls.forEach(function(el){ el.classList.add('visible'); });
+  }, 2000);
+  var observed = 0;
+  var obs = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
       if (e.isIntersecting) {
         e.target.classList.add('visible');
-        // Trigger counter animation if element contains counters
-        const counters = e.target.querySelectorAll('.counter[data-count],.num[data-count]');
+        var counters = e.target.querySelectorAll('.counter[data-count],.num[data-count]');
         counters.forEach(animateCounter);
         obs.unobserve(e.target);
+        observed++;
+        if (observed >= revealEls.length) clearTimeout(fallbackTimer);
       }
     });
   }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
-  revealEls.forEach(el => obs.observe(el));
+  revealEls.forEach(function(el){ obs.observe(el); });
 })();
 
 // ═══════ ANIMATED COUNTERS ═══════
@@ -3051,6 +3064,17 @@ document.querySelectorAll('.hero-stats .num[data-count]').forEach(el => {
   }, { threshold: 0.3 });
   obs2.observe(el);
 });
+
+// ═══════ HERO ANIMATION (safe for iOS) ═══════
+(function(){
+  var hero = document.querySelector('.hero');
+  if (!hero) return;
+  // Only animate if user hasn't disabled motion
+  var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  if (mq && mq.matches) return;
+  // Trigger animations after paint to ensure elements are rendered visible first
+  requestAnimationFrame(function(){ hero.classList.add('hero-animated'); });
+})();
 
 // ═══════ HERO PARTICLES ═══════
 (function(){

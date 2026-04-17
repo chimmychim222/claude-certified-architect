@@ -26,7 +26,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(245,243,234,
 nav .inner{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;max-width:1100px;margin:0 auto;gap:12px}
 nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1rem;font-weight:600;color:var(--text);text-decoration:none}
 nav .logo span{color:var(--text3);font-weight:400;font-size:.82rem;margin-left:6px}
-nav .nav-links{display:flex;gap:4px;align-items:center}
+nav .nav-links{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
 nav .nav-links a{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:8px 16px;border-radius:6px;font-size:.88rem;color:var(--text2);text-decoration:none;transition:color .2s}
 nav .nav-links a:hover{color:var(--text)}
 nav .nav-links a.active{color:var(--text);font-weight:600}
@@ -57,6 +57,9 @@ footer a:hover{color:var(--accent)}
 .links-row{margin-bottom:12px}
 .links-row a{margin:0 8px}
 @media(max-width:640px){
+  nav .nav-links{gap:0}
+  nav .nav-links a{padding:6px 10px;font-size:.8rem}
+  nav .logo{font-size:.9rem}
   nav .logo span{display:none}
   .hero{padding:110px 0 40px}
   .hero h1{font-size:1.6rem}
