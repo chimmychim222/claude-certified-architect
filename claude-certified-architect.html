@@ -21,29 +21,127 @@
 <meta name="twitter:title" content="Claude Certified Architect Practice Exam | CCA Foundations Prep">
 <meta name="twitter:description" content="300 scenario-based practice questions across all 5 CCA exam domains. Timed tests, detailed explanations, and domain-weighted scoring.">
 
-<!-- Structured Data -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "Course",
-  "name": "Claude Certified Architect — Foundations Practice Exam",
-  "description": "Comprehensive practice exam preparation for the Claude Certified Architect (CCA) Foundations certification. 234 scenario-based questions covering Agentic Architecture, Tool Design & MCP, Claude Code Configuration, Prompt Engineering, and Context Management.",
-  "provider": {
-    "@type": "Organization",
-    "name": "Certifications Training"
-  },
-  "offers": {
-    "@type": "Offer",
-    "price": "49.00",
-    "priceCurrency": "USD",
-    "availability": "https://schema.org/InStock"
-  },
-  "hasCourseInstance": {
-    "@type": "CourseInstance",
-    "courseMode": "online",
-    "courseWorkload": "PT5H"
+<!-- Structured Data — loaded from /schema.json (edit that file to update without redeployment) -->
+<script>
+(function(){
+  var SCHEMA_URL = '/schema.json';
+  var FIRESTORE_STATS_DOC = 'https://firestore.googleapis.com/v1/projects/claude-certification-testing/databases/(default)/documents/public/siteStats';
+
+  function buildCourse(c, rating) {
+    return {
+      "@context": "https://schema.org",
+      "@type": "Course",
+      "name": c.name,
+      "description": c.description,
+      "url": c.url,
+      "provider": { "@type": "Organization", "name": c.provider },
+      "offers": {
+        "@type": "Offer",
+        "price": c.price,
+        "priceCurrency": c.priceCurrency,
+        "availability": "https://schema.org/InStock"
+      },
+      "teaches": c.teaches,
+      "timeRequired": c.timeRequired,
+      "courseMode": c.courseMode,
+      "inLanguage": c.inLanguage,
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": rating.ratingValue,
+        "reviewCount": rating.reviewCount,
+        "bestRating": rating.bestRating,
+        "worstRating": rating.worstRating
+      }
+    };
   }
-}
+
+  function buildFAQ(faq) {
+    return {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": faq.map(function(item) {
+        return {
+          "@type": "Question",
+          "name": item.q,
+          "acceptedAnswer": { "@type": "Answer", "text": item.a }
+        };
+      })
+    };
+  }
+
+  function buildRating(rating) {
+    return {
+      "@context": "https://schema.org",
+      "@type": "AggregateRating",
+      "itemReviewed": {
+        "@type": "Course",
+        "name": "Claude Certified Architect — Foundations Practice Exam",
+        "url": "https://www.claudecertifiedarchitects.com/"
+      },
+      "ratingValue": rating.ratingValue,
+      "reviewCount": rating.reviewCount,
+      "bestRating": rating.bestRating,
+      "worstRating": rating.worstRating
+    };
+  }
+
+  function inject(schemas) {
+    schemas.forEach(function(s) {
+      var el = document.createElement('script');
+      el.type = 'application/ld+json';
+      el.textContent = JSON.stringify(s, null, 0);
+      document.head.appendChild(el);
+    });
+  }
+
+  function applySchema(config, rating) {
+    inject([
+      buildCourse(config.course, rating),
+      buildFAQ(config.faq),
+      buildRating(rating)
+    ]);
+  }
+
+  // Try to get live rating from Firestore REST API (no auth needed for public doc)
+  function getLiveRating(fallback, cb) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', FIRESTORE_STATS_DOC, true);
+    xhr.timeout = 3000;
+    xhr.onload = function() {
+      try {
+        var data = JSON.parse(xhr.responseText);
+        var f = data.fields || {};
+        cb({
+          ratingValue: f.ratingValue ? parseFloat(f.ratingValue.doubleValue || f.ratingValue.integerValue || fallback.ratingValue) : fallback.ratingValue,
+          reviewCount: f.reviewCount ? parseInt(f.reviewCount.integerValue || fallback.reviewCount) : fallback.reviewCount,
+          bestRating: fallback.bestRating,
+          worstRating: fallback.worstRating
+        });
+      } catch(e) { cb(fallback); }
+    };
+    xhr.onerror = xhr.ontimeout = function() { cb(fallback); };
+    xhr.send();
+  }
+
+  // Fetch schema.json config, then overlay with live Firestore rating
+  fetch(SCHEMA_URL)
+    .then(function(r) { return r.json(); })
+    .then(function(config) {
+      getLiveRating(config.rating, function(liveRating) {
+        applySchema(config, liveRating);
+      });
+    })
+    .catch(function() {
+      // Hard fallback if schema.json is unavailable
+      inject([{
+        "@context": "https://schema.org", "@type": "Course",
+        "name": "Claude Certified Architect — Foundations Practice Exam",
+        "url": "https://www.claudecertifiedarchitects.com/",
+        "provider": { "@type": "Organization", "name": "Certifications Training" },
+        "offers": { "@type": "Offer", "price": "49.00", "priceCurrency": "USD" }
+      }]);
+    });
+})();
 </script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
