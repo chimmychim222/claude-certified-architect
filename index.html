@@ -69,22 +69,6 @@
     };
   }
 
-  function buildRating(rating) {
-    return {
-      "@context": "https://schema.org",
-      "@type": "AggregateRating",
-      "itemReviewed": {
-        "@type": "Course",
-        "name": "Claude Certified Architect — Foundations Practice Exam",
-        "url": "https://www.claudecertifiedarchitects.com/"
-      },
-      "ratingValue": rating.ratingValue,
-      "reviewCount": rating.reviewCount,
-      "bestRating": rating.bestRating,
-      "worstRating": rating.worstRating
-    };
-  }
-
   function inject(schemas) {
     schemas.forEach(function(s) {
       var el = document.createElement('script');
@@ -97,8 +81,7 @@
   function applySchema(config, rating) {
     inject([
       buildCourse(config.course, rating),
-      buildFAQ(config.faq),
-      buildRating(rating)
+      buildFAQ(config.faq)
     ]);
   }
 
