@@ -172,6 +172,38 @@ function processFile(filePath, ...schemas) {
 }
 
 // ---------------------------------------------------------------------------
+// Sitemap generator
+// ---------------------------------------------------------------------------
+
+function generateSitemap() {
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+  const pages = [
+    { loc: BASE + '/',                         priority: '1.0', changefreq: 'weekly'  },
+    { loc: BASE + '/cca-foundations-exam',     priority: '0.9', changefreq: 'weekly'  },
+    { loc: BASE + '/cca-practice-questions',   priority: '0.9', changefreq: 'weekly'  },
+    { loc: BASE + '/cca-exam-guide',           priority: '0.8', changefreq: 'monthly' },
+  ];
+
+  const urls = pages.map(p => `
+  <url>
+    <loc>${p.loc}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>${p.changefreq}</changefreq>
+    <priority>${p.priority}</priority>
+  </url>`).join('');
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}
+</urlset>
+`;
+
+  const dest = path.join(__dirname, 'sitemap.xml');
+  fs.writeFileSync(dest, xml, 'utf8');
+  console.log('✓ sitemap.xml  (' + today + ')');
+}
+
+// ---------------------------------------------------------------------------
 // Run
 // ---------------------------------------------------------------------------
 console.log('Pre-rendering JSON-LD…\n');
@@ -187,5 +219,8 @@ processFile(path.join(__dirname, 'cca-practice-questions', 'index.html'),
 
 processFile(path.join(__dirname, 'cca-exam-guide',         'index.html'),
   ...guideSchemas);
+
+console.log('');
+generateSitemap();
 
 console.log('\nDone. Commit and push the updated HTML files.');

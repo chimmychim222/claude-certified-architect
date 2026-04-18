@@ -37,7 +37,8 @@ jobs:
           git add index.html \
                   cca-foundations-exam/index.html \
                   cca-practice-questions/index.html \
-                  cca-exam-guide/index.html
+                  cca-exam-guide/index.html \
+                  sitemap.xml
           git diff --staged --quiet \
             && echo "No changes to commit." \
             || git commit -m "chore: pre-render static HTML [skip ci]"
