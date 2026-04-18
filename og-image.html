@@ -14,7 +14,7 @@ body{
 /* ── Left panel ─────────────────────────────── */
 .left{
   flex:1;
-  padding:50px 68px 96px 74px;
+  padding:50px 68px 130px 74px;
   display:flex;
   flex-direction:column;
   justify-content:space-between;
@@ -89,19 +89,19 @@ body{
 
 .footer-area{
   position:absolute;
-  bottom:52px;
+  bottom:80px;
   left:74px;
 }
 .footer-row{
-  display:flex;align-items:center;gap:8px;
+  display:flex;align-items:center;gap:10px;
   font-family:-apple-system,system-ui,sans-serif;
-  font-size:14px;color:#5a5a52;
+  font-size:13px;color:#5a5a52;
 }
-.footer-dot{width:5px;height:5px;background:#d97757;border-radius:50%}
+.footer-dot{width:5px;height:5px;background:#d97757;border-radius:50%;flex-shrink:0}
+.footer-sep{color:#d9d5ca;font-size:12px}
 .disclaimer{
-  margin-top:7px;
   font-family:-apple-system,system-ui,sans-serif;
-  font-size:12px;color:#5a5a52;
+  font-size:13px;color:#8a8a7f;
 }
 
 /* ── Right panel ─────────────────────────────── */
@@ -204,8 +204,9 @@ body{
     <div class="footer-row">
       <div class="footer-dot"></div>
       claudecertifiedarchitects.com
+      <span class="footer-sep">·</span>
+      <span class="disclaimer">For educational purposes only. Not affiliated with Anthropic.</span>
     </div>
-    <div class="disclaimer">For educational purposes only. Not affiliated with Anthropic.</div>
   </div>
 </div>
 
