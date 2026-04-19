@@ -8,6 +8,7 @@ on:
     paths:
       - 'schema.json'
       - 'build.js'
+      - 'posts/**'
   workflow_dispatch:
 
 permissions:
@@ -38,7 +39,8 @@ jobs:
                   cca-foundations-exam/index.html \
                   cca-practice-questions/index.html \
                   cca-exam-guide/index.html \
-                  sitemap.xml
+                  sitemap.xml \
+                  blog/
           git diff --staged --quiet \
             && echo "No changes to commit." \
             || git commit -m "chore: pre-render static HTML [skip ci]"

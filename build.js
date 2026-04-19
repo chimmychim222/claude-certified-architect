@@ -1,8 +1,10 @@
 /**
- * build.js — Pre-render static JSON-LD into all HTML pages.
+ * build.js — Pre-render static JSON-LD into all HTML pages + generate blog.
  *
- * Reads schema.json and inlines structured data as static <script> tags so
- * Googlebot sees them without executing JavaScript.
+ * 1. Reads schema.json and inlines structured data as static <script> tags so
+ *    Googlebot sees them without executing JavaScript.
+ * 2. Reads posts/*.json and generates blog/<slug>/index.html + blog/index.html.
+ * 3. Writes sitemap.xml with all routes including blog posts.
  *
  * Run:  node build.js
  *
@@ -18,6 +20,8 @@ const path = require('path');
 // ---------------------------------------------------------------------------
 const BASE        = 'https://www.claudecertifiedarchitects.com';
 const SCHEMA_FILE = path.join(__dirname, 'schema.json');
+const POSTS_DIR   = path.join(__dirname, 'posts');
+const BLOG_DIR    = path.join(__dirname, 'blog');
 
 const START_MARKER = '<!-- cca:schema:start -->';
 const END_MARKER   = '<!-- cca:schema:end -->';
@@ -127,7 +131,7 @@ const guideSchemas = [
   {
     '@context': 'https://schema.org',
     '@type': 'Article',
-    headline: 'CCA Exam Guide — How to Pass the Claude Certified Architect Exam',
+    headline: 'CCA Exam Guide \u2014 How to Pass the Claude Certified Architect Exam',
     description: 'Complete guide to the CCA Foundations exam format, domains, scoring, and study strategies.',
     url: BASE + '/cca-exam-guide',
     publisher: { '@type': 'Organization', name: 'Claude Certified Architects', url: BASE },
@@ -140,7 +144,7 @@ const guideSchemas = [
 ];
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Helpers — existing pages
 // ---------------------------------------------------------------------------
 
 function renderBlock(...schemas) {
@@ -172,23 +176,303 @@ function processFile(filePath, ...schemas) {
 }
 
 // ---------------------------------------------------------------------------
+// Helpers — blog
+// ---------------------------------------------------------------------------
+
+/** Escape text for use inside an HTML element */
+function escHtml(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+/** Escape text for use inside an HTML attribute value (double-quoted) */
+function escAttr(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;');
+}
+
+/** Format an ISO date string (YYYY-MM-DD) to a human-readable date */
+function formatDate(iso) {
+  return new Date(iso + 'T00:00:00Z').toLocaleDateString('en-US', {
+    year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC'
+  });
+}
+
+/** Load all posts from posts/ sorted newest-first */
+function loadPosts() {
+  if (!fs.existsSync(POSTS_DIR)) return [];
+  return fs.readdirSync(POSTS_DIR)
+    .filter(f => f.endsWith('.json'))
+    .map(f => JSON.parse(fs.readFileSync(path.join(POSTS_DIR, f), 'utf8')))
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+}
+
+/** Inline CSS shared by all blog pages */
+function sharedCSS() {
+  return `<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f3ea;--surface:#fff;--border:#d9d5ca;
+  --text:#191918;--text2:#5a5a52;--text3:#8a8a7f;
+  --accent:#d97757;--accent2:#c4623f;--accent3:#a8502f;
+  --radius:8px;
+}
+html{scroll-behavior:smooth}
+body{font-family:Georgia,'Times New Roman',serif;background:var(--bg);color:var(--text);line-height:1.7;overflow-x:hidden;min-height:100vh}
+a{color:var(--accent);text-decoration:underline;text-underline-offset:3px;transition:color .2s}
+a:hover{color:var(--accent3)}
+
+/* ── Nav ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(245,243,234,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+nav .inner{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;max-width:1100px;margin:0 auto;gap:12px}
+.nav-logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1rem;font-weight:600;color:var(--text);text-decoration:none;letter-spacing:-.3px;white-space:nowrap}
+.nav-logo span{color:var(--text3);font-weight:400;font-size:.82rem;margin-left:6px}
+.nav-links{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.nav-links a{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:8px 14px;border-radius:6px;font-size:.88rem;color:var(--text2);text-decoration:none;transition:all .2s;white-space:nowrap}
+.nav-links a:hover{color:var(--text);background:rgba(0,0,0,.04)}
+.nav-links a.active{color:var(--text);font-weight:600}
+.nav-cta{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;background:var(--accent);color:#fff !important;padding:8px 18px;border-radius:6px;font-size:.88rem;font-weight:600;text-decoration:none !important;transition:background .2s;white-space:nowrap}
+.nav-cta:hover{background:var(--accent2) !important}
+
+/* ── Post page ── */
+.post-wrap{max-width:720px;margin:0 auto;padding:96px clamp(1.5rem,4vw,2.5rem) 80px}
+.back-link{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.88rem;color:var(--text3);text-decoration:none;display:inline-block;margin-bottom:24px;transition:color .2s}
+.back-link:hover{color:var(--accent)}
+.post-title{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:700;color:var(--text);line-height:1.15;letter-spacing:-.5px;margin-bottom:10px}
+.post-meta{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.85rem;color:var(--text3);padding-bottom:28px;border-bottom:1px solid var(--border);margin-bottom:32px}
+
+/* ── Post body typography ── */
+.post-body{font-size:1.05rem;line-height:1.78}
+.post-body h2{font-size:1.45rem;font-weight:700;color:var(--text);margin:2.2em 0 .65em;letter-spacing:-.3px;line-height:1.25}
+.post-body h3{font-size:1.15rem;font-weight:700;color:var(--text);margin:1.8em 0 .5em;line-height:1.3}
+.post-body p{margin-bottom:1.2em}
+.post-body ul,.post-body ol{margin:0 0 1.2em 1.4em}
+.post-body li{margin-bottom:.4em}
+.post-body strong{font-weight:700;color:var(--text)}
+.post-body code{font-family:'Courier New',monospace;font-size:.87em;background:#e8e5dc;padding:2px 6px;border-radius:4px;color:var(--accent2)}
+.post-body pre{background:#191918;color:#f5f3ea;padding:20px 24px;border-radius:var(--radius);overflow-x:auto;margin:1.5em 0;font-family:'Courier New',monospace;font-size:.87em;line-height:1.6}
+.post-body pre code{background:none;padding:0;color:inherit}
+.post-body blockquote{border-left:3px solid var(--accent);padding:10px 18px;margin:1.5em 0;color:var(--text2);font-style:italic}
+.post-body hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.post-body table{width:100%;border-collapse:collapse;margin:1.5em 0;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.9rem}
+.post-body th{text-align:left;padding:10px 14px;border-bottom:2px solid var(--border);font-weight:600;color:var(--text)}
+.post-body td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text2)}
+
+/* ── Blog index ── */
+.blog-wrap{max-width:720px;margin:0 auto;padding:96px clamp(1.5rem,4vw,2.5rem) 80px}
+.blog-header{margin-bottom:44px;padding-bottom:28px;border-bottom:1px solid var(--border)}
+.blog-header h1{font-size:clamp(2rem,4vw,2.75rem);font-weight:700;letter-spacing:-.5px;margin-bottom:8px}
+.blog-header p{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;color:var(--text2);font-size:.97rem}
+.post-list{display:flex;flex-direction:column;gap:0}
+.post-card{padding:28px 0;border-bottom:1px solid var(--border)}
+.post-card-date{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.82rem;color:var(--text3);margin-bottom:5px}
+.post-card-title{font-size:1.22rem;font-weight:700;margin-bottom:7px;line-height:1.3}
+.post-card-title a{color:var(--text);text-decoration:none;transition:color .2s}
+.post-card-title a:hover{color:var(--accent)}
+.post-card-desc{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;color:var(--text2);font-size:.93rem;line-height:1.55}
+.empty-state{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;color:var(--text3);padding:40px 0}
+
+/* ── Footer ── */
+.site-footer{background:#191918;color:#8a8a7f;padding:28px 24px;text-align:center;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.82rem;line-height:1.6}
+.site-footer a{color:#8a8a7f;text-underline-offset:3px}
+.site-footer a:hover{color:#f5f3ea}
+</style>`;
+}
+
+/** Shared nav HTML */
+function blogNav(activePage) {
+  const link = (href, label) => {
+    const cls = activePage === href ? ' class="active"' : '';
+    return `<a href="${href}"${cls}>${label}</a>`;
+  };
+  return `<nav>
+  <div class="inner">
+    <a href="/" class="nav-logo">CCA <span>Practice Platform</span></a>
+    <div class="nav-links">
+      ${link('/cca-practice-questions', 'Practice')}
+      ${link('/cca-foundations-exam', 'Exam Sim')}
+      ${link('/cca-exam-guide', 'Guide')}
+      ${link('/blog', 'Blog')}
+    </div>
+    <a href="/" class="nav-cta">Start Practicing</a>
+  </div>
+</nav>`;
+}
+
+/** Shared footer HTML */
+function blogFooter() {
+  const year = new Date().getFullYear();
+  return `<footer class="site-footer">
+  <p>&copy; ${year} Claude Certified Architects &nbsp;&middot;&nbsp;
+     <a href="/">Home</a> &nbsp;&middot;&nbsp;
+     <a href="/blog">Blog</a> &nbsp;&middot;&nbsp;
+     For educational purposes only. Not affiliated with Anthropic.</p>
+</footer>`;
+}
+
+/** Article JSON-LD for a blog post */
+function articleJsonLd(post) {
+  const img = post.ogImage
+    ? (post.ogImage.startsWith('http') ? post.ogImage : BASE + post.ogImage)
+    : BASE + '/og-image-v2.png';
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: post.title,
+    description: post.description,
+    url: `${BASE}/blog/${post.slug}`,
+    datePublished: post.date,
+    dateModified: post.date,
+    image: img,
+    publisher: { '@type': 'Organization', name: 'Claude Certified Architects', url: BASE },
+    author:    { '@type': 'Organization', name: 'Claude Certified Architects', url: BASE },
+    isPartOf:  { '@type': 'WebSite', url: BASE }
+  };
+}
+
+/** Generate one blog post page → blog/<slug>/index.html */
+function generateBlogPost(post) {
+  const ogImg = post.ogImage
+    ? (post.ogImage.startsWith('http') ? post.ogImage : BASE + post.ogImage)
+    : BASE + '/og-image-v2.png';
+
+  const schemas = [articleJsonLd(post), breadcrumb([
+    { name: 'Home', url: BASE },
+    { name: 'Blog', url: `${BASE}/blog` },
+    { name: post.title, url: `${BASE}/blog/${post.slug}` }
+  ])].map(s => `<script type="application/ld+json">${JSON.stringify(s)}</script>`).join('\n');
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>${escHtml(post.title)} | Claude Certified Architects</title>
+<meta name="description" content="${escAttr(post.description)}">
+<link rel="canonical" href="${BASE}/blog/${post.slug}">
+<meta property="og:type" content="article">
+<meta property="og:title" content="${escAttr(post.title)}">
+<meta property="og:description" content="${escAttr(post.description)}">
+<meta property="og:url" content="${BASE}/blog/${post.slug}">
+<meta property="og:site_name" content="Claude Certified Architects">
+<meta property="og:image" content="${ogImg}">
+<meta property="article:published_time" content="${post.date}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${escAttr(post.title)}">
+<meta name="twitter:description" content="${escAttr(post.description)}">
+<meta name="twitter:image" content="${ogImg}">
+${schemas}
+${sharedCSS()}
+</head>
+<body>
+${blogNav('/blog')}
+<main class="post-wrap">
+  <article>
+    <header>
+      <a href="/blog" class="back-link">&larr; All posts</a>
+      <h1 class="post-title">${escHtml(post.title)}</h1>
+      <p class="post-meta"><time datetime="${post.date}">${formatDate(post.date)}</time></p>
+    </header>
+    <div class="post-body">
+      ${post.body}
+    </div>
+  </article>
+</main>
+${blogFooter()}
+</body>
+</html>`;
+
+  const dir = path.join(BLOG_DIR, post.slug);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'index.html'), html, 'utf8');
+  console.log(`✓ blog/${post.slug}/index.html`);
+}
+
+/** Generate the blog index page → blog/index.html */
+function generateBlogIndex(posts) {
+  const schemas = `<script type="application/ld+json">${JSON.stringify(breadcrumb([
+    { name: 'Home', url: BASE },
+    { name: 'Blog', url: `${BASE}/blog` }
+  ]))}</script>`;
+
+  const listHtml = posts.length === 0
+    ? `<p class="empty-state">No posts yet — check back soon.</p>`
+    : posts.map(p => `
+    <div class="post-card">
+      <div class="post-card-date">${formatDate(p.date)}</div>
+      <div class="post-card-title"><a href="/blog/${p.slug}">${escHtml(p.title)}</a></div>
+      <p class="post-card-desc">${escHtml(p.description)}</p>
+    </div>`).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Blog | Claude Certified Architects</title>
+<meta name="description" content="Articles and guides on Claude architecture, prompt engineering, MCP, and passing the CCA Foundations exam.">
+<link rel="canonical" href="${BASE}/blog">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Blog | Claude Certified Architects">
+<meta property="og:description" content="Articles and guides on Claude architecture, prompt engineering, MCP, and passing the CCA Foundations exam.">
+<meta property="og:url" content="${BASE}/blog">
+<meta property="og:site_name" content="Claude Certified Architects">
+<meta property="og:image" content="${BASE}/og-image-v2.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Blog | Claude Certified Architects">
+<meta name="twitter:description" content="Articles and guides on Claude architecture, prompt engineering, MCP, and passing the CCA Foundations exam.">
+<meta name="twitter:image" content="${BASE}/og-image-v2.png">
+${schemas}
+${sharedCSS()}
+</head>
+<body>
+${blogNav('/blog')}
+<main class="blog-wrap">
+  <header class="blog-header">
+    <h1>Blog</h1>
+    <p>Guides and insights on Claude architecture, prompt engineering, and CCA exam prep.</p>
+  </header>
+  <div class="post-list">
+    ${listHtml}
+  </div>
+</main>
+${blogFooter()}
+</body>
+</html>`;
+
+  fs.mkdirSync(BLOG_DIR, { recursive: true });
+  fs.writeFileSync(path.join(BLOG_DIR, 'index.html'), html, 'utf8');
+  console.log('✓ blog/index.html');
+}
+
+// ---------------------------------------------------------------------------
 // Sitemap generator
 // ---------------------------------------------------------------------------
 
-function generateSitemap() {
+function generateSitemap(posts = []) {
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
   const pages = [
-    { loc: BASE + '/',                         priority: '1.0', changefreq: 'weekly'  },
-    { loc: BASE + '/cca-foundations-exam',     priority: '0.9', changefreq: 'weekly'  },
-    { loc: BASE + '/cca-practice-questions',   priority: '0.9', changefreq: 'weekly'  },
-    { loc: BASE + '/cca-exam-guide',           priority: '0.8', changefreq: 'monthly' },
+    { loc: BASE + '/',                         priority: '1.0', changefreq: 'weekly',  lastmod: today },
+    { loc: BASE + '/cca-foundations-exam',     priority: '0.9', changefreq: 'weekly',  lastmod: today },
+    { loc: BASE + '/cca-practice-questions',   priority: '0.9', changefreq: 'weekly',  lastmod: today },
+    { loc: BASE + '/cca-exam-guide',           priority: '0.8', changefreq: 'monthly', lastmod: today },
+    { loc: BASE + '/blog',                     priority: '0.7', changefreq: 'weekly',  lastmod: today },
+    ...posts.map(p => ({
+      loc:        `${BASE}/blog/${p.slug}`,
+      priority:   '0.8',
+      changefreq: 'monthly',
+      lastmod:    p.date
+    }))
   ];
 
   const urls = pages.map(p => `
   <url>
     <loc>${p.loc}</loc>
-    <lastmod>${today}</lastmod>
+    <lastmod>${p.lastmod}</lastmod>
     <changefreq>${p.changefreq}</changefreq>
     <priority>${p.priority}</priority>
   </url>`).join('');
@@ -200,7 +484,7 @@ function generateSitemap() {
 
   const dest = path.join(__dirname, 'sitemap.xml');
   fs.writeFileSync(dest, xml, 'utf8');
-  console.log('✓ sitemap.xml  (' + today + ')');
+  console.log('✓ sitemap.xml  (' + today + ', ' + (5 + posts.length) + ' URLs)');
 }
 
 // ---------------------------------------------------------------------------
@@ -220,7 +504,13 @@ processFile(path.join(__dirname, 'cca-practice-questions', 'index.html'),
 processFile(path.join(__dirname, 'cca-exam-guide',         'index.html'),
   ...guideSchemas);
 
+console.log('\nBuilding blog…\n');
+
+const posts = loadPosts();
+generateBlogIndex(posts);
+posts.forEach(generateBlogPost);
+
 console.log('');
-generateSitemap();
+generateSitemap(posts);
 
 console.log('\nDone. Commit and push the updated HTML files.');
