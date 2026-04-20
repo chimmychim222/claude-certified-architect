@@ -55,7 +55,7 @@ nav .inner{display:flex;align-items:center;justify-content:space-between;padding
 }
 
 /* ── Post page ── */
-.post-wrap{max-width:720px;margin:0 auto;padding:96px clamp(1.5rem,4vw,2.5rem) 80px}
+.post-wrap{max-width:720px;margin:0 auto;padding:86px clamp(1.5rem,4vw,2.5rem) 80px}
 .back-link{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.88rem;color:var(--text3);text-decoration:none;display:inline-block;margin-bottom:24px;transition:color .2s}
 .back-link:hover{color:var(--accent)}
 .post-title{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:700;color:var(--text);line-height:1.15;letter-spacing:-.5px;margin-bottom:10px}
@@ -92,6 +92,15 @@ nav .inner{display:flex;align-items:center;justify-content:space-between;padding
 .post-card-desc{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;color:var(--text2);font-size:.93rem;line-height:1.55}
 .empty-state{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;color:var(--text3);padding:40px 0}
 
+/* ── Breadcrumb ── */
+.bc{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.82rem;padding:10px 0 4px}
+.bc ol{list-style:none;display:flex;align-items:center;gap:0;padding:0;margin:0}
+.bc li{display:flex;align-items:center}
+.bc li+li::before{content:"›";padding:0 6px;color:var(--text3);font-size:.9em}
+.bc a{color:var(--text3);text-decoration:none;transition:color .2s}
+.bc a:hover{color:var(--accent)}
+.bc [aria-current]{color:var(--text2);font-weight:500}
+
 /* ── Footer ── */
 .site-footer{background:#191918;color:#8a8a7f;padding:28px 24px;text-align:center;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.82rem;line-height:1.6}
 .site-footer a{color:#8a8a7f;text-underline-offset:3px}
@@ -118,7 +127,13 @@ nav .inner{display:flex;align-items:center;justify-content:space-between;padding
 <main class="post-wrap">
   <article>
     <header>
-      <a href="/blog" class="back-link">&larr; All posts</a>
+      <nav class="bc" aria-label="Breadcrumb">
+        <ol>
+          <li><a href="/">Home</a></li>
+          <li><a href="/blog">Blog</a></li>
+          <li><span aria-current="page">The 5 CCA Foundations Exam Domains Explained</span></li>
+        </ol>
+      </nav>
       <h1 class="post-title">The 5 CCA Foundations Exam Domains Explained</h1>
       <p class="post-meta"><time datetime="2026-04-19">April 19, 2026</time></p>
     </header>
