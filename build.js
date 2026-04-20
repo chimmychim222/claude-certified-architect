@@ -395,13 +395,13 @@ ${blogNav('/blog')}
 <main class="post-wrap">
   <article>
     <header>
-      <nav class="bc" aria-label="Breadcrumb">
+      <div class="bc" role="navigation" aria-label="Breadcrumb">
         <ol>
           <li><a href="/">Home</a></li>
           <li><a href="/blog">Blog</a></li>
           <li><span aria-current="page">${escHtml(post.h1 || post.title)}</span></li>
         </ol>
-      </nav>
+      </div>
       <h1 class="post-title">${escHtml(post.h1 || post.title)}</h1>
       <p class="post-meta"><time datetime="${post.date}">${formatDate(post.date)}</time></p>
     </header>
@@ -460,9 +460,9 @@ ${sharedCSS()}
 <body>
 ${blogNav('/blog')}
 <main class="blog-wrap">
-  <nav class="bc" aria-label="Breadcrumb">
+  <div class="bc" role="navigation" aria-label="Breadcrumb">
     <ol><li><a href="/">Home</a></li><li><span aria-current="page">Blog</span></li></ol>
-  </nav>
+  </div>
   <header class="blog-header">
     <h1>Blog</h1>
     <p>Guides and insights on Claude architecture, prompt engineering, and CCA exam prep.</p>
