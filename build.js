@@ -373,7 +373,7 @@ ${blogNav('/blog')}
   <article>
     <header>
       <a href="/blog" class="back-link">&larr; All posts</a>
-      <h1 class="post-title">${escHtml(post.title)}</h1>
+      <h1 class="post-title">${escHtml(post.h1 || post.title)}</h1>
       <p class="post-meta"><time datetime="${post.date}">${formatDate(post.date)}</time></p>
     </header>
     <div class="post-body">
