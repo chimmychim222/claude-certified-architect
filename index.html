@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3ERZD33VQB"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-3ERZD33VQB');</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Claude Certified Architect | CCA Foundations Prep 2026</title>
 <meta name="description" content="Prepare for the CCA Foundations exam with 300 scenario-based questions, timed practice tests, and domain-weighted scoring across all 5 exam domains.">
@@ -868,6 +870,7 @@ function initAuthListener() {
             enrolledAt: firebase.firestore.FieldValue.serverTimestamp()
           }, { merge: true });
         } catch(e) { console.warn('Firestore write error:', e); }
+        if(typeof gtag!=='undefined'){gtag('event','exam_purchase',{currency:'USD',value:49,transaction_id:user.uid+'_'+Date.now()});}
         document.getElementById('success-banner').style.display = 'block';
         window.history.replaceState({}, '', window.location.pathname);
         showSection('dashboard');
@@ -1070,6 +1073,7 @@ function checkPaymentSuccess() {
     // Non-Firebase fallback
     enrolled = true;
     localStorage.setItem('cca_enrolled', 'true');
+    if(typeof gtag!=='undefined'){gtag('event','exam_purchase',{currency:'USD',value:49,transaction_id:'anon_'+Date.now()});}
     document.getElementById('success-banner').style.display = 'block';
     window.history.replaceState({}, '', window.location.pathname);
     showSection('dashboard');

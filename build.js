@@ -372,6 +372,8 @@ function generateBlogPost(post) {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3ERZD33VQB"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-3ERZD33VQB');</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>${escHtml(post.title)} | Claude Certified Architects</title>
 <meta name="description" content="${escAttr(post.description)}">
@@ -440,6 +442,8 @@ function generateBlogIndex(posts) {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3ERZD33VQB"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-3ERZD33VQB');</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Blog | Claude Certified Architects</title>
 <meta name="description" content="Articles and guides on Claude architecture, prompt engineering, MCP, and passing the CCA Foundations exam.">
