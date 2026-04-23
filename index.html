@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GT-K8FC4RXW');</script>
+<!-- End Google Tag Manager -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Claude Certified Architect | CCA Foundations Prep 2026</title>
 <meta name="description" content="Prepare for the CCA Foundations exam with 300 scenario-based questions, timed practice tests, and domain-weighted scoring across all 5 exam domains.">
@@ -413,6 +416,9 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
 </style>
 </head>
 <body>
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GT-K8FC4RXW" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
 
 <!-- ═══════ NAV ═══════ -->
 <nav>
@@ -674,9 +680,9 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
 <footer><div class="container"><div style="margin-bottom:12px"><a href="/cca-foundations-exam">CCA Foundations Exam</a> · <a href="/cca-practice-questions">Practice Questions</a> · <a href="/cca-exam-guide">Exam Guide</a> · <a href="/blog">Blog</a></div>Claude Certified Architect Practice Platform · For educational and practice purposes · Not affiliated with Anthropic's official certification program</div></footer>
 
 <!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
 <script>
 // ═══════════════════════════════════════
@@ -757,14 +763,16 @@ const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/cNi28k2GE7LngeRcc03ks00';
 let firebaseReady = false;
 let db = null;
 let auth = null;
-try {
-  firebase.initializeApp(firebaseConfig);
-  auth = firebase.auth();
-  db = firebase.firestore();
-  firebaseReady = true;
-} catch(e) {
-  console.warn('Firebase not configured yet. Auth features disabled.', e);
-}
+document.addEventListener('DOMContentLoaded', function() {
+  try {
+    firebase.initializeApp(firebaseConfig);
+    auth = firebase.auth();
+    db = firebase.firestore();
+    firebaseReady = true;
+  } catch(e) {
+    console.warn('Firebase not configured yet. Auth features disabled.', e);
+  }
+});
 
 // ═══════════════════════════════════════
 // AUTH STATE
