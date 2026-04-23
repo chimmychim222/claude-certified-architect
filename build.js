@@ -101,7 +101,7 @@ const examSchemas = [
     '@type': 'WebPage',
     name: 'CCA Foundations Exam Practice | Claude Certified Architect',
     description: 'Full-length CCA Foundations exam simulation with 60 timed, domain-weighted questions. Mirrors the official Claude Certified Architect certification format.',
-    url: BASE + '/cca-foundations-exam',
+    url: BASE + '/cca-foundations-exam/',
     isPartOf: { '@type': 'WebSite', url: BASE }
   },
   breadcrumb([
@@ -117,7 +117,7 @@ const questionsSchemas = [
     '@type': 'WebPage',
     name: 'CCA Practice Questions | 300 Scenario-Based Exam Prep',
     description: '300 scenario-based practice questions covering all 5 CCA Foundations exam domains with detailed explanations and domain-weighted scoring.',
-    url: BASE + '/cca-practice-questions',
+    url: BASE + '/cca-practice-questions/',
     isPartOf: { '@type': 'WebSite', url: BASE }
   },
   breadcrumb([
@@ -133,7 +133,7 @@ const guideSchemas = [
     '@type': 'Article',
     headline: 'CCA Exam Guide \u2014 How to Pass the Claude Certified Architect Exam',
     description: 'Complete guide to the CCA Foundations exam format, domains, scoring, and study strategies.',
-    url: BASE + '/cca-exam-guide',
+    url: BASE + '/cca-exam-guide/',
     publisher: { '@type': 'Organization', name: 'Claude Certified Architects', url: BASE },
     isPartOf: { '@type': 'WebSite', url: BASE }
   },
@@ -501,12 +501,12 @@ function generateSitemap(posts = []) {
 
   const pages = [
     { loc: BASE + '/',                         priority: '1.0', changefreq: 'weekly',  lastmod: today },
-    { loc: BASE + '/cca-foundations-exam',     priority: '0.9', changefreq: 'weekly',  lastmod: today },
-    { loc: BASE + '/cca-practice-questions',   priority: '0.9', changefreq: 'weekly',  lastmod: today },
-    { loc: BASE + '/cca-exam-guide',           priority: '0.8', changefreq: 'monthly', lastmod: today },
-    { loc: BASE + '/blog',                     priority: '0.7', changefreq: 'weekly',  lastmod: today },
+    { loc: BASE + '/cca-foundations-exam/',     priority: '0.9', changefreq: 'weekly',  lastmod: today },
+    { loc: BASE + '/cca-practice-questions/',   priority: '0.9', changefreq: 'weekly',  lastmod: today },
+    { loc: BASE + '/cca-exam-guide/',           priority: '0.8', changefreq: 'monthly', lastmod: today },
+    { loc: BASE + '/blog/',                     priority: '0.7', changefreq: 'weekly',  lastmod: today },
     ...posts.map(p => ({
-      loc:        `${BASE}/blog/${p.slug}`,
+      loc:        `${BASE}/blog/${p.slug}/`,
       priority:   '0.8',
       changefreq: 'monthly',
       lastmod:    p.date
