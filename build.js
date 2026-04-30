@@ -143,6 +143,22 @@ const guideSchemas = [
   ])
 ];
 
+/** Schemas for /register */
+const registerSchemas = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: 'Register for the Claude Certified Architect Exam',
+    description: "Request access to the official CCA Foundations exam through Anthropic's Skilljar portal.",
+    url: BASE + '/register/',
+    isPartOf: { '@type': 'WebSite', url: BASE }
+  },
+  breadcrumb([
+    { name: 'Home',     url: BASE },
+    { name: 'Register', url: BASE + '/register' }
+  ])
+];
+
 // ---------------------------------------------------------------------------
 // Helpers — existing pages
 // ---------------------------------------------------------------------------
@@ -315,6 +331,7 @@ function blogNav(activePage) {
       ${link('/cca-foundations-exam', 'Exam Sim')}
       ${link('/cca-exam-guide', 'Guide')}
       ${link('/blog', 'Blog')}
+      ${link('/register', 'Register')}
     </div>
     <a href="/" class="nav-cta">Start Practicing</a>
     <button class="nav-hamburger" aria-label="Toggle menu"
@@ -505,6 +522,7 @@ function generateSitemap(posts = []) {
     { loc: BASE + '/cca-practice-questions/',   priority: '0.9', changefreq: 'weekly',  lastmod: today },
     { loc: BASE + '/cca-exam-guide/',           priority: '0.8', changefreq: 'monthly', lastmod: today },
     { loc: BASE + '/blog/',                     priority: '0.7', changefreq: 'weekly',  lastmod: today },
+    { loc: BASE + '/register/',               priority: '0.8', changefreq: 'monthly', lastmod: today },
     ...posts.map(p => ({
       loc:        `${BASE}/blog/${p.slug}/`,
       priority:   '0.8',
@@ -547,6 +565,10 @@ processFile(path.join(__dirname, 'cca-practice-questions', 'index.html'),
 
 processFile(path.join(__dirname, 'cca-exam-guide',         'index.html'),
   ...guideSchemas);
+
+processFile(path.join(__dirname, 'register', 'index.html'),
+  ...registerSchemas);
+
 
 console.log('\nBuilding blog…\n');
 
