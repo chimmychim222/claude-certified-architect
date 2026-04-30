@@ -307,7 +307,7 @@ function blogNav(activePage) {
     const cls = activePage === href ? ' class="active"' : '';
     return `<a href="${href}"${cls}>${label}</a>`;
   };
-  return `<nav>
+  return `<nav aria-label="Main navigation">
   <div class="inner">
     <a href="/" class="nav-logo">CCA <span>Practice Platform</span></a>
     <div class="nav-links" id="blog-nav-links">

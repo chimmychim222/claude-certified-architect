@@ -413,6 +413,7 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
   .success-stat .counter-label{font-size:.75rem}
   .testimonials-header h2{font-size:1.4rem}
 }
+:focus{outline:none}:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:3px}
 </style>
 </head>
 <body>
@@ -421,10 +422,10 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
 <!-- End Google Tag Manager (noscript) -->
 
 <!-- ═══════ NAV ═══════ -->
-<nav>
+<nav aria-label="Main navigation">
   <div class="inner">
     <div class="logo">Claude Architect <span>Certification</span></div>
-    <div class="hamburger" onclick="toggleMobileNav()" id="hamburger"><span></span><span></span><span></span></div>
+    <button class="hamburger" onclick="toggleMobileNav()" id="hamburger" aria-label="Toggle navigation" aria-expanded="false"><span></span><span></span><span></span></button>
     <div class="nav-links" id="nav-links">
       <button onclick="showSection('home')" class="active" data-nav="home">Home</button>
       <a href="/cca-foundations-exam" style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:8px 16px;border-radius:var(--radius-sm);font-size:.88rem;color:var(--text2);transition:all .2s;text-decoration:none">Exam</a>
@@ -446,9 +447,9 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
 </nav>
 
 <!-- ═══════ AUTH MODAL ═══════ -->
-<div class="modal-overlay" id="auth-modal">
+<div class="modal-overlay" id="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
   <div class="modal">
-    <span class="close-btn" onclick="closeAuthModal()">&times;</span>
+    <button class="close-btn" onclick="closeAuthModal()" aria-label="Close dialog">&times;</button>
     <h2 id="auth-modal-title">Log In</h2>
     <div class="auth-error" id="auth-error"></div>
     <div id="auth-form-area">
@@ -581,7 +582,7 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
       </ul>
       <button class="btn-primary" style="width:100%;padding:16px" onclick="openPaymentModal()">Proceed to Secure Checkout</button>
       <div style="margin-top:16px;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--text3);font-size:.75rem">
-        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         Powered by Stripe · 10-day money-back guarantee · Secure checkout
       </div>
     </div>
@@ -2873,7 +2874,7 @@ function renderDots() {
     let cls = '';
     if (i === t.current) cls = 'current';
     else if (t.answers[i] >= 0) cls = 'answered';
-    html += `<div class="q-dot ${cls}" onclick="jumpToQuestion(${i})">${i+1}</div>`;
+    html += `<div class="q-dot ${cls}" onclick="jumpToQuestion(${i})" role="button" tabindex="0" aria-label="Question ${i+1}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();jumpToQuestion(${i})}">${i+1}</div>`;
   }
   document.getElementById('question-dots').innerHTML = html;
 }
@@ -2986,12 +2987,14 @@ function toggleMobileNav() {
   const hamburger = document.getElementById('hamburger');
   nav.classList.toggle('mobile-open');
   hamburger.classList.toggle('open');
+  hamburger.setAttribute('aria-expanded', nav.classList.contains('mobile-open') ? 'true' : 'false');
 }
 function closeMobileNav() {
   const nav = document.getElementById('nav-links');
   const hamburger = document.getElementById('hamburger');
   nav.classList.remove('mobile-open');
   hamburger.classList.remove('open');
+  hamburger.setAttribute('aria-expanded', 'false');
 }
 // Close mobile nav when a nav link is clicked
 document.querySelectorAll('.nav-links button[data-nav]').forEach(btn => {
