@@ -395,11 +395,11 @@ function generateBlogPost(post) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>${escHtml(post.title)} | Claude Certified Architects</title>
 <meta name="description" content="${escAttr(post.description)}">
-<link rel="canonical" href="${BASE}/blog/${post.slug}">
+<link rel="canonical" href="${BASE}/blog/${post.slug}/">
 <meta property="og:type" content="article">
 <meta property="og:title" content="${escAttr(post.title)}">
 <meta property="og:description" content="${escAttr(post.description)}">
-<meta property="og:url" content="${BASE}/blog/${post.slug}">
+<meta property="og:url" content="${BASE}/blog/${post.slug}/">
 <meta property="og:site_name" content="Claude Certified Architects">
 <meta property="og:image" content="${ogImg}">
 <meta property="article:published_time" content="${post.date}">
@@ -469,11 +469,11 @@ function generateBlogIndex(posts) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Blog | Claude Certified Architects</title>
 <meta name="description" content="Articles and guides on Claude architecture, prompt engineering, MCP, and passing the CCA Foundations exam.">
-<link rel="canonical" href="${BASE}/blog">
+<link rel="canonical" href="${BASE}/blog/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Blog | Claude Certified Architects">
 <meta property="og:description" content="Articles and guides on Claude architecture, prompt engineering, MCP, and passing the CCA Foundations exam.">
-<meta property="og:url" content="${BASE}/blog">
+<meta property="og:url" content="${BASE}/blog/">
 <meta property="og:site_name" content="Claude Certified Architects">
 <meta property="og:image" content="${BASE}/og-image-v2.png">
 <meta name="twitter:card" content="summary_large_image">
