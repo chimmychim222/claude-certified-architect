@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GT-K8FC4RXW');</script>
+<!-- End Google Tag Manager -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>7 Anti-Patterns That Fail CCA Candidates on Their First Attempt | Claude Certified Architects</title>
+<meta name="description" content="The seven architectural anti-patterns that appear repeatedly on the CCA Foundations exam — and why candidates who recognize them pass while candidates who don't, fail.">
+<link rel="canonical" href="https://www.claudecertifiedarchitects.com/blog/cca-exam-anti-patterns">
+<meta property="og:type" content="article">
+<meta property="og:title" content="7 Anti-Patterns That Fail CCA Candidates on Their First Attempt">
+<meta property="og:description" content="The seven architectural anti-patterns that appear repeatedly on the CCA Foundations exam — and why candidates who recognize them pass while candidates who don't, fail.">
+<meta property="og:url" content="https://www.claudecertifiedarchitects.com/blog/cca-exam-anti-patterns">
+<meta property="og:site_name" content="Claude Certified Architects">
+<meta property="og:image" content="https://www.claudecertifiedarchitects.com/og-image-v2.png">
+<meta property="article:published_time" content="2026-04-28">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="7 Anti-Patterns That Fail CCA Candidates on Their First Attempt">
+<meta name="twitter:description" content="The seven architectural anti-patterns that appear repeatedly on the CCA Foundations exam — and why candidates who recognize them pass while candidates who don't, fail.">
+<meta name="twitter:image" content="https://www.claudecertifiedarchitects.com/og-image-v2.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"7 Anti-Patterns That Fail CCA Candidates on Their First Attempt","description":"The seven architectural anti-patterns that appear repeatedly on the CCA Foundations exam — and why candidates who recognize them pass while candidates who don't, fail.","url":"https://www.claudecertifiedarchitects.com/blog/cca-exam-anti-patterns","datePublished":"2026-04-28","dateModified":"2026-04-28","image":"https://www.claudecertifiedarchitects.com/og-image-v2.png","publisher":{"@type":"Organization","name":"Claude Certified Architects","url":"https://www.claudecertifiedarchitects.com"},"author":{"@type":"Organization","name":"Claude Certified Architects","url":"https://www.claudecertifiedarchitects.com"},"isPartOf":{"@type":"WebSite","url":"https://www.claudecertifiedarchitects.com"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.claudecertifiedarchitects.com"},{"@type":"ListItem","position":2,"name":"Blog","item":"https://www.claudecertifiedarchitects.com/blog"},{"@type":"ListItem","position":3,"name":"7 Anti-Patterns That Fail CCA Candidates on Their First Attempt","item":"https://www.claudecertifiedarchitects.com/blog/cca-exam-anti-patterns"}]}</script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f3ea;--surface:#fff;--border:#d9d5ca;
+  --text:#191918;--text2:#5a5a52;--text3:#8a8a7f;
+  --accent:#d97757;--accent2:#c4623f;--accent3:#a8502f;
+  --radius:8px;
+}
+html{scroll-behavior:smooth}
+body{font-family:Georgia,'Times New Roman',serif;background:var(--bg);color:var(--text);line-height:1.7;overflow-x:hidden;min-height:100vh}
+a{color:var(--accent);text-decoration:underline;text-underline-offset:3px;transition:color .2s}
+a:hover{color:var(--accent3)}
+
+/* ── Nav ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(245,243,234,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+nav .inner{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;max-width:1100px;margin:0 auto;gap:12px}
+.nav-logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1rem;font-weight:600;color:var(--text);text-decoration:none;letter-spacing:-.3px;white-space:nowrap}
+.nav-logo span{color:var(--text3);font-weight:400;font-size:.82rem;margin-left:6px}
+.nav-links{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.nav-links a{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:8px 14px;border-radius:6px;font-size:.88rem;color:var(--text2);text-decoration:none;transition:all .2s;white-space:nowrap}
+.nav-links a:hover{color:var(--text);background:rgba(0,0,0,.04)}
+.nav-links a.active{color:var(--text);font-weight:600}
+.nav-cta{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;background:var(--accent);color:#fff !important;padding:8px 18px;border-radius:6px;font-size:.88rem;font-weight:600;text-decoration:none !important;transition:background .2s;white-space:nowrap}
+.nav-cta:hover{background:var(--accent2) !important}
+.nav-hamburger{display:none;flex-direction:column;justify-content:center;gap:5px;padding:6px;cursor:pointer;border:none;background:none;margin-left:auto;flex-shrink:0}
+.nav-hamburger span{display:block;width:22px;height:2px;background:var(--text);border-radius:2px;transition:transform .25s,opacity .25s}
+@media(max-width:660px){
+  nav .inner{flex-wrap:nowrap}
+  .nav-links{display:none !important;position:absolute;top:100%;left:0;right:0;flex-direction:column;background:rgba(245,243,234,.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:12px 16px;gap:0;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+  .nav-links.open{display:flex !important}
+  .nav-links a{padding:12px 16px;border-radius:6px;width:100%;text-align:left;white-space:normal}
+  .nav-cta{display:none !important}
+  .nav-hamburger{display:flex !important}
+}
+
+/* ── Post page ── */
+.post-wrap{max-width:720px;margin:0 auto;padding:86px clamp(1.5rem,4vw,2.5rem) 80px}
+.back-link{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.88rem;color:var(--text3);text-decoration:none;display:inline-block;margin-bottom:24px;transition:color .2s}
+.back-link:hover{color:var(--accent)}
+.post-title{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:700;color:var(--text);line-height:1.15;letter-spacing:-.5px;margin-bottom:10px}
+.post-meta{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.85rem;color:var(--text3);padding-bottom:28px;border-bottom:1px solid var(--border);margin-bottom:32px}
+
+/* ── Post body typography ── */
+.post-body{font-size:1.05rem;line-height:1.78}
+.post-body h2{font-size:1.45rem;font-weight:700;color:var(--text);margin:2.2em 0 .65em;letter-spacing:-.3px;line-height:1.25}
+.post-body h3{font-size:1.15rem;font-weight:700;color:var(--text);margin:1.8em 0 .5em;line-height:1.3}
+.post-body p{margin-bottom:1.2em}
+.post-body ul,.post-body ol{margin:0 0 1.2em 1.4em}
+.post-body li{margin-bottom:.4em}
+.post-body strong{font-weight:700;color:var(--text)}
+.post-body code{font-family:'Courier New',monospace;font-size:.87em;background:#e8e5dc;padding:2px 6px;border-radius:4px;color:var(--accent2)}
+.post-body pre{background:#191918;color:#f5f3ea;padding:20px 24px;border-radius:var(--radius);overflow-x:auto;margin:1.5em 0;font-family:'Courier New',monospace;font-size:.87em;line-height:1.6}
+.post-body pre code{background:none;padding:0;color:inherit}
+.post-body blockquote{border-left:3px solid var(--accent);padding:10px 18px;margin:1.5em 0;color:var(--text2);font-style:italic}
+.post-body hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.post-body table{width:100%;border-collapse:collapse;margin:1.5em 0;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.9rem}
+.post-body th{text-align:left;padding:10px 14px;border-bottom:2px solid var(--border);font-weight:600;color:var(--text)}
+.post-body td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text2)}
+
+/* ── Blog index ── */
+.blog-wrap{max-width:720px;margin:0 auto;padding:96px clamp(1.5rem,4vw,2.5rem) 80px}
+.blog-header{margin-bottom:44px;padding-bottom:28px;border-bottom:1px solid var(--border)}
+.blog-header h1{font-size:clamp(2rem,4vw,2.75rem);font-weight:700;letter-spacing:-.5px;margin-bottom:8px}
+.blog-header p{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;color:var(--text2);font-size:.97rem}
+.post-list{display:flex;flex-direction:column;gap:0}
+.post-card{padding:28px 0;border-bottom:1px solid var(--border)}
+.post-card-date{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.82rem;color:var(--text3);margin-bottom:5px}
+.post-card-title{font-size:1.22rem;font-weight:700;margin-bottom:7px;line-height:1.3}
+.post-card-title a{color:var(--text);text-decoration:none;transition:color .2s}
+.post-card-title a:hover{color:var(--accent)}
+.post-card-desc{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;color:var(--text2);font-size:.93rem;line-height:1.55}
+.empty-state{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;color:var(--text3);padding:40px 0}
+
+/* ── Breadcrumb ── */
+.bc{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.82rem;padding:10px 0 4px}
+.bc ol{list-style:none;display:flex;align-items:center;gap:0;padding:0;margin:0}
+.bc li{display:flex;align-items:center}
+.bc li+li::before{content:"›";padding:0 6px;color:var(--text3);font-size:.9em}
+.bc a{color:var(--text3);text-decoration:none;transition:color .2s}
+.bc a:hover{color:var(--accent)}
+.bc [aria-current]{color:var(--text2);font-weight:500}
+
+/* ── Footer ── */
+.site-footer{background:#191918;color:#8a8a7f;padding:28px 24px;text-align:center;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.82rem;line-height:1.6}
+.site-footer a{color:#8a8a7f;text-underline-offset:3px}
+.site-footer a:hover{color:#f5f3ea}
+</style>
+</head>
+<body>
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GT-K8FC4RXW" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+<nav aria-label="Main navigation">
+  <div class="inner">
+    <a href="/" class="nav-logo">CCA <span>Practice Platform</span></a>
+    <div class="nav-links" id="blog-nav-links">
+      <a href="/cca-practice-questions">Practice</a>
+      <a href="/cca-foundations-exam">Exam Sim</a>
+      <a href="/cca-exam-guide">Guide</a>
+      <a href="/blog" class="active">Blog</a>
+    </div>
+    <a href="/" class="nav-cta">Start Practicing</a>
+    <button class="nav-hamburger" aria-label="Toggle menu"
+      onclick="document.getElementById('blog-nav-links').classList.toggle('open')">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+<main class="post-wrap">
+  <article>
+    <header>
+      <div class="bc" role="navigation" aria-label="Breadcrumb">
+        <ol>
+          <li><a href="/">Home</a></li>
+          <li><a href="/blog">Blog</a></li>
+          <li><span aria-current="page">7 Anti-Patterns That Fail CCA Candidates on Their First Attempt</span></li>
+        </ol>
+      </div>
+      <h1 class="post-title">7 Anti-Patterns That Fail CCA Candidates on Their First Attempt</h1>
+      <p class="post-meta"><time datetime="2026-04-28">April 28, 2026</time></p>
+    </header>
+    <div class="post-body">
+      <p>The CCA Foundations exam doesn't test whether you know Claude's API. It tests whether you know how to <em>architect</em> with it — and the fastest way to calibrate that judgment is to study the mistakes that well-intentioned architects make repeatedly. Every anti-pattern below has a recognisable signature on the exam: two answer choices that both look defensible, where one is architecturally correct and one commits a mistake you'll regret in production. Candidates who have seen these patterns fail less often. Candidates who haven't encounter them for the first time under exam conditions.</p>
+
+<p>These seven anti-patterns appear across all five CCA domains. They were identified from production incident post-mortems, from the patterns that distinguish strong from weak architectural decisions in scenario-based questions, and from what the exam is specifically designed to surface. Study each one until you can explain not just what's wrong but <em>why</em> it's wrong under load.</p>
+
+<h2>Anti-Pattern 1: Using Prompts to Enforce Tool Ordering</h2>
+<p>The mistake: an agent has two tools that must be called in a specific sequence — say, <code>validate_input</code> before <code>process_payment</code> — and the developer instructs Claude in the system prompt to always call them in that order.</p>
+<p>Why it fails: prompts are probabilistic. They influence Claude's behaviour but do not guarantee it. Under novel inputs, edge cases, or after context compaction has summarised away part of the instruction history, the ordering instruction can be ignored or deprioritised. In a payment flow, that means <code>process_payment</code> executes on unvalidated input.</p>
+<p><strong>The correct approach:</strong> enforce prerequisites programmatically. Gate the <code>process_payment</code> tool at the infrastructure level so it cannot be called unless <code>validate_input</code> has returned a success response. The orchestration layer — not the model — is responsible for enforcing control flow with hard dependencies. Reserve the system prompt for guidance, not guarantees.</p>
+<p><strong>How it appears on the exam:</strong> a scenario presents a multi-tool agent with a sequential dependency and asks how to ensure the correct execution order. The correct answer always enforces the constraint outside the prompt. Any answer that relies on prompt instructions alone for safety-critical ordering is wrong.</p>
+
+<h2>Anti-Pattern 2: Using Model Confidence for Escalation Routing</h2>
+<p>The mistake: an agent is configured to escalate to a human operator when Claude's confidence in its answer is low. The developer treats Claude's expressed certainty as a reliable signal for routing decisions.</p>
+<p>Why it fails: large language models — including Claude — are not well-calibrated for confidence. A model can be highly confident in an incorrect answer. It can be hesitant about a correct one. Expressed uncertainty in the output text does not reliably track actual accuracy on any specific query, particularly on out-of-distribution inputs that are exactly the kind that most benefit from human review.</p>
+<p><strong>The correct approach:</strong> base escalation routing on explicit, verifiable signals — tool call failures, constraint violations, user-defined triggers (e.g. "involves a transaction above $10,000"), or task-type classification. Where uncertainty thresholds are needed, build separate evaluator agents or heuristic classifiers to assess output quality, rather than asking the generating model to self-report it reliably.</p>
+<p><strong>How it appears on the exam:</strong> a scenario asks how an agent should handle low-confidence situations. Answers that route on the model's expressed confidence are incorrect. The correct answer routes on structured, externally-defined conditions.</p>
+
+<h2>Anti-Pattern 3: Routing All Async Work to the Batch API</h2>
+<p>The mistake: a developer learns that the Batch API offers 50% cost savings and decides to route all non-interactive workloads through it — including workflows that have implicit or undocumented SLA requirements.</p>
+<p>Why it fails: the Batch API is optimised for throughput, not latency. Batch requests are processed within a 24-hour window. "Non-interactive" does not mean "without time constraints." A nightly report generation job, a partner integration that expects a webhook response within 30 minutes, or an internal pipeline with a downstream dependency all have time constraints that make batch routing incorrect regardless of whether a human is watching a loading spinner.</p>
+<p><strong>The correct approach:</strong> classify tasks by their latency requirements, not their interactivity. Use the Batch API exclusively for workloads with genuinely flexible completion windows where cost is the primary constraint. Use synchronous requests for any workflow with a defined SLA, even if that SLA is hours rather than seconds.</p>
+<p><strong>How it appears on the exam:</strong> a scenario describes a background task and asks which API to use. The correct answer depends on the SLA stated in the scenario — not on whether the task is "background" or "async." Candidates who default to Batch API for all non-interactive tasks lose these marks predictably.</p>
+
+<h2>Anti-Pattern 4: Treating a Larger Context Window as an Attention Solution</h2>
+<p>The mistake: a production system is producing inconsistent outputs on long inputs. The developer's diagnosis is that Claude isn't "seeing" all the relevant content, and the fix is to increase the context window size or use a model with a larger window.</p>
+<p>Why it fails: attention distribution in transformer models is not uniform across the context. Research consistently shows that content in the middle of a very long context receives less reliable attention than content at the beginning or end — the "lost in the middle" problem. Adding more context can make this worse, not better, by burying relevant content deeper into the attention trough.</p>
+<p><strong>The correct approach:</strong> restructure the input. Place the most critical information — the precise instructions, the most relevant context, the content the model needs to act on — at the beginning or end of the input, not the middle. Use retrieval to surface only the relevant content rather than loading everything. Shrinking the context to what's necessary is often more effective than expanding it.</p>
+<p><strong>How it appears on the exam:</strong> a scenario presents an agent producing poor results on long documents and asks for the best fix. Increasing context window size is an incorrect answer. The correct answer restructures, retrieves, or compacts the input.</p>
+
+<h2>Anti-Pattern 5: Returning Empty Results on Subagent Failure</h2>
+<p>The mistake: in a multi-agent system, one subagent fails — a tool times out, a permission is denied, an API returns an error — and the orchestrator silently omits that subagent's contribution from the final output without surfacing the failure.</p>
+<p>Why it fails: silent failure propagation is one of the most dangerous patterns in agentic systems. The user receives a result that appears complete but is missing a component they're unaware of. In a research agent summarising five data sources, a silent failure on one source produces a summary missing 20% of the relevant information — presented with the same confidence as a complete result.</p>
+<p><strong>The correct approach:</strong> surface all failures explicitly. Return results from successful subagents, but clearly identify which subagent failed, why it failed, and what was not completed. Give the user or orchestrator the information needed to decide whether to retry, continue with partial results, or abort. Transparency about incomplete results is always preferable to silent omission.</p>
+<p><strong>How it appears on the exam:</strong> a scenario describes a subagent failure and asks how the orchestrator should respond. Any answer that silently returns partial results is wrong. The correct answer surfaces the failure and gives the user actionable information about what is missing.</p>
+
+<h2>Anti-Pattern 6: Giving All Tools to All Agents</h2>
+<p>The mistake: a multi-agent system is built with a shared tool registry, and every subagent — regardless of its specific role — is initialised with access to the full set of available tools.</p>
+<p>Why it fails: tool selection quality degrades as the tool set grows. A model choosing from 40 tools makes worse selection decisions than the same model choosing from 8 tools scoped to its specific task. Beyond selection accuracy, the minimal-footprint principle requires that agents be granted only the permissions needed for their defined role. A summarisation subagent with access to a <code>delete_database_record</code> tool is an accident waiting for the right edge case.</p>
+<p><strong>The correct approach:</strong> scope tool access to role. Each subagent receives only the tools required to complete its specific task. A research subagent gets read-access search tools. A writing subagent gets content tools. An orchestrator gets coordination tools. This improves selection accuracy, enforces the minimal-footprint principle, and limits blast radius if a subagent behaves unexpectedly.</p>
+<p><strong>How it appears on the exam:</strong> scenarios involving agent tool access almost always test this principle. An agent that has been given broad tool access and is making poor selections is almost always fixed by narrowing — not improving descriptions, and not adding more tools.</p>
+
+<h2>Anti-Pattern 7: Using Prompts Alone for Output Schema Enforcement</h2>
+<p>The mistake: a production system needs Claude to return JSON in a specific schema. The developer adds detailed instructions to the system prompt describing the required format and relies on those instructions to guarantee valid JSON output.</p>
+<p>Why it fails: like tool ordering, prompts are probabilistic. Claude will follow formatting instructions with high reliability under normal conditions. Under novel prompts, unusual inputs, or long context windows where instruction salience diminishes, schema deviations occur. In a downstream system that parses the JSON and passes the result to a database write operation, a single malformed response can cause a silent failure or an exception that breaks the pipeline.</p>
+<p><strong>The correct approach:</strong> use structured output tools. Claude's API supports forced JSON output via <code>tool_use</code> with a defined <code>input_schema</code> — this constrains the output format at the generation level, not at the instruction level. Combine structured output with server-side validation. Treat prompt instructions as guidance for content, not enforcement for structure. Structure is the infrastructure layer's responsibility.</p>
+<p><strong>How it appears on the exam:</strong> a scenario describes a system that needs reliable JSON output and asks how to ensure schema compliance. Prompt instructions alone as the answer is always wrong. The correct answer uses structured output via tool use, or structured output combined with validation.</p>
+
+<h2>The Pattern Behind the Patterns</h2>
+<p>Every anti-pattern above shares a common root: treating the model as more reliable than it is for tasks that require guarantees. Prompts guide. Infrastructure enforces. The CCA exam is designed to verify that you understand this distinction at the architectural level — not just intellectually, but in enough practical detail to make correct design choices when two options both look reasonable.</p>
+
+<p>The fastest way to internalise these patterns isn't to memorise this list. It's to practise enough scenario-based questions that the distinction between "good-enough for demos" and "correct for production" becomes automatic. That calibration is what the exam is measuring, and it's what your users will depend on in production.</p>
+
+<hr>
+<p>Ready to test your pattern recognition? Our platform has 300 scenario-based questions across all five domains, each with a detailed explanation covering exactly this kind of architectural reasoning. <a href="/cca-practice-questions">Start with the free practice question bank</a>, or jump directly into the <a href="/cca-foundations-exam">full 60-question timed simulation</a>.</p>
+    </div>
+  </article>
+</main>
+<footer class="site-footer">
+  <p>&copy; 2026 Claude Certified Architects &nbsp;&middot;&nbsp;
+     <a href="/">Home</a> &nbsp;&middot;&nbsp;
+     <a href="/blog">Blog</a> &nbsp;&middot;&nbsp;
+     For educational purposes only. Not affiliated with Anthropic.</p>
+</footer>
+</body>
+</html>
