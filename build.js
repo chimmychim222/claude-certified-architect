@@ -510,6 +510,38 @@ ${blogFooter()}
 }
 
 // ---------------------------------------------------------------------------
+// Homepage — inject 3 most-recent posts into <!-- cca:recent-posts --> block
+// ---------------------------------------------------------------------------
+
+function injectRecentPosts(posts) {
+  const recent = posts.slice(0, 3);
+  const cards = recent.map(p => `
+    <a href="/blog/${p.slug}/" class="bp-card">
+      <div class="bp-date">${formatDate(p.date)}</div>
+      <div class="bp-title">${escHtml(p.title)}</div>
+      <p class="bp-desc">${escHtml(p.description)}</p>
+    </a>`).join('');
+
+  const block = `<!-- cca:recent-posts:start -->
+<section class="blog-preview">
+  <div class="bp-inner">
+    <div class="section-label">FROM THE BLOG</div>
+    <h2>Latest Articles</h2>
+    <div class="bp-grid">${cards}
+    </div>
+    <a href="/blog/" class="bp-all">View all articles →</a>
+  </div>
+</section>
+<!-- cca:recent-posts:end -->`;
+
+  const indexPath = path.join(__dirname, 'index.html');
+  let html = fs.readFileSync(indexPath, 'utf8');
+  html = html.replace(/<!-- cca:recent-posts:start -->[\s\S]*?<!-- cca:recent-posts:end -->/, block);
+  fs.writeFileSync(indexPath, html, 'utf8');
+  console.log('✓ index.html (recent posts injected)');
+}
+
+// ---------------------------------------------------------------------------
 // Sitemap generator
 // ---------------------------------------------------------------------------
 
@@ -573,6 +605,7 @@ processFile(path.join(__dirname, 'register', 'index.html'),
 console.log('\nBuilding blog…\n');
 
 const posts = loadPosts();
+injectRecentPosts(posts);
 generateBlogIndex(posts);
 posts.forEach(generateBlogPost);
 

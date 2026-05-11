@@ -414,6 +414,19 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
   .testimonials-header h2{font-size:1.4rem}
 }
 :focus{outline:none}:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:3px}
+.blog-preview{background:var(--surface);border-top:1px solid var(--border);padding:64px 0}
+.blog-preview .bp-inner{max-width:960px;margin:0 auto;padding:0 24px}
+.blog-preview .section-label{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-family:-apple-system,system-ui,'Segoe UI',sans-serif;margin-bottom:10px}
+.blog-preview h2{font-size:1.55rem;margin-bottom:36px;color:var(--text)}
+.bp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-bottom:28px}
+.bp-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:22px 24px;text-decoration:none;color:inherit;display:flex;flex-direction:column;gap:8px;transition:border-color .2s,transform .2s}
+.bp-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.bp-date{font-size:.74rem;color:var(--text3);font-family:-apple-system,system-ui,'Segoe UI',sans-serif}
+.bp-title{font-size:.97rem;font-weight:700;color:var(--text);line-height:1.4}
+.bp-desc{font-size:.83rem;color:var(--text2);line-height:1.6;font-family:-apple-system,system-ui,'Segoe UI',sans-serif}
+.bp-all{display:inline-block;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.88rem;color:var(--accent);text-decoration:none;font-weight:600}
+.bp-all:hover{color:var(--accent2)}
+@media(max-width:600px){.blog-preview{padding:44px 0}.bp-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -679,6 +692,32 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
   </div>
 </section>
 
+<!-- cca:recent-posts:start -->
+<section class="blog-preview">
+  <div class="bp-inner">
+    <div class="section-label">FROM THE BLOG</div>
+    <h2>Latest Articles</h2>
+    <div class="bp-grid">
+    <a href="/blog/claude-certified-architect-salary-career-2026/" class="bp-card">
+      <div class="bp-date">May 11, 2026</div>
+      <div class="bp-title">Claude Certified Architect Salary and Career Outlook in 2026</div>
+      <p class="bp-desc">What CCA-credentialed architects are earning in 2026, which roles command the highest compensation, and how the credential is shifting salary expectations across enterprise AI hiring.</p>
+    </a>
+    <a href="/blog/how-to-become-claude-certified-architect/" class="bp-card">
+      <div class="bp-date">May 11, 2026</div>
+      <div class="bp-title">How to Become a Claude Certified Architect: Career Path, Job Roles, and What Hiring Managers Want</div>
+      <p class="bp-desc">A practical guide to building a career as a Claude Certified Architect in 2026 — the roles that exist, the skills that matter, the backgrounds that transfer, and how to position yourself for the roles paying the most.</p>
+    </a>
+    <a href="/blog/cca-foundations-exam-practice-questions-free/" class="bp-card">
+      <div class="bp-date">April 30, 2026</div>
+      <div class="bp-title">10 Free CCA Foundations Exam Practice Questions (With Full Explanations)</div>
+      <p class="bp-desc">Ten free CCA Foundations exam practice questions across all five domains — each with four answer choices and a detailed explanation of exactly why the correct answer is right and the others are wrong.</p>
+    </a>
+    </div>
+    <a href="/blog/" class="bp-all">View all articles →</a>
+  </div>
+</section>
+<!-- cca:recent-posts:end -->
 <footer><div class="container"><div style="margin-bottom:12px"><a href="/cca-foundations-exam">CCA Foundations Exam</a> · <a href="/cca-practice-questions">Practice Questions</a> · <a href="/cca-exam-guide">Exam Guide</a> · <a href="/blog">Blog</a></div>Claude Certified Architect Practice Platform · For educational and practice purposes · Not affiliated with Anthropic's official certification program</div></footer>
 
 <!-- Firebase SDK -->
