@@ -233,16 +233,11 @@ function loadPosts() {
   if (!fs.existsSync(POSTS_DIR)) return [];
   return fs.readdirSync(POSTS_DIR)
     .filter(f => f.endsWith('.json'))
-    .map(f => {
-      const fp = path.join(POSTS_DIR, f);
-      const post = JSON.parse(fs.readFileSync(fp, 'utf8'));
-      post._mtime = fs.statSync(fp).mtimeMs; // tiebreaker for same-date posts
-      return post;
-    })
+    .map(f => JSON.parse(fs.readFileSync(path.join(POSTS_DIR, f), 'utf8')))
     .sort((a, b) => {
       const dd = new Date(b.date) - new Date(a.date);
       if (dd !== 0) return dd;
-      return b._mtime - a._mtime; // most recently created file wins
+      return a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0; // stable alphabetical tiebreaker
     });
 }
 
