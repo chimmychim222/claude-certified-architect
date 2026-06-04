@@ -115,8 +115,8 @@ const questionsSchemas = [
   {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: 'CCA Practice Questions | 300 Scenario-Based Exam Prep',
-    description: '300 scenario-based practice questions covering all 5 CCA Foundations exam domains with detailed explanations and domain-weighted scoring.',
+    name: 'CCA Practice Questions | 400 Scenario-Based Exam Prep',
+    description: '400 scenario-based practice questions covering all 5 CCA Foundations exam domains with detailed explanations and domain-weighted scoring.',
     url: BASE + '/cca-practice-questions/',
     isPartOf: { '@type': 'WebSite', url: BASE }
   },
