@@ -210,6 +210,17 @@ function escAttr(s) {
     .replace(/"/g, '&quot;');
 }
 
+/** Produce a ≤65-char <title> for a blog post. Appends ' | CCA Prep' when it
+ *  fits; uses the bare title when that fits; otherwise truncates at a word
+ *  boundary and appends an ellipsis. */
+function pageTitle(postTitle) {
+  const SUFFIX = ' | CCA Prep';
+  if ((postTitle + SUFFIX).length <= 65) return postTitle + SUFFIX;
+  if (postTitle.length <= 65) return postTitle;
+  const cut = postTitle.slice(0, 62).replace(/[\s,;:—–-]+\S*$/, '');
+  return cut + '…';
+}
+
 /** Format an ISO date string (YYYY-MM-DD) to a human-readable date */
 function formatDate(iso) {
   return new Date(iso + 'T00:00:00Z').toLocaleDateString('en-US', {
@@ -381,8 +392,8 @@ function generateBlogPost(post) {
 
   const schemas = [articleJsonLd(post), breadcrumb([
     { name: 'Home', url: BASE },
-    { name: 'Blog', url: `${BASE}/blog` },
-    { name: post.title, url: `${BASE}/blog/${post.slug}` }
+    { name: 'Blog', url: `${BASE}/blog/` },
+    { name: post.title, url: `${BASE}/blog/${post.slug}/` }
   ])].map(s => `<script type="application/ld+json">${JSON.stringify(s)}</script>`).join('\n');
 
   const html = `<!DOCTYPE html>
@@ -393,7 +404,7 @@ function generateBlogPost(post) {
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GT-K8FC4RXW');</script>
 <!-- End Google Tag Manager -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>${escHtml(post.title)} | Claude Certified Architects</title>
+<title>${escHtml(pageTitle(post.title))}</title>
 <meta name="description" content="${escAttr(post.description)}">
 <link rel="canonical" href="${BASE}/blog/${post.slug}/">
 <meta property="og:type" content="article">
@@ -455,7 +466,7 @@ function generateBlogIndex(posts) {
     : posts.map(p => `
     <div class="post-card">
       <div class="post-card-date">${formatDate(p.date)}</div>
-      <div class="post-card-title"><a href="/blog/${p.slug}">${escHtml(p.title)}</a></div>
+      <div class="post-card-title"><a href="/blog/${p.slug}/">${escHtml(p.title)}</a></div>
       <p class="post-card-desc">${escHtml(p.description)}</p>
     </div>`).join('');
 
@@ -467,17 +478,17 @@ function generateBlogIndex(posts) {
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GT-K8FC4RXW');</script>
 <!-- End Google Tag Manager -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Blog | Claude Certified Architects</title>
-<meta name="description" content="Articles and guides on Claude architecture, prompt engineering, MCP, and passing the CCA Foundations exam.">
+<title>CCA Blog | Claude Certified Architect Guides &amp; Study Tips</title>
+<meta name="description" content="Guides on Claude architecture, prompt engineering, MCP, agentic systems, and passing the CCA Foundations exam on your first attempt.">
 <link rel="canonical" href="${BASE}/blog/">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Blog | Claude Certified Architects">
+<meta property="og:title" content="CCA Blog | Claude Certified Architect Guides &amp; Study Tips">
 <meta property="og:description" content="Articles and guides on Claude architecture, prompt engineering, MCP, and passing the CCA Foundations exam.">
 <meta property="og:url" content="${BASE}/blog/">
 <meta property="og:site_name" content="Claude Certified Architects">
 <meta property="og:image" content="${BASE}/og-image-v2.png">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Blog | Claude Certified Architects">
+<meta name="twitter:title" content="CCA Blog | Claude Certified Architect Guides &amp; Study Tips">
 <meta name="twitter:description" content="Articles and guides on Claude architecture, prompt engineering, MCP, and passing the CCA Foundations exam.">
 <meta name="twitter:image" content="${BASE}/og-image-v2.png">
 ${schemas}
