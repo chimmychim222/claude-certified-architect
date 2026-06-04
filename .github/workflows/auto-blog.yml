@@ -1,0 +1,53 @@
+name: Auto-publish blog post
+
+# Runs Monday and Thursday at 9am UTC.
+# Can also be triggered manually from the Actions tab.
+on:
+  schedule:
+    - cron: '0 9 * * 1'   # Monday  09:00 UTC
+    - cron: '0 9 * * 4'   # Thursday 09:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Anthropic SDK
+        run: npm install --no-save @anthropic-ai/sdk
+
+      - name: Generate blog post
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node scripts/generate-post.js
+
+      - name: Build site
+        run: node build.js
+
+      - name: Commit post and rebuilt files
+        run: |
+          git config user.name  "Claude Blog Bot"
+          git config user.email "bot@claudecertifiedarchitects.com"
+          git add posts/ \
+                  index.html \
+                  cca-foundations-exam/index.html \
+                  cca-practice-questions/index.html \
+                  cca-exam-guide/index.html \
+                  sitemap.xml \
+                  blog/
+          git diff --staged --quiet \
+            && echo "No changes to commit." \
+            || git commit -m "feat: auto-publish scheduled blog post [skip ci]"
+          git push
