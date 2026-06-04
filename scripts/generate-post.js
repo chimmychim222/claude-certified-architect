@@ -44,7 +44,7 @@ High-value topic areas (pick the one that best fills a gap):
 
 Return ONLY a raw JSON object — no markdown fences, no explanation — with exactly these four fields:
   title       — string, max 60 chars, SEO-friendly
-  description — string, max 160 chars, includes relevant keywords
+  description — string, max 155 chars, complete sentence (no ellipsis), includes relevant keywords
   slug        — string, lowercase, hyphens only, URL-safe
   h1          — string, same as or a slightly longer version of title`,
     messages: [{ role: 'user', content: topicContext }],

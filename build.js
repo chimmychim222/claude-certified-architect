@@ -375,7 +375,7 @@ function articleJsonLd(post) {
     '@type': 'Article',
     headline: post.title,
     description: post.description,
-    url: `${BASE}/blog/${post.slug}`,
+    url: `${BASE}/blog/${post.slug}/`,
     datePublished: post.date,
     dateModified: post.date,
     image: img,
@@ -414,11 +414,18 @@ function generateBlogPost(post) {
 <meta property="og:url" content="${BASE}/blog/${post.slug}/">
 <meta property="og:site_name" content="Claude Certified Architects">
 <meta property="og:image" content="${ogImg}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
 <meta property="article:published_time" content="${post.date}">
+<meta property="article:modified_time" content="${post.date}">
+<meta property="article:section" content="CCA Exam Preparation">
+<meta name="author" content="Claude Certified Architects">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${escAttr(post.title)}">
 <meta name="twitter:description" content="${escAttr(post.description)}">
 <meta name="twitter:image" content="${ogImg}">
+<link rel="preconnect" href="https://www.googletagmanager.com">
 ${schemas}
 ${sharedCSS()}
 </head>
@@ -488,10 +495,15 @@ function generateBlogIndex(posts) {
 <meta property="og:url" content="${BASE}/blog/">
 <meta property="og:site_name" content="Claude Certified Architects">
 <meta property="og:image" content="${BASE}/og-image-v2.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
+<meta name="author" content="Claude Certified Architects">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="CCA Blog | Claude Certified Architect Guides &amp; Study Tips">
 <meta name="twitter:description" content="Articles and guides on Claude architecture, prompt engineering, MCP, and passing the CCA Foundations exam.">
 <meta name="twitter:image" content="${BASE}/og-image-v2.png">
+<link rel="preconnect" href="https://www.googletagmanager.com">
 ${schemas}
 ${sharedCSS()}
 </head>
