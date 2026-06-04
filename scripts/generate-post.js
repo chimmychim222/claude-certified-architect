@@ -73,11 +73,15 @@ Output only the JSON object. No markdown code fences, no preamble, just the raw 
 
   const raw = message.content[0].text.trim();
 
-  // Strip markdown fences if Claude included them despite instructions
-  const jsonStr = raw
-    .replace(/^```(?:json)?\r?\n?/, '')
-    .replace(/\r?\n?```$/, '')
-    .trim();
+  // Extract JSON by finding the outermost { ... } — works regardless of markdown fences
+  const firstBrace = raw.indexOf('{');
+  const lastBrace = raw.lastIndexOf('}');
+  if (firstBrace === -1 || lastBrace === -1) {
+    console.error('No JSON object found in Claude response:');
+    console.error(raw.slice(0, 500));
+    process.exit(1);
+  }
+  const jsonStr = raw.slice(firstBrace, lastBrace + 1);
 
   let post;
   try {
