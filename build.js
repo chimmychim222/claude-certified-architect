@@ -223,7 +223,8 @@ function pageTitle(postTitle) {
 
 /** Format an ISO date string (YYYY-MM-DD) to a human-readable date */
 function formatDate(iso) {
-  return new Date(iso + 'T00:00:00Z').toLocaleDateString('en-US', {
+  const d = iso.includes('T') ? new Date(iso) : new Date(iso + 'T00:00:00Z');
+  return d.toLocaleDateString('en-US', {
     year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC'
   });
 }
@@ -234,11 +235,7 @@ function loadPosts() {
   return fs.readdirSync(POSTS_DIR)
     .filter(f => f.endsWith('.json'))
     .map(f => JSON.parse(fs.readFileSync(path.join(POSTS_DIR, f), 'utf8')))
-    .sort((a, b) => {
-      const dd = new Date(b.date) - new Date(a.date);
-      if (dd !== 0) return dd;
-      return a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0; // stable alphabetical tiebreaker
-    });
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
 /** Inline CSS shared by all blog pages */
@@ -574,7 +571,7 @@ function generateSitemap(posts = []) {
       loc:        `${BASE}/blog/${p.slug}/`,
       priority:   '0.8',
       changefreq: 'monthly',
-      lastmod:    p.date
+      lastmod:    p.date.slice(0, 10)
     }))
   ];
 

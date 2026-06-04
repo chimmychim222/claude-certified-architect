@@ -15,7 +15,7 @@ function loadExistingPosts() {
 }
 
 function todayDate() {
-  return new Date().toISOString().slice(0, 10);
+  return new Date().toISOString(); // full timestamp so same-day posts sort by exact publish time
 }
 
 async function generatePost() {
