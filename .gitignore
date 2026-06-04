@@ -1,0 +1,13 @@
+# Unrelated local projects
+handicappedparking-app/
+
+# Python scripts used for one-off fixes
+_fix_*.py
+_check_*.py
+
+# Local Claude settings
+.claude/
+
+# Temporary files
+*.tmp
+homepage_check.html
