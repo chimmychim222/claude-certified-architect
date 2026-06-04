@@ -49,5 +49,5 @@ jobs:
                   blog/
           git diff --staged --quiet \
             && echo "No changes to commit." \
-            || git commit -m "feat: auto-publish scheduled blog post [skip ci]"
+            || git commit -m "feat: auto-publish scheduled blog post"
           git push
