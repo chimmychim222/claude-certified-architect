@@ -5,14 +5,14 @@
  *
  * Setup (one-time):
  *   1. Firebase Console → Project Settings → Service Accounts
- *      → Generate new private key → save as scripts/service-account.json
+ *      → Generate new private key → save the downloaded .json file anywhere
  *   2. npm install firebase-admin
  *
  * Usage:
- *   node scripts/set-enrolled.js <uid> [uid2] [uid3] ...
+ *   node scripts/set-enrolled.js <path-to-service-account.json> <uid> [uid2] ...
  *
- * Example:
- *   node scripts/set-enrolled.js uXdKJsc34DNBIVQdT4Jwk21qBfg1
+ * Example (Windows — file saved to Downloads):
+ *   node scripts/set-enrolled.js "C:\Users\joshu\Downloads\claude-certification-testing-firebase-adminsdk-xxxx.json" uXdKJsc34DNBIVQdT4Jwk21qBfg1
  *
  * After running, the user must log out and back in (or wait up to 1 hour)
  * for the new token claim to be reflected in their session.
@@ -21,19 +21,27 @@
 const admin = require('firebase-admin');
 const path  = require('path');
 
-const SERVICE_ACCOUNT = path.join(__dirname, 'service-account.json');
-
-try {
-  const sa = require(SERVICE_ACCOUNT);
-  admin.initializeApp({ credential: admin.credential.cert(sa) });
-} catch (e) {
-  console.error('\nERROR: Could not load service-account.json');
-  console.error('Go to Firebase Console → Project Settings → Service Accounts');
-  console.error('→ Generate new private key → save as scripts/service-account.json\n');
+// First arg is the path to the service account JSON file,
+// remaining args are UIDs to enroll.
+const args = process.argv.slice(2);
+if (args.length < 2) {
+  console.error('\nUsage: node scripts/set-enrolled.js <service-account.json> <uid> [uid2] ...');
+  console.error('\nGet the service account JSON from:');
+  console.error('  Firebase Console → Project Settings → Service Accounts → Generate new private key\n');
   process.exit(1);
 }
 
-const uids = process.argv.slice(2);
+const serviceAccountPath = path.resolve(args[0]);
+const uids = args.slice(1);
+
+try {
+  const sa = require(serviceAccountPath);
+  admin.initializeApp({ credential: admin.credential.cert(sa) });
+} catch (e) {
+  console.error('\nERROR: Could not load service account file:', serviceAccountPath);
+  console.error('Make sure the path is correct and the file is valid JSON.\n');
+  process.exit(1);
+}
 if (uids.length === 0) {
   console.error('Usage: node scripts/set-enrolled.js <uid> [uid2] ...');
   process.exit(1);
