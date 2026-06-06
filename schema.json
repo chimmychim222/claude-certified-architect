@@ -29,7 +29,7 @@
     },
     {
       "q": "What is the passing score for the CCA exam?",
-      "a": "The passing score for the CCA Foundations exam is 75%, with domain-weighted scoring that mirrors the exam distribution."
+      "a": "The CCA Foundations exam uses a scaled scoring system of 100–1,000. The passing score is 720 out of 1,000 — this is a scaled score, not a percentage of questions answered correctly."
     },
     {
       "q": "Which domain has the most weight on the CCA exam?",
