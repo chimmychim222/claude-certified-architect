@@ -1062,7 +1062,9 @@ function initAuthListener() {
 
       if (!enrolled) {
         try {
-          const doc = await db.collection('users').doc(user.uid).get();
+          // source:'server' bypasses Firestore's local cache, which can
+          // return stale data (e.g. the login session-write without enrolled).
+          const doc = await db.collection('users').doc(user.uid).get({ source: 'server' });
           if (doc.exists && doc.data().enrolled) { enrolled = true; }
         } catch(e) { console.warn('[Auth] Firestore read error:', e.message); }
       }
@@ -1233,13 +1235,15 @@ async function submitAuth() {
         ]);
       // Create user document and register session
       sessionId = generateSessionId();
+      // Use merge:true so we never overwrite an existing enrolled:true.
+      // Never write enrolled:false — omit it so Firestore keeps whatever
+      // value is already there (set by admin script or Stripe webhook).
       db.collection('users').doc(cred.user.uid).set({
         email: email,
-        enrolled: false,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         activeSession: sessionId,
         lastLoginAt: firebase.firestore.FieldValue.serverTimestamp()
-      }).catch(e => console.warn('Firestore user doc write failed:', e));
+      }, { merge: true }).catch(e => console.warn('Firestore user doc write failed:', e));
     } else {
       const cred = await Promise.race([
           auth.signInWithEmailAndPassword(email, password),
@@ -3722,8 +3726,8 @@ function toggleSampleQ(btn) {
   answer.setAttribute('aria-hidden', String(open));
   textEl.textContent = open ? 'Show answer' : 'Hide answer';
 }
-
-// Click an option to attempt answer
+
+// Click an option to attempt answer
 function selectSampleAnswer(li) {
   var card = li.closest('.sq-card');
   if (card.classList.contains('sq-answered')) return;
