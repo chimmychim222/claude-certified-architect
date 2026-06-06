@@ -1141,6 +1141,13 @@ function openAuthModal(mode) {
   switchAuthMode(authMode);
   document.getElementById('auth-modal').classList.add('show');
   document.getElementById('auth-error').style.display = 'none';
+  // Always reset to clean form state — a previous hung submission may have
+  // left the loading spinner visible and the form hidden
+  document.getElementById('auth-form-area').style.display = 'block';
+  document.getElementById('auth-loading').style.display = 'none';
+  var submitBtn = document.getElementById('auth-submit-btn');
+  if (submitBtn) submitBtn.disabled = false;
+  // Clear fields
   document.getElementById('auth-email').value = '';
   document.getElementById('auth-password').value = '';
   document.getElementById('auth-confirm') && (document.getElementById('auth-confirm').value = '');
