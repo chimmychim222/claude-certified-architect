@@ -1052,9 +1052,8 @@ function initAuthListener() {
   auth.onAuthStateChanged(async (user) => {
     currentUser = user;
     if (user) {
-      // Note: we do NOT call updateNavUI() here yet — enrolled is still false
-      // and an early FREE flash can race with a second onAuthStateChanged fire.
-      // The definitive updateNavUI() call happens below after the enrollment check.
+      // Show the user's email in the nav immediately (enrolled badge will update below).
+      updateNavUI();
 
       // Check enrollment — custom claims first (immune to ad blockers),
       // then Firestore as fallback for users not yet on the new system.
