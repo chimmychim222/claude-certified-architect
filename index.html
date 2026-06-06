@@ -3287,7 +3287,14 @@ async function startTest(type) {
   if (isFreePreview) {
     document.getElementById('test-timer').style.visibility = 'hidden';
   } else {
-    document.getElementById('test-timer').style.visibility = 'visible';
+    // Set the display immediately so it shows the correct time from the first frame,
+    // not whatever the previous test left behind.
+    const timerEl = document.getElementById('test-timer');
+    const initM = Math.floor(currentTest.timeLeft / 60);
+    const initS = currentTest.timeLeft % 60;
+    timerEl.textContent = `${initM}:${initS.toString().padStart(2,'0')}`;
+    timerEl.classList.remove('warning');
+    timerEl.style.visibility = 'visible';
     startTimer();
   }
 }
