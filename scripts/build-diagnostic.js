@@ -129,7 +129,7 @@ nav .nav-cta:hover{background:var(--accent2);color:#fff}
 @media(max-width:600px){nav .nav-links{display:none}nav .logo{font-size:.95rem}}
 
 /* ── BREADCRUMB ── */
-.breadcrumb{padding:10px 0 0;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.78rem;color:var(--text3);background:transparent}
+.breadcrumb{padding:14px 0 0;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.78rem;color:var(--text3);background:transparent}
 .breadcrumb a{color:var(--text3);text-decoration:none}
 .breadcrumb a:hover{color:var(--accent)}
 .breadcrumb span{margin:0 6px}
@@ -165,17 +165,29 @@ nav .nav-cta:hover{background:var(--accent2);color:#fff}
 .q-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:32px;margin-bottom:20px}
 .q-text{font-size:1rem;line-height:1.75;color:var(--text);margin-bottom:24px}
 .q-options{display:flex;flex-direction:column;gap:10px}
-.q-opt{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.9rem;color:var(--text2);background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 16px;cursor:pointer;text-align:left;transition:all .2s;display:flex;gap:12px;align-items:flex-start;line-height:1.5}
+.q-opt{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.9rem;color:var(--text2);background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 16px;min-height:48px;cursor:pointer;text-align:left;transition:all .2s;display:flex;gap:12px;align-items:center;line-height:1.5}
 .q-opt:hover{border-color:var(--accent);background:rgba(217,119,87,.04);color:var(--text)}
 .q-opt.selected{border-color:var(--accent);background:rgba(217,119,87,.08);color:var(--text);font-weight:600}
 .q-opt .opt-letter{font-weight:700;color:var(--text3);flex-shrink:0;min-width:20px}
 .q-opt.selected .opt-letter{color:var(--accent)}
 .q-opt:disabled,.q-opt[disabled]{pointer-events:none}
 .quiz-nav{display:flex;justify-content:flex-end;margin-top:8px}
-.btn-next{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.9rem;font-weight:700;color:#fff;background:var(--accent);border:none;padding:12px 28px;border-radius:var(--radius-sm);cursor:pointer;transition:background .2s;display:none}
+.btn-next{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.9rem;font-weight:700;color:#fff;background:var(--accent);border:none;padding:12px 28px;min-height:48px;border-radius:var(--radius-sm);cursor:pointer;transition:background .2s;display:none}
 .btn-next.visible{display:block}
 .btn-next:hover{background:var(--accent2)}
-@media(max-width:600px){.q-card{padding:20px 16px}}
+@media(max-width:600px){
+  .q-card{padding:20px 16px}
+  .q-opt{font-size:.85rem;padding:10px 14px}
+  .btn-next{width:100%;justify-content:center}
+  .quiz-nav{margin-top:12px}
+  .intro-hero h1{font-size:1.75rem}
+  .intro-meta{gap:16px}
+  .domain-grid{grid-template-columns:1fr 1fr}
+  .weak-callout{padding:18px 16px;flex-direction:column;gap:10px}
+  .cta-card{padding:24px 16px}
+  .panel{padding:20px 16px}
+  .estimate-score{font-size:2.6rem}
+}
 
 /* ── RESULTS ── */
 .results-header{text-align:center;margin-bottom:40px}
