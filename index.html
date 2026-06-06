@@ -1137,12 +1137,9 @@ function updateDashCards() {
     }
   }
 
-  // Make fully-locked overlays clickable → auth/payment
+  // Make fully-locked overlays clickable → payment (Stripe, with or without login)
   document.querySelectorAll('.dash-card.locked').forEach(card => {
-    card.onclick = () => {
-      if (!currentUser) openAuthModal();
-      else showSection('home');
-    };
+    card.onclick = () => openPaymentModal();
   });
 }
 
@@ -1310,8 +1307,10 @@ function logOut() {
 // ═══════════════════════════════════════
 function openPaymentModal() {
   if (!currentUser) {
-    // Show login (not signup) — user likely has an account they need to log into
-    openAuthModal('login');
+    // Not logged in — go straight to Stripe without email prefill.
+    // After paying, the user can create an account with the same email and
+    // the webhook will have already set enrolled:true for them.
+    window.location.href = STRIPE_PAYMENT_LINK;
     return;
   }
   const url = new URL(STRIPE_PAYMENT_LINK);
@@ -3243,7 +3242,7 @@ function shuffleArray(arr) {
 async function startTest(type) {
   // quick: always free. focused: first 5 free. deep/full: need enrollment.
   if (type !== 'quick' && type !== 'focused' && !enrolled) {
-    if (!currentUser) { openAuthModal(); return; }
+    if (!currentUser) { openPaymentModal(); return; }
     // The global `enrolled` can lag if onAuthStateChanged fired concurrently.
     // Re-verify from the in-memory cached JWT — no network call, instant.
     try {
