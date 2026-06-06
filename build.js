@@ -243,7 +243,7 @@ function sharedCSS() {
   return `<style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#f5f3ea;--surface:#fff;--border:#d9d5ca;
+  --banner-h:0px;--bg:#f5f3ea;--surface:#fff;--surface3:#e8e5dc;--border:#d9d5ca;--border2:#c5c0b5;--text3:#8a8a7f;
   --text:#191918;--text2:#5a5a52;--text3:#8a8a7f;
   --accent:#d97757;--accent2:#c4623f;--accent3:#a8502f;
   --radius:8px;
@@ -254,7 +254,7 @@ a{color:var(--accent);text-decoration:underline;text-underline-offset:3px;transi
 a:hover{color:var(--accent3)}
 
 /* ── Nav ── */
-nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(245,243,234,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+nav{position:fixed;top:var(--banner-h,0px);left:0;right:0;z-index:100;background:rgba(245,243,234,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
 nav .inner{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;max-width:1100px;margin:0 auto;gap:12px}
 .nav-logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1rem;font-weight:600;color:var(--text);text-decoration:none;letter-spacing:-.3px;white-space:nowrap}
 .nav-logo span{color:var(--text3);font-weight:400;font-size:.82rem;margin-left:6px}
@@ -326,6 +326,11 @@ nav .inner{display:flex;align-items:center;justify-content:space-between;padding
 .site-footer{background:#191918;color:#8a8a7f;padding:28px 24px;text-align:center;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.82rem;line-height:1.6}
 .site-footer a{color:#8a8a7f;text-underline-offset:3px}
 .site-footer a:hover{color:#f5f3ea}
+
+/* ── Compliance banner ── */
+#site-banner{position:fixed;top:0;left:0;right:0;z-index:101;background:var(--surface3,#e8e5dc);color:var(--text2,#5a5a52);font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.72rem;line-height:1.4;text-align:center;padding:7px 44px 7px 16px;border-bottom:1px solid var(--border2,#c5c0b5)}
+#site-banner-close{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3,#8a8a7f);font-size:1.1rem;line-height:1;cursor:pointer;padding:4px 7px;border-radius:4px;transition:color .15s}
+#site-banner-close:hover{color:var(--text,#191918)}
 </style>`;
 }
 
@@ -335,7 +340,7 @@ function blogNav(activePage) {
     const cls = activePage === href ? ' class="active"' : '';
     return `<a href="${href}"${cls}>${label}</a>`;
   };
-  return `<nav aria-label="Main navigation">
+  return "<div id=\"site-banner\" role=\"note\" aria-label=\"Independence notice\">Independent exam prep · Not affiliated with, authorized by, or endorsed by Anthropic.<button id=\"site-banner-close\" aria-label=\"Dismiss notice\">✕</button></div>\n<script>(function(){var b=document.getElementById(\"site-banner\"),c=document.getElementById(\"site-banner-close\");if(!b)return;if(localStorage.getItem(\"ccaBanner\")===\"0\"){b.style.display=\"none\";document.documentElement.style.setProperty(\"--banner-h\",\"0px\");return;}function setH(){document.documentElement.style.setProperty(\"--banner-h\",b.offsetHeight+\"px\");}setH();window.addEventListener(\"resize\",setH);c.addEventListener(\"click\",function(){b.style.display=\"none\";document.documentElement.style.setProperty(\"--banner-h\",\"0px\");localStorage.setItem(\"ccaBanner\",\"0\");});})()</script>\n" + `<nav aria-label="Main navigation">
   <div class="inner">
     <a href="/" class="nav-logo">CCA <span>Practice Platform</span></a>
     <div class="nav-links" id="blog-nav-links">
