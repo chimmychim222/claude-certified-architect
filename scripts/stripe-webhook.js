@@ -29,11 +29,16 @@ const db   = admin.firestore();
 const app  = express();
 
 // ── Global CORS — must come before all routes ─────────────────────────────────
-// Allows claudecertifiedarchitects.com to call this server from the browser.
+// Allows claudecertifiedarchitects.com (with or without www) to call this
+// server from the browser.
 app.use((req, res, next) => {
-  const allowed = 'https://claudecertifiedarchitects.com';
-  if (req.headers.origin === allowed) {
-    res.setHeader('Access-Control-Allow-Origin', allowed);
+  const allowed = [
+    'https://claudecertifiedarchitects.com',
+    'https://www.claudecertifiedarchitects.com',
+  ];
+  const origin = req.headers.origin;
+  if (allowed.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   }
