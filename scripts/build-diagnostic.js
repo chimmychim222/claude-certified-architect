@@ -129,7 +129,7 @@ nav .nav-cta:hover{background:var(--accent2);color:#fff}
 @media(max-width:600px){nav .nav-links{display:none}nav .logo{font-size:.95rem}}
 
 /* ── BREADCRUMB ── */
-.breadcrumb{padding:12px 0;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.78rem;color:var(--text3)}
+.breadcrumb{padding:10px 0 0;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.78rem;color:var(--text3);background:transparent}
 .breadcrumb a{color:var(--text3);text-decoration:none}
 .breadcrumb a:hover{color:var(--accent)}
 .breadcrumb span{margin:0 6px}
@@ -533,8 +533,8 @@ function showResults() {
   // Headline
   let headline;
   if (estimatedScore >= passScore)       headline = 'Strong result — you look ready!';
-  else if (estimatedScore >= passScore * 0.85) headline = 'Close — a bit more practice and you\'ll be there';
-  else                                   headline = 'Good start — let\'s fill those gaps';
+  else if (estimatedScore >= passScore * 0.85) headline = "Close — a bit more practice and you'll be there";
+  else                                   headline = "Good start — let's fill those gaps";
   document.getElementById('results-headline').textContent = headline;
 
   // Weakest domain
