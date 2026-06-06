@@ -3591,9 +3591,21 @@ function toggleSampleQ(btn) {
   var answer = card.querySelector('.sq-answer');
   var textEl = btn.querySelector('.sq-toggle-text');
   var open = answer.classList.contains('sq-visible');
+  if (!open) {
+    // Update result label if user already made a guess
+    var label = card.querySelector('.sq-answer-label');
+    var result = card.getAttribute('data-result');
+    if (result === 'correct') {
+      label.innerHTML = '&#x2713;&nbsp;Correct — well done!';
+      label.style.color = 'var(--green)';
+    } else if (result === 'wrong') {
+      label.innerHTML = '&#x2715;&nbsp;Incorrect — correct answer highlighted above.';
+      label.style.color = 'var(--red)';
+    }
+    // sq-revealed is permanent once set (keeps correct option green)
+    card.classList.add('sq-revealed', 'sq-answered');
+  }
   answer.classList.toggle('sq-visible', !open);
-  card.classList.toggle('sq-revealed', !open);
-  if (!open) card.classList.add('sq-answered');
   btn.classList.toggle('open', !open);
   btn.setAttribute('aria-expanded', String(!open));
   answer.setAttribute('aria-hidden', String(open));
@@ -3601,22 +3613,14 @@ function toggleSampleQ(btn) {
 }
 
 // Click an option to attempt answer
-function selectSampleAnswer(li) {
-  var card = li.closest('.sq-card');
-  if (card.classList.contains('sq-answered')) return;
-  card.classList.add('sq-answered');
-  var isCorrect = li.classList.contains('sq-correct');
-  if (!isCorrect) li.classList.add('sq-selected');
-  // Reveal answer + explanation
-  var answer = card.querySelector('.sq-answer');
-  var btn    = card.querySelector('.sq-toggle');
-  var textEl = btn.querySelector('.sq-toggle-text');
-  answer.classList.add('sq-visible');
-  card.classList.add('sq-revealed');
-  btn.classList.add('open');
-  btn.setAttribute('aria-expanded', 'true');
-  answer.setAttribute('aria-hidden', 'false');
-  textEl.textContent = 'Hide answer';
+function selectSampleAnswer(li) {
+  var card = li.closest('.sq-card');
+  if (card.classList.contains('sq-answered')) return;
+  card.classList.add('sq-answered', 'sq-revealed');
+  var isCorrect = li.classList.contains('sq-correct');
+  card.setAttribute('data-result', isCorrect ? 'correct' : 'wrong');
+  if (!isCorrect) li.classList.add('sq-selected');
+  // Explanation stays hidden — user clicks Show answer to read it
 }
 </script>
 </body>
