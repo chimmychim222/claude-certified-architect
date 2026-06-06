@@ -462,7 +462,19 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
 .sq-answer.sq-visible{display:block}
 .sq-answer-label{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--green);margin-bottom:10px}
 .sq-explanation{font-size:.88rem;line-height:1.8;color:var(--text2);font-family:-apple-system,system-ui,'Segoe UI',sans-serif}
-@media(max-width:640px){.sq-card{padding:20px 16px}.sample-q-section{padding:60px 0}.sq-question{font-size:.95rem}.sq-options li{font-size:.84rem}}
+.sq-card{overflow:hidden}
+.sq-card code{word-break:break-all;overflow-wrap:anywhere;font-size:.85em}
+.sq-options li{overflow-wrap:break-word;word-break:break-word}
+@media(max-width:640px){
+  .sq-card{padding:20px 16px}
+  .sample-q-section{padding:60px 0}
+  .sq-question{font-size:.93rem;line-height:1.65}
+  .sq-options li{font-size:.82rem;padding:9px 10px;gap:8px}
+  .sq-options li .opt-label{min-width:16px}
+  .sq-toggle{width:100%;justify-content:center}
+  .sq-explanation{font-size:.84rem}
+  .sample-q-header p{font-size:.95rem}
+}
 </style>
 </head>
 <body>
