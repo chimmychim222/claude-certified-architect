@@ -1212,7 +1212,10 @@ async function submitAuth() {
 
   try {
     if (authMode === 'signup') {
-      const cred = await auth.createUserWithEmailAndPassword(email, password);
+      const cred = await Promise.race([
+          auth.createUserWithEmailAndPassword(email, password),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('auth/timeout')), 15000))
+        ]);
       // Create user document and register session
       sessionId = generateSessionId();
       db.collection('users').doc(cred.user.uid).set({
@@ -1223,7 +1226,10 @@ async function submitAuth() {
         lastLoginAt: firebase.firestore.FieldValue.serverTimestamp()
       }).catch(e => console.warn('Firestore user doc write failed:', e));
     } else {
-      const cred = await auth.signInWithEmailAndPassword(email, password);
+      const cred = await Promise.race([
+          auth.signInWithEmailAndPassword(email, password),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('auth/timeout')), 15000))
+        ]);
       // Register session (fire-and-forget — don't block modal close)
       sessionId = generateSessionId();
       db.collection('users').doc(cred.user.uid).set({
@@ -1280,10 +1286,10 @@ function logOut() {
 // ═══════════════════════════════════════
 function openPaymentModal() {
   if (!currentUser) {
-    openAuthModal('signup');
+    // Show login (not signup) — user likely has an account they need to log into
+    openAuthModal('login');
     return;
   }
-  // Append user email to Stripe link for matching
   const url = new URL(STRIPE_PAYMENT_LINK);
   url.searchParams.set('prefilled_email', currentUser.email);
   window.location.href = url.toString();
