@@ -1093,7 +1093,12 @@ function initAuthListener() {
 }
 
 function updateDashCards() {
-  ['card-focused','card-deep','card-full'].forEach(id => {
+  // card-focused: 5 questions free — never fully locked
+  const focusedCard  = document.getElementById('card-focused');
+  const focusedBadge = focusedCard && focusedCard.querySelector('.lock-badge');
+
+  // card-deep and card-full: fully locked unless enrolled
+  ['card-deep','card-full'].forEach(id => {
     const card = document.getElementById(id);
     if (!card) return;
     const badge = card.querySelector('.lock-badge');
@@ -1105,7 +1110,19 @@ function updateDashCards() {
       if (badge) { badge.textContent = 'LOCKED'; badge.classList.remove('unlocked'); }
     }
   });
-  // Make locked overlay clickable → open auth/payment
+
+  // Focused: unlock fully if enrolled; show "5 FREE" preview otherwise
+  if (focusedCard) {
+    focusedCard.classList.remove('locked');
+    focusedCard.onclick = null;
+    if (enrolled) {
+      if (focusedBadge) { focusedBadge.textContent = 'ENROLLED'; focusedBadge.classList.add('unlocked'); }
+    } else {
+      if (focusedBadge) { focusedBadge.textContent = '5 FREE'; focusedBadge.classList.add('unlocked'); }
+    }
+  }
+
+  // Make fully-locked overlays clickable → auth/payment
   document.querySelectorAll('.dash-card.locked').forEach(card => {
     card.onclick = () => {
       if (!currentUser) openAuthModal();
