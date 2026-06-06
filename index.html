@@ -454,8 +454,10 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
 .sq-options li{cursor:pointer;user-select:none}
 .sq-options li:hover:not(.sq-selected){background:var(--surface2);border-color:var(--border2)}
 .sq-card.sq-answered .sq-options li{cursor:default;pointer-events:none}
-.sq-options li.sq-selected{border-color:rgba(196,75,63,.45);background:rgba(196,75,63,.06);color:var(--text)}
-.sq-options li.sq-selected .opt-label{color:var(--red)}
+.sq-options li.sq-chosen{border-color:var(--accent);background:rgba(217,119,87,.07)}
+.sq-options li.sq-chosen .opt-label{color:var(--accent)}
+.sq-card.sq-revealed .sq-options li.sq-selected{border-color:rgba(196,75,63,.45);background:rgba(196,75,63,.06);color:var(--text)}
+.sq-card.sq-revealed .sq-options li.sq-selected .opt-label{color:var(--red)}
 .sq-options li{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);font-size:.88rem;color:var(--text2);font-family:-apple-system,system-ui,'Segoe UI',sans-serif;line-height:1.55;transition:border-color .2s,background .2s}
 .sq-options li .opt-label{font-weight:700;color:var(--text3);flex-shrink:0;min-width:18px}.opt-text{flex:1;min-width:0;overflow-wrap:break-word;word-break:break-word}
 .sq-card.sq-revealed .sq-options li.sq-correct{border-color:rgba(45,122,95,.4);background:rgba(45,122,95,.06);color:var(--text)}
@@ -3616,11 +3618,12 @@ function toggleSampleQ(btn) {
 function selectSampleAnswer(li) {
   var card = li.closest('.sq-card');
   if (card.classList.contains('sq-answered')) return;
-  card.classList.add('sq-answered', 'sq-revealed');
+  card.classList.add('sq-answered');
   var isCorrect = li.classList.contains('sq-correct');
   card.setAttribute('data-result', isCorrect ? 'correct' : 'wrong');
+  li.classList.add('sq-chosen');
   if (!isCorrect) li.classList.add('sq-selected');
-  // Explanation stays hidden — user clicks Show answer to read it
+  // sq-revealed NOT added here — correct answer hidden until Show answer clicked
 }
 </script>
 </body>
