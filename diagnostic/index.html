@@ -167,6 +167,20 @@ nav .nav-cta:hover{background:var(--accent2);color:#fff}
 .cta-retake{margin-top:14px;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.82rem}
 .cta-retake a{color:var(--text3)}
 
+/* ── EMAIL CAPTURE ── */
+.email-capture{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:22px 24px;text-align:center;margin-top:20px}
+.email-capture-heading{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-weight:600;font-size:.97rem;color:var(--text);margin:0 0 12px}
+.email-row{display:flex;gap:8px;max-width:380px;margin:0 auto 8px}
+.email-row input[type=email]{flex:1;padding:9px 13px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);transition:border-color .15s}
+.email-row input[type=email]:focus{outline:none;border-color:var(--accent)}
+.email-row .btn-send{padding:9px 18px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:.88rem;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-weight:600;cursor:pointer;white-space:nowrap;transition:opacity .15s}
+.email-row .btn-send:hover{opacity:.88}
+.email-row .btn-send:disabled{opacity:.5;cursor:default}
+.email-consent{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.74rem;color:var(--text3);margin:0}
+.email-status-ok{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.88rem;color:#059669;margin:10px 0 0}
+.email-status-err{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.88rem;color:#dc2626;margin:10px 0 0}
+@media(max-width:480px){.email-row{flex-direction:column}}
+
 /* ── FOOTER ── */
 footer{border-top:1px solid var(--border);padding:28px 20px;text-align:center;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.78rem;color:var(--text3)}
 footer a{color:var(--text3);text-decoration:underline}
@@ -296,6 +310,18 @@ footer a{color:var(--text3);text-decoration:underline}
       </div>
       <a href="https://buy.stripe.com/cNi28k2GE7LngeRcc03ks00" class="btn-primary">Unlock full access — $49</a>
       <p class="cta-retake"><a href="#" onclick="retakeDiagnostic();return false;">Retake with new questions</a></p>
+    </div>
+
+    <div class="email-capture animate-in" style="animation-delay:.5s">
+      <p class="email-capture-heading">📬 Email me my results</p>
+      <form id="email-form" onsubmit="submitResultsEmail(event)">
+        <div class="email-row">
+          <input type="email" id="email-input" placeholder="your@email.com" autocomplete="email">
+          <button type="submit" class="btn-send" id="email-btn">Send results</button>
+        </div>
+        <p class="email-consent">We'll only use this to send your results and occasional exam prep tips.</p>
+      </form>
+      <p id="email-status" style="display:none"></p>
     </div>
   </section>
 
@@ -499,6 +525,62 @@ function showResults() {
       setTimeout(() => { el.style.width = w; }, 50);
     });
   }, 100);
+
+  // Cache results for the optional email capture below
+  lastDiagResults = {
+    estimatedScore,
+    passScore,
+    weakestDomain: weakest.label,
+    weakestDomainWeight: weakest.pct,
+    domains: DOMAINS.map(d => ({
+      label: d.label,
+      examWeight: d.pct,
+      correct: domScore[d.key].correct,
+      total: domScore[d.key].total,
+      pct: domScore[d.key].total > 0 ? Math.round((domScore[d.key].correct / domScore[d.key].total) * 100) : 0
+    }))
+  };
+
+  // Reset email form in case user retook the quiz
+  const ef = document.getElementById('email-form');
+  const es = document.getElementById('email-status');
+  if (ef) ef.style.display = '';
+  if (es) { es.style.display = 'none'; es.textContent = ''; }
+  const eb = document.getElementById('email-btn');
+  if (eb) { eb.disabled = false; eb.textContent = 'Send results'; }
+  const ei = document.getElementById('email-input');
+  if (ei) ei.value = '';
+}
+
+// ── Email capture ─────────────────────────────────────────────────────────────
+let lastDiagResults = null;
+
+async function submitResultsEmail(e) {
+  e.preventDefault();
+  const emailVal = (document.getElementById('email-input').value || '').trim();
+  if (!emailVal) return;
+  const btn    = document.getElementById('email-btn');
+  const status = document.getElementById('email-status');
+  btn.disabled    = true;
+  btn.textContent = 'Sending…';
+  try {
+    const resp = await fetch('https://claude-certified-architect.onrender.com/diagnostic-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: emailVal, results: lastDiagResults })
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    document.getElementById('email-form').style.display = 'none';
+    status.textContent  = '✓ Got it! Check your inbox in a few minutes.';
+    status.className    = 'email-status-ok';
+    status.style.display = 'block';
+  } catch(err) {
+    status.textContent  = 'Something went wrong — please try again.';
+    status.className    = 'email-status-err';
+    status.style.display = 'block';
+    btn.disabled    = false;
+    btn.textContent = 'Send results';
+  }
 }
 
 // ── Retake ────────────────────────────────────────────────────────────────────

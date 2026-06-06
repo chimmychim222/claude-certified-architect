@@ -88,6 +88,66 @@ app.post(
   }
 );
 
+// ── Diagnostic email capture ──────────────────────────────────────────────────
+// Stores the visitor's email + their quiz results in Firestore.
+//
+// TODO: wire up an email marketing provider here.
+//   Popular options:
+//     • Mailchimp  — set MAILCHIMP_API_KEY + MAILCHIMP_LIST_ID env vars
+//     • ConvertKit — set CONVERTKIT_API_KEY + CONVERTKIT_FORM_ID env vars
+//     • Loops.so   — set LOOPS_API_KEY env var
+//   Then call their API after the Firestore write below.
+//
+app.post('/diagnostic-email', express.json(), async (req, res) => {
+  // CORS — allow the GitHub Pages domain
+  res.setHeader('Access-Control-Allow-Origin', 'https://claudecertifiedarchitects.com');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  const { email, results } = req.body || {};
+  if (!email || !email.includes('@')) {
+    return res.status(400).json({ error: 'Invalid email' });
+  }
+
+  try {
+    // 1. Persist to Firestore (always)
+    await db.collection('diagnostic_leads').add({
+      email,
+      results: results || null,
+      submittedAt: admin.firestore.FieldValue.serverTimestamp(),
+      source: 'diagnostic'
+    });
+
+    // 2. TODO: Send via email marketing provider
+    //    Example — ConvertKit:
+    //    if (process.env.CONVERTKIT_API_KEY) {
+    //      await fetch(`https://api.convertkit.com/v3/forms/${process.env.CONVERTKIT_FORM_ID}/subscribe`, {
+    //        method: 'POST',
+    //        headers: { 'Content-Type': 'application/json' },
+    //        body: JSON.stringify({
+    //          api_key: process.env.CONVERTKIT_API_KEY,
+    //          email,
+    //          fields: { estimated_score: results?.estimatedScore, weakest_domain: results?.weakestDomain }
+    //        })
+    //      });
+    //    }
+
+    console.log('Diagnostic lead saved:', email);
+    return res.json({ ok: true });
+
+  } catch (err) {
+    console.error('Diagnostic lead error:', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// CORS preflight for /diagnostic-email
+app.options('/diagnostic-email', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', 'https://claudecertifiedarchitects.com');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.sendStatus(204);
+});
+
 // Health check so Railway knows the server is running
 app.get('/', (req, res) => res.send('Webhook server running.'));
 
