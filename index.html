@@ -483,6 +483,18 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
   .sq-explanation{font-size:.84rem}
   .sample-q-header p{font-size:.95rem}
 }
+/* ── Free focused preview ── */
+.option:disabled{pointer-events:none;cursor:default}
+.q-explanation{margin-top:20px;padding:18px 20px;border-radius:var(--radius-sm);background:var(--surface2);border:1px solid var(--border);animation:fadeInUp .3s ease}
+.q-explanation-label{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px}
+.q-explanation-label.correct{color:var(--green)}.q-explanation-label.incorrect{color:var(--red)}
+.q-explanation-text{font-size:.9rem;line-height:1.78;color:var(--text2);font-family:-apple-system,system-ui,'Segoe UI',sans-serif;margin:0}
+.q-paywall{text-align:center;padding:56px 28px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);max-width:520px;margin:0 auto}
+.q-paywall-icon{font-size:2.4rem;margin-bottom:16px}
+.q-paywall h2{font-size:clamp(1.25rem,3vw,1.7rem);color:var(--text);margin-bottom:14px;font-weight:700}
+.q-paywall p{color:var(--text2);font-size:.95rem;line-height:1.65;margin:0 auto 28px;max-width:400px}
+.q-paywall .btn-primary{display:inline-block;text-decoration:none}
+.q-paywall-sub{margin-top:14px;font-size:.82rem;color:var(--text3);font-family:-apple-system,system-ui,'Segoe UI',sans-serif}
 </style>
 </head>
 <body>
@@ -3179,31 +3191,44 @@ function shuffleArray(arr) {
 }
 
 function startTest(type) {
-  if (type !== 'quick' && !enrolled) {
+  // quick: always free. focused: first 5 free. deep/full: need enrollment.
+  if (type !== 'quick' && type !== 'focused' && !enrolled) {
     openAuthModal();
     return;
   }
+
   const config = getTestConfig(type);
+  const isFreePreview = (type === 'focused' && !enrolled);
+  const questionCount = isFreePreview ? 5 : config.questions;
+
   const shuffled = shuffleArray(QUESTIONS);
-  const selected = shuffled.slice(0, config.questions).map(q => {
-    // Shuffle answer options while tracking correct answer
+  const selected = shuffled.slice(0, questionCount).map(q => {
     const indices = q.o.map((_, i) => i);
     const shuffledIdx = shuffleArray(indices);
     return { d:q.d, q:q.q, o:shuffledIdx.map(i => q.o[i]), a:shuffledIdx.indexOf(q.a), e:q.e };
   });
 
   currentTest = {
-    type, config, questions: selected,
-    answers: new Array(config.questions).fill(-1),
+    type,
+    config: Object.assign({}, config, { questions: questionCount }),
+    questions: selected,
+    answers: new Array(questionCount).fill(-1),
     current: 0,
     timeLeft: config.minutes * 60,
-    finished: false
+    finished: false,
+    freePreview: isFreePreview,
   };
 
   showSection('test');
   renderQuestion();
   renderDots();
-  startTimer();
+
+  if (isFreePreview) {
+    document.getElementById('test-timer').style.visibility = 'hidden';
+  } else {
+    document.getElementById('test-timer').style.visibility = 'visible';
+    startTimer();
+  }
 }
 
 function startTimer() {
@@ -3228,6 +3253,7 @@ function renderQuestion() {
   const t = currentTest;
   const q = t.questions[t.current];
   const total = t.config.questions;
+  const answered = t.answers[t.current] !== -1;
 
   document.getElementById('test-progress').textContent = `Question ${t.current+1} of ${total}`;
   document.getElementById('test-progress-bar').style.width = `${((t.current+1)/total)*100}%`;
@@ -3235,15 +3261,47 @@ function renderQuestion() {
   let html = `<div class="question-card">
     <div class="q-num">${q.d} — Question ${t.current+1}</div>
     <div class="q-text">${q.q}</div>`;
-  q.o.forEach((opt, i) => {
-    const sel = t.answers[t.current] === i ? ' selected' : '';
-    html += `<button class="option${sel}" onclick="selectAnswer(${i})">${String.fromCharCode(65+i)}. ${opt}</button>`;
-  });
+
+  if (t.freePreview && answered) {
+    // Show correct/incorrect state — options locked
+    q.o.forEach((opt, i) => {
+      let cls = '';
+      if (i === q.a) cls = ' correct';
+      else if (i === t.answers[t.current]) cls = ' incorrect';
+      html += `<button class="option${cls}" disabled>${String.fromCharCode(65+i)}. ${opt}</button>`;
+    });
+    const isCorrect = t.answers[t.current] === q.a;
+    html += `<div class="q-explanation">
+      <div class="q-explanation-label ${isCorrect ? 'correct' : 'incorrect'}">${isCorrect ? '✓ Correct!' : '✗ Incorrect'}</div>
+      <p class="q-explanation-text">${q.e}</p>
+    </div>`;
+  } else {
+    q.o.forEach((opt, i) => {
+      const sel = t.answers[t.current] === i ? ' selected' : '';
+      html += `<button class="option${sel}" onclick="selectAnswer(${i})">${String.fromCharCode(65+i)}. ${opt}</button>`;
+    });
+  }
+
   html += `</div>`;
   document.getElementById('question-area').innerHTML = html;
 
-  document.getElementById('prev-btn').style.visibility = t.current === 0 ? 'hidden' : 'visible';
-  document.getElementById('next-btn').textContent = t.current === total -1 ? 'Finish Test' : 'Next →';
+  const prevBtn = document.getElementById('prev-btn');
+  const nextBtn = document.getElementById('next-btn');
+
+  if (t.freePreview) {
+    prevBtn.style.visibility = 'hidden';
+    if (answered) {
+      nextBtn.style.visibility = 'visible';
+      const isLast = t.current === total - 1;
+      nextBtn.textContent = isLast ? 'See full access →' : 'Next question →';
+    } else {
+      nextBtn.style.visibility = 'hidden';
+    }
+  } else {
+    prevBtn.style.visibility = t.current === 0 ? 'hidden' : 'visible';
+    nextBtn.style.visibility = 'visible';
+    nextBtn.textContent = t.current === total - 1 ? 'Finish Test' : 'Next →';
+  }
 }
 
 function selectAnswer(i) {
@@ -3257,8 +3315,14 @@ function prevQuestion() {
 }
 
 function nextQuestion() {
-  if (currentTest.current < currentTest.config.questions - 1) {
-    currentTest.current++;
+  const t = currentTest;
+  // In free preview, last question leads to paywall
+  if (t.freePreview && t.current === t.config.questions - 1) {
+    showFocusedPaywall();
+    return;
+  }
+  if (t.current < t.config.questions - 1) {
+    t.current++;
     renderQuestion();
     renderDots();
   } else {
@@ -3348,11 +3412,17 @@ function reviewTest() {
 
 function exitTest() {
   clearInterval(timerInterval);
-  if (currentTest && !currentTest.finished) {
+  if (currentTest && !currentTest.finished && !currentTest.freePreview) {
     if (!confirm('Are you sure you want to exit? Your progress will be lost.')) return;
   }
+  const wasFreePreview = currentTest && currentTest.freePreview;
   currentTest = null;
-  showSection('dashboard');
+  document.getElementById('test-timer').style.visibility = 'visible';
+  if (wasFreePreview) {
+    showSection('home');
+  } else {
+    showSection('dashboard');
+  }
 }
 
 // ═══════════════════════════════════════
@@ -3637,6 +3707,24 @@ function selectSampleAnswer(li) {
     cards.splice(j, 1);
   }
 })();
+
+function showFocusedPaywall() {
+  clearInterval(timerInterval);
+  document.getElementById('question-area').innerHTML = `
+    <div class="q-paywall">
+      <div class="q-paywall-icon">🔓</div>
+      <h2>You've seen the first 5 — unlock all 400 questions and timed exams for $49</h2>
+      <p>All 400 scenario-based questions across five CCA domains, four timed exam modes, and every answer fully explained.</p>
+      <button class="btn-primary" onclick="openPaymentModal()">Unlock full access — $49</button>
+      <div class="q-paywall-sub">One-time payment · Lifetime access · 10-day money-back guarantee</div>
+    </div>`;
+  document.getElementById('question-dots').innerHTML = '';
+  document.getElementById('test-progress').textContent = '';
+  document.getElementById('test-progress-bar').style.width = '100%';
+  document.getElementById('prev-btn').style.visibility = 'hidden';
+  document.getElementById('next-btn').style.visibility = 'hidden';
+  document.getElementById('test-timer').style.visibility = 'hidden';
+}
 </script>
 </body>
 </html>
