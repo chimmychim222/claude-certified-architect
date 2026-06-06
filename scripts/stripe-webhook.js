@@ -1,38 +1,60 @@
 /**
- * Stripe webhook server — runs on Railway (free tier).
+ * Stripe webhook server — runs on Render.com (free tier).
  * When a customer pays via Stripe, this sets enrolled:true in Firebase.
  *
- * Environment variables to set in Railway dashboard:
- *   STRIPE_SECRET_KEY           — Stripe → Developers → API keys → Secret key
- *   STRIPE_WEBHOOK_SECRET       — Stripe → Developers → Webhooks → signing secret
- *   FIREBASE_SERVICE_ACCOUNT_JSON — full contents of your firebase service account .json file
- *
- * Stripe webhook URL to register:
- *   https://<your-railway-app>.railway.app/stripe-webhook
- * Event:
- *   checkout.session.completed
+ * Environment variables to set in Render dashboard:
+ *   STRIPE_SECRET_KEY              — Stripe → Developers → API keys → Secret key
+ *   STRIPE_WEBHOOK_SECRET          — Stripe → Developers → Webhooks → signing secret
+ *   FIREBASE_SERVICE_ACCOUNT_JSON  — full contents of your Firebase service account .json
+ *   RESEND_API_KEY                 — Resend → API Keys → Create API Key
+ *                                    (domain claudecertifiedarchitects.com must be verified
+ *                                    in Resend before emails will send)
  */
 
 const admin      = require('firebase-admin');
 const stripe     = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const express    = require('express');
 const bodyParser = require('body-parser');
-const nodemailer = require('nodemailer');
 
-// ── Email transporter (Gmail) ─────────────────────────────────────────────────
-// Set these two env vars in Render to enable outbound email:
-//   GMAIL_USER — your full Gmail address, e.g. you@gmail.com
-//   GMAIL_PASS — a Gmail App Password (not your normal password).
-//                Generate one at: myaccount.google.com/apppasswords
-//                (requires 2-Step Verification to be enabled on the account)
-const mailer = (process.env.GMAIL_USER && process.env.GMAIL_PASS)
-  ? nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_PASS }
-    })
-  : null;
+// ── Resend helper ─────────────────────────────────────────────────────────────
+// Sends transactional email via Resend.com (https://resend.com).
+// Uses the built-in fetch available in Node 18+.
+// Returns true on success, false on failure (never throws).
+async function sendViaResend({ to, subject, text }) {
+  if (!process.env.RESEND_API_KEY) {
+    console.log('[resend] RESEND_API_KEY not set — email skipped.');
+    return false;
+  }
+  try {
+    const resp = await fetch('https://api.resend.com/emails', {
+      method:  'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type':  'application/json',
+      },
+      body: JSON.stringify({
+        from:    'CCA Practice <noreply@claudecertifiedarchitects.com>',
+        to:      [to],
+        subject,
+        text,
+      }),
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      console.log('[resend] Email sent:', data.id, '→', to);
+      return true;
+    } else {
+      const err = await resp.text();
+      console.error('[resend] Send failed:', resp.status, err);
+      return false;
+    }
+  } catch (err) {
+    console.error('[resend] Fetch error:', err.message);
+    return false;
+  }
+}
 
-// Load Firebase credentials from environment variable
+// ── Firebase init ─────────────────────────────────────────────────────────────
 if (!admin.apps.length) {
   const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
   admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
@@ -43,8 +65,6 @@ const db   = admin.firestore();
 const app  = express();
 
 // ── Global CORS — must come before all routes ─────────────────────────────────
-// Allows claudecertifiedarchitects.com (with or without www) to call this
-// server from the browser.
 app.use((req, res, next) => {
   const allowed = [
     'https://claudecertifiedarchitects.com',
@@ -60,11 +80,11 @@ app.use((req, res, next) => {
   next();
 });
 
+// ── Stripe webhook ────────────────────────────────────────────────────────────
 app.post(
   '/stripe-webhook',
   bodyParser.raw({ type: 'application/json' }),
   async (req, res) => {
-    // Verify the request really came from Stripe
     let event;
     try {
       event = stripe.webhooks.constructEvent(
@@ -77,7 +97,6 @@ app.post(
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    // Only handle completed checkouts
     if (event.type !== 'checkout.session.completed') {
       return res.json({ skipped: true, type: event.type });
     }
@@ -91,15 +110,12 @@ app.post(
     }
 
     try {
-      // Find the Firebase user by email
       const userRecord     = await auth.getUserByEmail(customerEmail);
       const uid            = userRecord.uid;
       const existingClaims = userRecord.customClaims || {};
 
-      // Set enrolled:true as a custom JWT claim
       await auth.setCustomUserClaims(uid, { ...existingClaims, enrolled: true });
 
-      // Also write to Firestore as a fallback
       await db.collection('users').doc(uid).set(
         {
           enrolled:        true,
@@ -121,14 +137,14 @@ app.post(
 );
 
 // ── Diagnostic email capture ──────────────────────────────────────────────────
-// Stores the visitor's email + their quiz results in Firestore.
+// POST /diagnostic-email
+// Body: { email: string, results: { estimatedScore, passScore, weakestDomain,
+//          weakestDomainWeight, domains: [{ label, examWeight, correct, total, pct }] } }
 //
-// TODO: wire up an email marketing provider here.
-//   Popular options:
-//     • Mailchimp  — set MAILCHIMP_API_KEY + MAILCHIMP_LIST_ID env vars
-//     • ConvertKit — set CONVERTKIT_API_KEY + CONVERTKIT_FORM_ID env vars
-//     • Loops.so   — set LOOPS_API_KEY env var
-//   Then call their API after the Firestore write below.
+// 1. Logs to console (guaranteed capture even if DB/email fails)
+// 2. Persists to Firestore diagnostic_leads collection
+// 3. Emails results via Resend (requires RESEND_API_KEY env var +
+//    claudecertifiedarchitects.com domain verified in Resend dashboard)
 //
 app.post('/diagnostic-email', express.json(), async (req, res) => {
   const { email, results } = req.body || {};
@@ -136,38 +152,38 @@ app.post('/diagnostic-email', express.json(), async (req, res) => {
     return res.status(400).json({ error: 'Invalid email' });
   }
 
-  // 1. Always log to Render console as a guaranteed capture
+  // 1. Console log — always captured in Render logs
   console.log('DIAGNOSTIC_LEAD', JSON.stringify({
     email,
     estimatedScore: results?.estimatedScore,
-    weakestDomain:  results?.weakestDomain
+    weakestDomain:  results?.weakestDomain,
   }));
 
-  // 2. Persist to Firestore (non-blocking — never fail the request on DB error)
+  // 2. Persist to Firestore (non-blocking)
   try {
     await db.collection('diagnostic_leads').add({
       email,
-      results: results || null,
+      results:     results || null,
       submittedAt: admin.firestore.FieldValue.serverTimestamp(),
-      source: 'diagnostic'
+      source:      'diagnostic',
     });
   } catch (err) {
-    console.error('Firestore write failed (lead still logged above):', err.message);
+    console.error('Firestore write failed (lead still logged):', err.message);
   }
 
-  // 3. Send results email via Gmail if credentials are configured
-  if (mailer && results) {
+  // 3. Send results email via Resend
+  if (results) {
+    const score    = results.estimatedScore || 0;
+    const passMark = results.passScore || 720;
+    const verdict  = score >= passMark
+      ? '✅ Strong result — you look ready!'
+      : score >= passMark * 0.85
+        ? "🟡 Close — a bit more practice and you'll be there"
+        : '🔴 Good start — let\'s fill those gaps';
+
     const domainRows = (results.domains || [])
       .map(d => `  • ${d.label}: ${d.correct}/${d.total} (${d.pct}%) — ${d.examWeight}% of exam`)
       .join('\n');
-
-    const passMark  = results.passScore || 720;
-    const score     = results.estimatedScore || 0;
-    const verdict   = score >= passMark
-      ? '✅ Strong result — you look ready!'
-      : score >= passMark * 0.85
-        ? '🟡 Close — a bit more practice and you\'ll be there'
-        : '🔴 Good start — let\'s fill those gaps';
 
     const text = `Hi,
 
@@ -182,33 +198,24 @@ ${domainRows}
 
 Weakest area: ${results.weakestDomain} (${results.weakestDomainWeight}% of the real exam)
 
-Want to close the gap? The full 400-question practice bank covers every domain at real exam weightings with detailed explanations for every answer.
+Want to close the gap? The full 400-question practice bank covers every domain at real exam weightings, with detailed explanations for every answer.
 
 👉 https://claudecertifiedarchitects.com
 
 Good luck with your studies!
 — Claude Certified Architects`;
 
-    try {
-      await mailer.sendMail({
-        from:    `"CCA Practice" <${process.env.GMAIL_USER}>`,
-        to:      email,
-        subject: `Your CCA Diagnostic Results — ${score}/1,000`,
-        text
-      });
-      console.log('Results email sent to:', email);
-    } catch (mailErr) {
-      console.error('Email send failed:', mailErr.message);
-      // Still return ok — the lead is captured
-    }
-  } else if (!mailer) {
-    console.log('Email not sent: GMAIL_USER / GMAIL_PASS not configured in Render env vars.');
+    await sendViaResend({
+      to:      email,
+      subject: `Your CCA Diagnostic Results — ${score}/1,000`,
+      text,
+    });
   }
 
   return res.json({ ok: true });
 });
 
-// Health check so Railway knows the server is running
+// ── Health check ──────────────────────────────────────────────────────────────
 app.get('/', (req, res) => res.send('Webhook server running.'));
 
 const PORT = process.env.PORT || 3001;
