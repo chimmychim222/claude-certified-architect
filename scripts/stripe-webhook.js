@@ -28,6 +28,19 @@ const auth = admin.auth();
 const db   = admin.firestore();
 const app  = express();
 
+// ── Global CORS — must come before all routes ─────────────────────────────────
+// Allows claudecertifiedarchitects.com to call this server from the browser.
+app.use((req, res, next) => {
+  const allowed = 'https://claudecertifiedarchitects.com';
+  if (req.headers.origin === allowed) {
+    res.setHeader('Access-Control-Allow-Origin', allowed);
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  }
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
+
 app.post(
   '/stripe-webhook',
   bodyParser.raw({ type: 'application/json' }),
@@ -99,10 +112,6 @@ app.post(
 //   Then call their API after the Firestore write below.
 //
 app.post('/diagnostic-email', express.json(), async (req, res) => {
-  // CORS — allow the GitHub Pages domain
-  res.setHeader('Access-Control-Allow-Origin', 'https://claudecertifiedarchitects.com');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
   const { email, results } = req.body || {};
   if (!email || !email.includes('@')) {
     return res.status(400).json({ error: 'Invalid email' });
@@ -138,14 +147,6 @@ app.post('/diagnostic-email', express.json(), async (req, res) => {
     console.error('Diagnostic lead error:', err.message);
     return res.status(500).json({ error: err.message });
   }
-});
-
-// CORS preflight for /diagnostic-email
-app.options('/diagnostic-email', (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', 'https://claudecertifiedarchitects.com');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.sendStatus(204);
 });
 
 // Health check so Railway knows the server is running
