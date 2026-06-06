@@ -117,36 +117,38 @@ app.post('/diagnostic-email', express.json(), async (req, res) => {
     return res.status(400).json({ error: 'Invalid email' });
   }
 
+  // Always log to Render console as a guaranteed capture
+  console.log('DIAGNOSTIC_LEAD', JSON.stringify({ email, estimatedScore: results?.estimatedScore, weakestDomain: results?.weakestDomain }));
+
+  // 1. Persist to Firestore — non-blocking: log error but never fail the request
   try {
-    // 1. Persist to Firestore (always)
     await db.collection('diagnostic_leads').add({
       email,
       results: results || null,
       submittedAt: admin.firestore.FieldValue.serverTimestamp(),
       source: 'diagnostic'
     });
-
-    // 2. TODO: Send via email marketing provider
-    //    Example — ConvertKit:
-    //    if (process.env.CONVERTKIT_API_KEY) {
-    //      await fetch(`https://api.convertkit.com/v3/forms/${process.env.CONVERTKIT_FORM_ID}/subscribe`, {
-    //        method: 'POST',
-    //        headers: { 'Content-Type': 'application/json' },
-    //        body: JSON.stringify({
-    //          api_key: process.env.CONVERTKIT_API_KEY,
-    //          email,
-    //          fields: { estimated_score: results?.estimatedScore, weakest_domain: results?.weakestDomain }
-    //        })
-    //      });
-    //    }
-
-    console.log('Diagnostic lead saved:', email);
-    return res.json({ ok: true });
-
-  } catch (err) {
-    console.error('Diagnostic lead error:', err.message);
-    return res.status(500).json({ error: err.message });
+    console.log('Diagnostic lead saved to Firestore:', email);
+  } catch (firestoreErr) {
+    console.error('Firestore write failed (lead still logged above):', firestoreErr.message);
+    // Do NOT return an error — the lead is captured in logs above
   }
+
+  // 2. TODO: Send via email marketing provider
+  //    Example — ConvertKit:
+  //    if (process.env.CONVERTKIT_API_KEY) {
+  //      await fetch(`https://api.convertkit.com/v3/forms/${process.env.CONVERTKIT_FORM_ID}/subscribe`, {
+  //        method: 'POST',
+  //        headers: { 'Content-Type': 'application/json' },
+  //        body: JSON.stringify({
+  //          api_key: process.env.CONVERTKIT_API_KEY,
+  //          email,
+  //          fields: { estimated_score: results?.estimatedScore, weakest_domain: results?.weakestDomain }
+  //        })
+  //      });
+  //    }
+
+  return res.json({ ok: true });
 });
 
 // Health check so Railway knows the server is running
