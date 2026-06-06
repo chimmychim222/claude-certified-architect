@@ -450,6 +450,12 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
 .sq-domain{display:inline-block;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--accent);background:rgba(217,119,87,.08);border:1px solid rgba(217,119,87,.18);border-radius:20px;padding:4px 12px;margin-bottom:16px}
 .sq-question{font-size:1rem;line-height:1.72;color:var(--text);margin-bottom:22px}
 .sq-options{list-style:none;display:flex;flex-direction:column;gap:8px;margin-bottom:22px}
+
+.sq-options li{cursor:pointer;user-select:none}
+.sq-options li:hover:not(.sq-selected){background:var(--surface2);border-color:var(--border2)}
+.sq-card.sq-answered .sq-options li{cursor:default;pointer-events:none}
+.sq-options li.sq-selected{border-color:rgba(196,75,63,.45);background:rgba(196,75,63,.06);color:var(--text)}
+.sq-options li.sq-selected .opt-label{color:var(--red)}
 .sq-options li{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);font-size:.88rem;color:var(--text2);font-family:-apple-system,system-ui,'Segoe UI',sans-serif;line-height:1.55;transition:border-color .2s,background .2s}
 .sq-options li .opt-label{font-weight:700;color:var(--text3);flex-shrink:0;min-width:18px}.opt-text{flex:1;min-width:0;overflow-wrap:break-word;word-break:break-word}
 .sq-card.sq-revealed .sq-options li.sq-correct{border-color:rgba(45,122,95,.4);background:rgba(45,122,95,.06);color:var(--text)}
@@ -628,10 +634,10 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
         <span class="sq-domain">Agentic Architecture &amp; Orchestration (27%)</span>
         <p class="sq-question">A coding agent calls tools inside a loop. A developer needs to decide when to terminate the loop. Which is the correct, robust termination signal?</p>
         <ul class="sq-options">
-        <li><span class="opt-label">A</span><span class="opt-text">Stop when the assistant’s text no longer contains a completion word like “done.”</span></li>
-        <li><span class="opt-label">B</span><span class="opt-text">Stop after a fixed maximum of 10 iterations, regardless of state.</span></li>
-        <li class="sq-correct"><span class="opt-label">C</span><span class="opt-text">Keep executing tools and looping while the response’s <code>stop_reason</code> is <code>tool_use</code>; stop when <code>stop_reason</code> is <code>end_turn</code>.</span></li>
-        <li><span class="opt-label">D</span><span class="opt-text">Stop as soon as any tool returns an error.</span></li>
+        <li onclick="selectSampleAnswer(this)"><span class="opt-label">A</span><span class="opt-text">Stop when the assistant’s text no longer contains a completion word like “done.”</span></li>
+        <li onclick="selectSampleAnswer(this)"><span class="opt-label">B</span><span class="opt-text">Stop after a fixed maximum of 10 iterations, regardless of state.</span></li>
+        <li class="sq-correct" onclick="selectSampleAnswer(this)"><span class="opt-label">C</span><span class="opt-text">Keep executing tools and looping while the response’s <code>stop_reason</code> is <code>tool_use</code>; stop when <code>stop_reason</code> is <code>end_turn</code>.</span></li>
+        <li onclick="selectSampleAnswer(this)"><span class="opt-label">D</span><span class="opt-text">Stop as soon as any tool returns an error.</span></li>
         </ul>
         <button class="sq-toggle" onclick="toggleSampleQ(this)" aria-expanded="false">
           <span class="sq-toggle-text">Show answer</span>
@@ -646,10 +652,10 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
         <span class="sq-domain">Claude Code Configuration &amp; Workflows (20%)</span>
         <p class="sq-question">A team adds Claude Code to a CI pipeline to auto-review pull requests. The job hangs indefinitely and times out instead of producing output. Which fix resolves it?</p>
         <ul class="sq-options">
-        <li><span class="opt-label">A</span><span class="opt-text">Set <code>CLAUDE_HEADLESS=true</code>.</span></li>
-        <li class="sq-correct"><span class="opt-label">B</span><span class="opt-text">Run <code>claude</code> with the <code>-p</code> (print) flag and pass the prompt as an argument.</span></li>
-        <li><span class="opt-label">C</span><span class="opt-text">Add the <code>--batch</code> flag.</span></li>
-        <li><span class="opt-label">D</span><span class="opt-text">Redirect stdin from <code>/dev/null</code>.</span></li>
+        <li onclick="selectSampleAnswer(this)"><span class="opt-label">A</span><span class="opt-text">Set <code>CLAUDE_HEADLESS=true</code>.</span></li>
+        <li class="sq-correct" onclick="selectSampleAnswer(this)"><span class="opt-label">B</span><span class="opt-text">Run <code>claude</code> with the <code>-p</code> (print) flag and pass the prompt as an argument.</span></li>
+        <li onclick="selectSampleAnswer(this)"><span class="opt-label">C</span><span class="opt-text">Add the <code>--batch</code> flag.</span></li>
+        <li onclick="selectSampleAnswer(this)"><span class="opt-label">D</span><span class="opt-text">Redirect stdin from <code>/dev/null</code>.</span></li>
         </ul>
         <button class="sq-toggle" onclick="toggleSampleQ(this)" aria-expanded="false">
           <span class="sq-toggle-text">Show answer</span>
@@ -664,10 +670,10 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
         <span class="sq-domain">Tool Design &amp; MCP Integration (18%)</span>
         <p class="sq-question">You’re designing a tool that queries an external inventory API for an agent. The API sometimes returns “item not found” or rate-limit errors. How should the tool handle these to maximise the agent’s ability to recover?</p>
         <ul class="sq-options">
-        <li><span class="opt-label">A</span><span class="opt-text">Raise an exception that terminates the agent loop so a human can intervene.</span></li>
-        <li class="sq-correct"><span class="opt-label">B</span><span class="opt-text">Return a structured result describing the error (clear message and error type) as the tool result, so Claude can read it and decide how to proceed.</span></li>
-        <li><span class="opt-label">C</span><span class="opt-text">Return an empty string so Claude assumes there’s no data.</span></li>
-        <li><span class="opt-label">D</span><span class="opt-text">Retry silently inside the tool until the API eventually succeeds.</span></li>
+        <li onclick="selectSampleAnswer(this)"><span class="opt-label">A</span><span class="opt-text">Raise an exception that terminates the agent loop so a human can intervene.</span></li>
+        <li class="sq-correct" onclick="selectSampleAnswer(this)"><span class="opt-label">B</span><span class="opt-text">Return a structured result describing the error (clear message and error type) as the tool result, so Claude can read it and decide how to proceed.</span></li>
+        <li onclick="selectSampleAnswer(this)"><span class="opt-label">C</span><span class="opt-text">Return an empty string so Claude assumes there’s no data.</span></li>
+        <li onclick="selectSampleAnswer(this)"><span class="opt-label">D</span><span class="opt-text">Retry silently inside the tool until the API eventually succeeds.</span></li>
         </ul>
         <button class="sq-toggle" onclick="toggleSampleQ(this)" aria-expanded="false">
           <span class="sq-toggle-text">Show answer</span>
@@ -3587,10 +3593,30 @@ function toggleSampleQ(btn) {
   var open = answer.classList.contains('sq-visible');
   answer.classList.toggle('sq-visible', !open);
   card.classList.toggle('sq-revealed', !open);
+  if (!open) card.classList.add('sq-answered');
   btn.classList.toggle('open', !open);
   btn.setAttribute('aria-expanded', String(!open));
   answer.setAttribute('aria-hidden', String(open));
   textEl.textContent = open ? 'Show answer' : 'Hide answer';
+}
+
+// Click an option to attempt answer
+function selectSampleAnswer(li) {
+  var card = li.closest('.sq-card');
+  if (card.classList.contains('sq-answered')) return;
+  card.classList.add('sq-answered');
+  var isCorrect = li.classList.contains('sq-correct');
+  if (!isCorrect) li.classList.add('sq-selected');
+  // Reveal answer + explanation
+  var answer = card.querySelector('.sq-answer');
+  var btn    = card.querySelector('.sq-toggle');
+  var textEl = btn.querySelector('.sq-toggle-text');
+  answer.classList.add('sq-visible');
+  card.classList.add('sq-revealed');
+  btn.classList.add('open');
+  btn.setAttribute('aria-expanded', 'true');
+  answer.setAttribute('aria-hidden', 'false');
+  textEl.textContent = 'Hide answer';
 }
 </script>
 </body>
