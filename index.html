@@ -1224,12 +1224,12 @@ async function submitAuth() {
       }).catch(e => console.warn('Firestore user doc write failed:', e));
     } else {
       const cred = await auth.signInWithEmailAndPassword(email, password);
-      // Register session on login — this will kick out any other device
+      // Register session (fire-and-forget — don't block modal close)
       sessionId = generateSessionId();
-      await db.collection('users').doc(cred.user.uid).set({
+      db.collection('users').doc(cred.user.uid).set({
         activeSession: sessionId,
         lastLoginAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
+      }, { merge: true }).catch(e => console.warn('Session write failed:', e));
     }
     closeAuthModal();
   } catch(e) {
