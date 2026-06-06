@@ -100,7 +100,7 @@ const examSchemas = [
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     name: 'CCA Foundations Exam Practice | Claude Certified Architect',
-    description: 'Full-length CCA Foundations exam simulation with 60 timed, domain-weighted questions. Mirrors the official Claude Certified Architect certification format.',
+    description: 'Full-length CCA Foundations exam simulation with 60 timed, domain-weighted questions. Aligned with the Claude Certified Architect certification format.',
     url: BASE + '/cca-foundations-exam/',
     isPartOf: { '@type': 'WebSite', url: BASE }
   },
@@ -149,7 +149,7 @@ const registerSchemas = [
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     name: 'Register for the Claude Certified Architect Exam',
-    description: "Request access to the official CCA Foundations exam through Anthropic's Skilljar portal.",
+    description: "Request access to the CCA Foundations exam through Anthropic's Skilljar portal.",
     url: BASE + '/register/',
     isPartOf: { '@type': 'WebSite', url: BASE }
   },

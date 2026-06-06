@@ -1,7 +1,7 @@
 {
   "course": {
     "name": "Claude Certified Architect — Foundations Practice Exam",
-    "description": "Comprehensive practice exam preparation for the Claude Certified Architect (CCA) Foundations certification. 400 scenario-based questions covering all 5 official CCA exam domains with timed tests, detailed explanations, and domain-weighted scoring.",
+    "description": "Comprehensive practice exam preparation for the Claude Certified Architect (CCA) Foundations certification. 400 scenario-based questions covering all 5 CCA exam domains with timed tests, detailed explanations, and domain-weighted scoring.",
     "url": "https://www.claudecertifiedarchitects.com/",
     "provider": "Claude Certified Architects",
     "price": "49.00",
@@ -25,11 +25,11 @@
     },
     {
       "q": "How many questions are on the CCA Foundations exam?",
-      "a": "The official CCA Foundations exam consists of 60 scenario-based multiple choice questions with a 120-minute time limit. Our practice platform offers 400 questions across all five domains."
+      "a": "The CCA Foundations exam consists of 60 scenario-based multiple choice questions with a 120-minute time limit. Our practice platform offers 400 independent practice questions across all five domains."
     },
     {
       "q": "What is the passing score for the CCA exam?",
-      "a": "The passing score for the CCA Foundations exam is 75%, with domain-weighted scoring that mirrors the official exam distribution."
+      "a": "The passing score for the CCA Foundations exam is 75%, with domain-weighted scoring that mirrors the exam distribution."
     },
     {
       "q": "Which domain has the most weight on the CCA exam?",
