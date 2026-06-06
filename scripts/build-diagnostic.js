@@ -377,7 +377,19 @@ footer a{color:var(--text3);text-decoration:underline}
       </div>
     </div>
 
-    <div class="cta-card animate-in" style="animation-delay:.3s">
+    <div class="email-capture animate-in" style="animation-delay:.3s">
+      <p class="email-capture-heading">📬 Email me my results</p>
+      <form id="email-form" onsubmit="submitResultsEmail(event)">
+        <div class="email-row">
+          <input type="email" id="email-input" placeholder="your@email.com" autocomplete="email">
+          <button type="submit" class="btn-send" id="email-btn">Send results</button>
+        </div>
+        <p class="email-consent">We'll only use this to send your results and occasional exam prep tips.</p>
+      </form>
+      <p id="email-status" style="display:none"></p>
+    </div>
+
+    <div class="cta-card animate-in" style="animation-delay:.4s">
       <h3>Close the gap with the full 400-question bank — $49</h3>
       <p>All 400 scenario-based questions across every domain, four timed exam modes, domain-weighted scoring, and every answer fully explained.</p>
       <div class="cta-features">
@@ -389,18 +401,6 @@ footer a{color:var(--text3);text-decoration:underline}
       </div>
       <a href="${STRIPE_LINK}" class="btn-primary">Unlock full access — $49</a>
       <p class="cta-retake"><a href="#" onclick="retakeDiagnostic();return false;">Retake with new questions</a></p>
-    </div>
-
-    <div class="email-capture animate-in" style="animation-delay:.5s">
-      <p class="email-capture-heading">📬 Email me my results</p>
-      <form id="email-form" onsubmit="submitResultsEmail(event)">
-        <div class="email-row">
-          <input type="email" id="email-input" placeholder="your@email.com" autocomplete="email">
-          <button type="submit" class="btn-send" id="email-btn">Send results</button>
-        </div>
-        <p class="email-consent">We'll only use this to send your results and occasional exam prep tips.</p>
-      </form>
-      <p id="email-status" style="display:none"></p>
     </div>
   </section>
 
