@@ -1049,8 +1049,9 @@ function initAuthListener() {
   auth.onAuthStateChanged(async (user) => {
     currentUser = user;
     if (user) {
-      // Update nav immediately with user email (before Firestore loads)
-      updateNavUI();
+      // Note: we do NOT call updateNavUI() here yet — enrolled is still false
+      // and an early FREE flash can race with a second onAuthStateChanged fire.
+      // The definitive updateNavUI() call happens below after the enrollment check.
 
       // Check enrollment — custom claims first (immune to ad blockers),
       // then Firestore as fallback for users not yet on the new system.
@@ -1115,6 +1116,7 @@ function updateDashCards() {
     const badge = card.querySelector('.lock-badge');
     if (enrolled) {
       card.classList.remove('locked');
+      card.onclick = null; // clear any stale locked-state handler so button clicks don't bubble to showSection('home')
       if (badge) { badge.textContent = 'ENROLLED'; badge.classList.add('unlocked'); }
     } else {
       card.classList.add('locked');
@@ -3239,7 +3241,8 @@ function shuffleArray(arr) {
 function startTest(type) {
   // quick: always free. focused: first 5 free. deep/full: need enrollment.
   if (type !== 'quick' && type !== 'focused' && !enrolled) {
-    openAuthModal();
+    if (!currentUser) openAuthModal();
+    else openPaymentModal(); // logged in but not enrolled → go to checkout
     return;
   }
 
