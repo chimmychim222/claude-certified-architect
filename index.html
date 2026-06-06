@@ -969,6 +969,8 @@ document.addEventListener('DOMContentLoaded', function() {
     auth = firebase.auth();
     db = firebase.firestore();
     firebaseReady = true;
+    initAuthListener();
+    checkPaymentSuccess();
   } catch(e) {
     console.warn('Firebase not configured yet. Auth features disabled.', e);
   }
@@ -3504,8 +3506,6 @@ document.querySelectorAll('.nav-links button[data-nav]').forEach(btn => {
 });
 
 // Initialize
-initAuthListener();
-checkPaymentSuccess();
 if (!enrolled) showSection('home');
 
 // ═══════ SCROLL REVEAL (IntersectionObserver) ═══════
