@@ -1053,11 +1053,16 @@ function initAuthListener() {
 
       // Check enrollment in Firestore
       try {
+        console.log('[Auth] Reading Firestore for UID:', user.uid);
         const doc = await db.collection('users').doc(user.uid).get();
+        console.log('[Auth] doc.exists:', doc.exists, '| data:', JSON.stringify(doc.data()));
         if (doc.exists && doc.data().enrolled) {
           enrolled = true;
+          console.log('[Auth] enrolled = true');
+        } else {
+          console.warn('[Auth] enrolled NOT set — exists:', doc.exists, '| enrolled field:', doc.exists ? doc.data().enrolled : 'N/A');
         }
-      } catch(e) { console.warn('Firestore read error:', e); }
+      } catch(e) { console.error('[Auth] Firestore read FAILED:', e.code, e.message); }
 
       // Register session if not already registered (e.g., page refresh)
       if (!sessionId) {
