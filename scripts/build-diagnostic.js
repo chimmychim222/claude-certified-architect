@@ -661,7 +661,7 @@ async function submitResultsEmail(e) {
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       // Success
       document.getElementById('email-form').style.display = 'none';
-      status.textContent   = '✓ Got it! Check your inbox in a few minutes.';
+      status.textContent   = '✓ Got it! Your results are on their way.';
       status.className     = 'email-status-ok';
       status.style.display = 'block';
       return;

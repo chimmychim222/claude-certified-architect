@@ -17,6 +17,20 @@ const admin      = require('firebase-admin');
 const stripe     = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const express    = require('express');
 const bodyParser = require('body-parser');
+const nodemailer = require('nodemailer');
+
+// ── Email transporter (Gmail) ─────────────────────────────────────────────────
+// Set these two env vars in Render to enable outbound email:
+//   GMAIL_USER — your full Gmail address, e.g. you@gmail.com
+//   GMAIL_PASS — a Gmail App Password (not your normal password).
+//                Generate one at: myaccount.google.com/apppasswords
+//                (requires 2-Step Verification to be enabled on the account)
+const mailer = (process.env.GMAIL_USER && process.env.GMAIL_PASS)
+  ? nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_PASS }
+    })
+  : null;
 
 // Load Firebase credentials from environment variable
 if (!admin.apps.length) {
@@ -122,10 +136,14 @@ app.post('/diagnostic-email', express.json(), async (req, res) => {
     return res.status(400).json({ error: 'Invalid email' });
   }
 
-  // Always log to Render console as a guaranteed capture
-  console.log('DIAGNOSTIC_LEAD', JSON.stringify({ email, estimatedScore: results?.estimatedScore, weakestDomain: results?.weakestDomain }));
+  // 1. Always log to Render console as a guaranteed capture
+  console.log('DIAGNOSTIC_LEAD', JSON.stringify({
+    email,
+    estimatedScore: results?.estimatedScore,
+    weakestDomain:  results?.weakestDomain
+  }));
 
-  // 1. Persist to Firestore — non-blocking: log error but never fail the request
+  // 2. Persist to Firestore (non-blocking — never fail the request on DB error)
   try {
     await db.collection('diagnostic_leads').add({
       email,
@@ -133,25 +151,59 @@ app.post('/diagnostic-email', express.json(), async (req, res) => {
       submittedAt: admin.firestore.FieldValue.serverTimestamp(),
       source: 'diagnostic'
     });
-    console.log('Diagnostic lead saved to Firestore:', email);
-  } catch (firestoreErr) {
-    console.error('Firestore write failed (lead still logged above):', firestoreErr.message);
-    // Do NOT return an error — the lead is captured in logs above
+  } catch (err) {
+    console.error('Firestore write failed (lead still logged above):', err.message);
   }
 
-  // 2. TODO: Send via email marketing provider
-  //    Example — ConvertKit:
-  //    if (process.env.CONVERTKIT_API_KEY) {
-  //      await fetch(`https://api.convertkit.com/v3/forms/${process.env.CONVERTKIT_FORM_ID}/subscribe`, {
-  //        method: 'POST',
-  //        headers: { 'Content-Type': 'application/json' },
-  //        body: JSON.stringify({
-  //          api_key: process.env.CONVERTKIT_API_KEY,
-  //          email,
-  //          fields: { estimated_score: results?.estimatedScore, weakest_domain: results?.weakestDomain }
-  //        })
-  //      });
-  //    }
+  // 3. Send results email via Gmail if credentials are configured
+  if (mailer && results) {
+    const domainRows = (results.domains || [])
+      .map(d => `  • ${d.label}: ${d.correct}/${d.total} (${d.pct}%) — ${d.examWeight}% of exam`)
+      .join('\n');
+
+    const passMark  = results.passScore || 720;
+    const score     = results.estimatedScore || 0;
+    const verdict   = score >= passMark
+      ? '✅ Strong result — you look ready!'
+      : score >= passMark * 0.85
+        ? '🟡 Close — a bit more practice and you\'ll be there'
+        : '🔴 Good start — let\'s fill those gaps';
+
+    const text = `Hi,
+
+Here are your CCA Diagnostic Quiz results:
+
+${verdict}
+
+Estimated score: ${score} / 1,000  (passing mark: ${passMark})
+
+Domain breakdown:
+${domainRows}
+
+Weakest area: ${results.weakestDomain} (${results.weakestDomainWeight}% of the real exam)
+
+Want to close the gap? The full 400-question practice bank covers every domain at real exam weightings with detailed explanations for every answer.
+
+👉 https://claudecertifiedarchitects.com
+
+Good luck with your studies!
+— Claude Certified Architects`;
+
+    try {
+      await mailer.sendMail({
+        from:    `"CCA Practice" <${process.env.GMAIL_USER}>`,
+        to:      email,
+        subject: `Your CCA Diagnostic Results — ${score}/1,000`,
+        text
+      });
+      console.log('Results email sent to:', email);
+    } catch (mailErr) {
+      console.error('Email send failed:', mailErr.message);
+      // Still return ok — the lead is captured
+    }
+  } else if (!mailer) {
+    console.log('Email not sent: GMAIL_USER / GMAIL_PASS not configured in Render env vars.');
+  }
 
   return res.json({ ok: true });
 });
