@@ -605,6 +605,10 @@ function showResults() {
     });
   }, 100);
 
+  // Pre-warm the Render server now so it's awake by the time the user
+  // fills in their email and clicks Send (Render free tier cold-starts in ~30s).
+  fetch('https://claude-certified-architect.onrender.com/', { mode: 'no-cors' }).catch(() => {});
+
   // Cache results for the optional email capture below
   lastDiagResults = {
     estimatedScore,
@@ -642,23 +646,40 @@ async function submitResultsEmail(e) {
   const status = document.getElementById('email-status');
   btn.disabled    = true;
   btn.textContent = 'Sending…';
-  try {
-    const resp = await fetch('https://claude-certified-architect.onrender.com/diagnostic-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: emailVal, results: lastDiagResults })
-    });
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    document.getElementById('email-form').style.display = 'none';
-    status.textContent  = '✓ Got it! Check your inbox in a few minutes.';
-    status.className    = 'email-status-ok';
-    status.style.display = 'block';
-  } catch(err) {
-    status.textContent  = 'Something went wrong — please try again.';
-    status.className    = 'email-status-err';
-    status.style.display = 'block';
-    btn.disabled    = false;
-    btn.textContent = 'Send results';
+
+  const payload = JSON.stringify({ email: emailVal, results: lastDiagResults });
+  const endpoint = 'https://claude-certified-architect.onrender.com/diagnostic-email';
+
+  // Try twice — the first attempt may hit a cold-start; the retry succeeds once warm.
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const resp = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload
+      });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      // Success
+      document.getElementById('email-form').style.display = 'none';
+      status.textContent   = '✓ Got it! Check your inbox in a few minutes.';
+      status.className     = 'email-status-ok';
+      status.style.display = 'block';
+      return;
+    } catch(err) {
+      if (attempt === 1) {
+        // First failure — server was likely cold. Wait 8s then retry.
+        btn.textContent = 'Retrying…';
+        await new Promise(r => setTimeout(r, 8000));
+        btn.textContent = 'Sending…';
+      } else {
+        // Second failure — show error
+        status.textContent   = 'Something went wrong — please try again.';
+        status.className     = 'email-status-err';
+        status.style.display = 'block';
+        btn.disabled    = false;
+        btn.textContent = 'Send results';
+      }
+    }
   }
 }
 
