@@ -1314,11 +1314,14 @@ function showSection(id) {
     if (el) el.style.display = 'none';
   });
   document.querySelectorAll('.hero').forEach(h => h.style.display='none');
+  var sqSection = document.getElementById('sample-questions');
+  if (sqSection) sqSection.style.display = 'none';
   document.querySelectorAll('.dashboard,.test-view,.results-view,.lessons-view').forEach(el => el.style.display='none');
   document.querySelectorAll('[data-nav]').forEach(b => b.classList.remove('active'));
 
   if (id === 'home') {
     document.getElementById('home-section').style.display = 'block';
+    if (sqSection) sqSection.style.display = 'block';
     document.getElementById('testimonials-section').style.display = 'block';
     document.getElementById('pricing-section').style.display = 'block';
     document.querySelector('[data-nav="home"]').classList.add('active');
