@@ -631,7 +631,7 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
       <h2>See the question quality before you buy</h2>
       <p>Real scenario-based questions, every answer fully explained &mdash; just like the 400 in the full bank.</p>
     </div>
-    <div class="sample-q-grid">
+    <div class="sample-q-grid" id="sample-q-grid">
       <div class="sq-card reveal">
         <span class="sq-domain">Agentic Architecture &amp; Orchestration (27%)</span>
         <p class="sq-question">A coding agent calls tools inside a loop. A developer needs to decide when to terminate the loop. Which is the correct, robust termination signal?</p>
@@ -3625,6 +3625,18 @@ function selectSampleAnswer(li) {
   if (!isCorrect) li.classList.add('sq-selected');
   // sq-revealed NOT added here — correct answer hidden until Show answer clicked
 }
+
+// Shuffle sample question cards on every page load
+(function() {
+  var grid = document.getElementById('sample-q-grid');
+  if (!grid) return;
+  var cards = Array.from(grid.children);
+  for (var i = cards.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    grid.appendChild(cards[j]);
+    cards.splice(j, 1);
+  }
+})();
 </script>
 </body>
 </html>
