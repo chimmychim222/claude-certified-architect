@@ -374,7 +374,7 @@ footer a{color:var(--text3);text-decoration:underline}
 
 <script>
 // ── Embedded question pool (generated at build time) ─────────────────────────
-const POOL = ${JSON.stringify(POOL)};
+const POOL = ${JSON.stringify(POOL).replace(/<\/script>/gi, '<\\/script>')};
 
 const DOMAINS = [
   { key: 'Agentic Architecture & Orchestration',  label: 'Agentic Architecture & Orchestration',  pct: 27 },
