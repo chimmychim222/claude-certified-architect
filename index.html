@@ -628,7 +628,7 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
         <span class="sq-domain">Agentic Architecture &amp; Orchestration (27%)</span>
         <p class="sq-question">A coding agent calls tools inside a loop. A developer needs to decide when to terminate the loop. Which is the correct, robust termination signal?</p>
         <ul class="sq-options">
-        <li><span class="opt-label">A</span><span class="opt-text">Stop when the assistant’s text no longer contains a completion word like “done.”</li>
+        <li><span class="opt-label">A</span><span class="opt-text">Stop when the assistant’s text no longer contains a completion word like “done.”</span></li>
         <li><span class="opt-label">B</span><span class="opt-text">Stop after a fixed maximum of 10 iterations, regardless of state.</span></li>
         <li class="sq-correct"><span class="opt-label">C</span><span class="opt-text">Keep executing tools and looping while the response’s <code>stop_reason</code> is <code>tool_use</code>; stop when <code>stop_reason</code> is <code>end_turn</code>.</span></li>
         <li><span class="opt-label">D</span><span class="opt-text">Stop as soon as any tool returns an error.</span></li>
@@ -666,7 +666,7 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
         <ul class="sq-options">
         <li><span class="opt-label">A</span><span class="opt-text">Raise an exception that terminates the agent loop so a human can intervene.</span></li>
         <li class="sq-correct"><span class="opt-label">B</span><span class="opt-text">Return a structured result describing the error (clear message and error type) as the tool result, so Claude can read it and decide how to proceed.</span></li>
-        <li><span class="opt-label">C</span><span class="opt-text">Return an empty string so Claude assumes there’s no data.</li>
+        <li><span class="opt-label">C</span><span class="opt-text">Return an empty string so Claude assumes there’s no data.</span></li>
         <li><span class="opt-label">D</span><span class="opt-text">Retry silently inside the tool until the API eventually succeeds.</span></li>
         </ul>
         <button class="sq-toggle" onclick="toggleSampleQ(this)" aria-expanded="false">
