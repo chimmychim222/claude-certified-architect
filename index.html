@@ -1028,6 +1028,9 @@ function listenForSessionChanges(uid) {
 
   sessionUnsubscribe = db.collection('users').doc(uid).onSnapshot(snap => {
     if (!snap.exists || !sessionId) return;
+    // Ignore cache-only events: the cached doc may have an old activeSession
+    // from a previous login before our registerSession write reached the server.
+    if (snap.metadata.fromCache) return;
     const data = snap.data();
     if (data.activeSession && data.activeSession !== sessionId) {
       // Another device logged in — force logout here
@@ -3238,12 +3241,21 @@ function shuffleArray(arr) {
   return a;
 }
 
-function startTest(type) {
+async function startTest(type) {
   // quick: always free. focused: first 5 free. deep/full: need enrollment.
   if (type !== 'quick' && type !== 'focused' && !enrolled) {
-    if (!currentUser) openAuthModal();
-    else openPaymentModal(); // logged in but not enrolled → go to checkout
-    return;
+    if (!currentUser) { openAuthModal(); return; }
+    // The global `enrolled` can lag if onAuthStateChanged fired concurrently.
+    // Re-verify from the in-memory cached JWT — no network call, instant.
+    try {
+      const tok = await currentUser.getIdTokenResult(); // cached, not forced
+      if (tok.claims.enrolled) {
+        enrolled = true;   // fix the stale global in one shot
+        updateNavUI();     // sync the badge too
+        updateDashCards(); // sync the card badges too
+      }
+    } catch(e) { console.warn('[startTest] token check failed', e.message); }
+    if (!enrolled) { openPaymentModal(); return; }
   }
 
   const config = getTestConfig(type);
