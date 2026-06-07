@@ -1439,7 +1439,14 @@ const WEBHOOK_BASE = 'https://claude-certified-architect.onrender.com';
 async function claimPendingEnrollment(user) {
   if (!user) return { enrolled: false, reason: null };
   try {
-    const token = await user.getIdToken();
+    // Force-refresh: the SDK's cached ID token is a snapshot from whenever
+    // it was last minted and does NOT update itself when emailVerified
+    // flips server-side (e.g. the user clicks the verification link in
+    // another tab). Without `true` here, a just-verified user would keep
+    // sending a stale token whose email_verified claim still reads false,
+    // and the server-side gate in /claim-enrollment would keep rejecting
+    // a perfectly legitimate claim.
+    const token = await user.getIdToken(true);
     const resp  = await fetch(WEBHOOK_BASE + '/claim-enrollment', {
       method:  'POST',
       headers: { 'Authorization': 'Bearer ' + token }
@@ -1470,14 +1477,68 @@ function showPendingVerificationBanner(user) {
   const banner = document.getElementById('success-banner');
   if (!banner || !user) return;
   const email = user.email || 'your email address';
+  const btn = "style=\"margin-left:8px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px\"";
   const dismissBtn = "<button onclick=\"document.getElementById('success-banner').style.display='none'\" style=\"margin-left:16px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px\">Dismiss</button>";
   banner.innerHTML =
     'We found a pending purchase for <strong>' + email + '</strong> — verify your email address to unlock it. ' +
-    'Check your inbox for the verification link, then refresh this page.' +
-    ' <button id="resend-verify-btn" style="margin-left:8px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px">Resend verification email</button>' +
+    'Click the link in the verification email, then hit "I&rsquo;ve verified" below — no need to reload the page.' +
+    ' <button id="unlock-now-btn" ' + btn + '>I&rsquo;ve verified &mdash; unlock now</button>' +
+    ' <button id="resend-verify-btn" ' + btn + '>Resend verification email</button>' +
+    ' <span id="verify-status-msg" style="display:block;margin-top:6px;font-size:.85rem;opacity:.85"></span>' +
     dismissBtn;
   banner.style.display = 'block';
+
+  const statusEl  = document.getElementById('verify-status-msg');
+  const unlockBtn = document.getElementById('unlock-now-btn');
   const resendBtn = document.getElementById('resend-verify-btn');
+
+  // "I've verified — unlock now": the user's local `user` object is a
+  // snapshot from sign-in time and never updates itself when emailVerified
+  // flips server-side after they click the link in another tab. Without an
+  // explicit recheck path, they'd be stuck staring at this banner until they
+  // happen to reload the page (which re-fires onAuthStateChanged → forces a
+  // token refresh) or up to ~an hour passes and the SDK auto-refreshes the
+  // token on its own. This button does that recheck on demand:
+  //   1. user.reload()      — re-fetches the account record from Firebase
+  //                            Auth, picking up the new emailVerified value
+  //   2. getIdToken(true)   — mints a fresh ID token carrying that value
+  //   3. claimPendingEnrollment(user) — retries the claim with that token
+  if (unlockBtn) {
+    unlockBtn.onclick = async () => {
+      const original = unlockBtn.textContent;
+      unlockBtn.disabled = true;
+      unlockBtn.textContent = 'Checking…';
+      if (statusEl) statusEl.textContent = '';
+      try {
+        await user.reload();
+        await user.getIdToken(true);
+        const claim = await claimPendingEnrollment(user);
+        if (claim.enrolled) {
+          enrolled = true;
+          updateNavUI();
+          updateDashCards();
+          showSection('dashboard');
+          banner.innerHTML = 'Payment successful! Welcome to the Claude Certified Architect course.' + dismissBtn;
+          banner.style.display = 'block';
+          return;
+        }
+        if (statusEl) {
+          statusEl.textContent = (claim.reason === 'unverified_email')
+            ? "Still showing as unverified — make sure you clicked the link in the email (check spam too), then try again."
+            : "We couldn't find a matching pending purchase for this account. If you believe this is a mistake, contact support.";
+        }
+      } catch (e) {
+        console.warn('[Enrollment] manual unlock check failed:', e.message);
+        if (statusEl) statusEl.textContent = 'Something went wrong checking your status — please try again in a moment.';
+      } finally {
+        if (unlockBtn.isConnected) {
+          unlockBtn.disabled = false;
+          unlockBtn.textContent = original;
+        }
+      }
+    };
+  }
+
   if (resendBtn) {
     resendBtn.onclick = () => {
       resendBtn.disabled = true;
