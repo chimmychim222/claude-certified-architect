@@ -204,6 +204,19 @@ app.post('/claim-enrollment', async (req, res) => {
       return res.json({ ok: true, enrolled: false });
     }
 
+    // SECURITY: Firebase email/password sign-up does not prove inbox
+    // ownership — anyone can register an account using a stranger's email
+    // address. Without this gate, an attacker who merely knows (or guesses)
+    // a real purchaser's email could sign up *as* them, claim the pending
+    // enrollment under the attacker's own uid, and — because claiming
+    // deletes the pending record — permanently destroy the real purchaser's
+    // only path to the access they paid for. email_verified is Firebase's
+    // proof that the token holder actually controls that inbox (they clicked
+    // a link sent to it), which is exactly the property we need here.
+    if (!decoded.email_verified) {
+      return res.json({ ok: true, enrolled: false, reason: 'unverified_email' });
+    }
+
     const pending        = pendingDoc.data();
     const userRecord     = await auth.getUser(uid);
     const existingClaims = userRecord.customClaims || {};

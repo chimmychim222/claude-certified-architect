@@ -1188,7 +1188,10 @@ function initAuthListener() {
       // have stashed a "pending enrollment" for that email server-side —
       // claim it now that we can prove who they are via a verified ID token.
       if (!enrolled) {
-        await claimPendingEnrollment(user);
+        const claim = await claimPendingEnrollment(user);
+        if (claim.reason === 'unverified_email') {
+          showPendingVerificationBanner(user);
+        }
       }
       if (!sessionId) {
         await registerSession(user.uid);
@@ -1348,6 +1351,12 @@ async function submitAuth() {
           auth.createUserWithEmailAndPassword(email, password),
           new Promise((_, reject) => setTimeout(() => reject(new Error('auth/timeout')), 15000))
         ]);
+      // Fire off email verification (fire-and-forget). This is also what
+      // /claim-enrollment requires before honoring a pending-purchase claim —
+      // it's the proof that this account actually controls the inbox a Stripe
+      // payment may have been made under, so a stranger's email can't be used
+      // to steal someone else's already-paid enrollment.
+      cred.user.sendEmailVerification().catch(e => console.warn('Verification email failed:', e.message));
       // Create user document and register session
       sessionId = generateSessionId();
       // Use merge:true so we never overwrite an existing enrolled:true.
@@ -1428,24 +1437,60 @@ const WEBHOOK_BASE = 'https://claude-certified-architect.onrender.com';
 // server-side. When the matching account shows up, we claim it here. Returns
 // true if enrollment was applied.
 async function claimPendingEnrollment(user) {
-  if (!user) return false;
+  if (!user) return { enrolled: false, reason: null };
   try {
     const token = await user.getIdToken();
     const resp  = await fetch(WEBHOOK_BASE + '/claim-enrollment', {
       method:  'POST',
       headers: { 'Authorization': 'Bearer ' + token }
     });
-    if (!resp.ok) return false;
+    if (!resp.ok) return { enrolled: false, reason: null };
     const data = await resp.json();
     if (data.enrolled) {
       await user.getIdTokenResult(true); // refresh local claim cache
       enrolled = true;
-      return true;
+      return { enrolled: true, reason: null };
     }
+    // data.reason surfaces server-side gates, e.g. 'unverified_email' — a
+    // pending purchase exists for this address, but we won't hand it over
+    // until the account proves it controls that inbox (see /claim-enrollment).
+    return { enrolled: false, reason: data.reason || null };
   } catch (e) {
     console.warn('[Enrollment] claim check failed:', e.message);
   }
-  return false;
+  return { enrolled: false, reason: null };
+}
+
+// Shown when a pending Stripe purchase exists for this account's email but
+// the account hasn't verified ownership of that inbox yet. This is the
+// user-facing side of the email_verified gate in /claim-enrollment: without
+// it, legitimate pre-signup purchasers would see their claim silently fail
+// and have no idea why or what to do about it.
+function showPendingVerificationBanner(user) {
+  const banner = document.getElementById('success-banner');
+  if (!banner || !user) return;
+  const email = user.email || 'your email address';
+  const dismissBtn = "<button onclick=\"document.getElementById('success-banner').style.display='none'\" style=\"margin-left:16px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px\">Dismiss</button>";
+  banner.innerHTML =
+    'We found a pending purchase for <strong>' + email + '</strong> — verify your email address to unlock it. ' +
+    'Check your inbox for the verification link, then refresh this page.' +
+    ' <button id="resend-verify-btn" style="margin-left:8px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px">Resend verification email</button>' +
+    dismissBtn;
+  banner.style.display = 'block';
+  const resendBtn = document.getElementById('resend-verify-btn');
+  if (resendBtn) {
+    resendBtn.onclick = () => {
+      resendBtn.disabled = true;
+      resendBtn.textContent = 'Sending…';
+      user.sendEmailVerification()
+        .then(() => { resendBtn.textContent = 'Sent — check your inbox'; })
+        .catch(e => {
+          console.warn('[Enrollment] resend verification failed:', e.message);
+          resendBtn.disabled = false;
+          resendBtn.textContent = 'Resend verification email';
+        });
+    };
+  }
 }
 
 // Poll server-verified enrollment sources for a short window after returning
@@ -1481,7 +1526,20 @@ async function confirmPaymentAndUnlock(user) {
       } catch (e) {}
     }
 
-    if (!confirmed) confirmed = await claimPendingEnrollment(user);
+    if (!confirmed) {
+      const claim = await claimPendingEnrollment(user);
+      if (claim.enrolled) {
+        confirmed = true;
+      } else if (claim.reason === 'unverified_email') {
+        // No amount of polling fixes this — the account must verify its
+        // email before the server will release the pending enrollment.
+        // Stop spinning and hand the user something actionable instead of
+        // a 75-second "still confirming…" message that will never resolve.
+        _confirmingPayment = false;
+        showPendingVerificationBanner(user);
+        return;
+      }
+    }
     if (!confirmed) await new Promise(r => setTimeout(r, 5000));
   }
 
