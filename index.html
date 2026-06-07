@@ -152,7 +152,17 @@ section .section-sub{color:var(--text2);margin-bottom:40px;font-size:1rem}
 .dash-card .meta{display:flex;gap:16px;color:var(--text3);font-size:.78rem;margin-bottom:16px;font-family:-apple-system,system-ui,'Segoe UI',sans-serif}
 .lock-badge{font-size:.65rem;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:.3px;background:rgba(196,75,63,.06);color:var(--red);border:1px solid rgba(196,75,63,.15);vertical-align:middle;margin-left:6px}
 .lock-badge.unlocked{background:rgba(45,122,95,.08);color:var(--green);border-color:rgba(45,122,95,.2)}
-.dash-card.locked{position:relative;pointer-events:none}
+/* Was pointer-events:none on the whole card with pointer-events:auto only on
+   the ::after "Enroll to unlock" strip — so tapping the visible title/button
+   anywhere above that strip did nothing (looked broken, esp. on mobile,
+   where there's no hover state to reveal the strip). Now the card itself
+   receives pointer events (and the existing card.onclick → openPaymentModal
+   handler in updateDashCards() fires from a tap anywhere on it), while the
+   inner "Start …" button specifically gets pointer-events:none so a tap on
+   it passes through to the card instead of firing startTest() on a locked
+   session. Visual styling (grayed strip, lock badge, cursor) is unchanged. */
+.dash-card.locked{position:relative;cursor:pointer}
+.dash-card.locked button{pointer-events:none}
 .dash-card.locked::after{content:'🔒 Enroll to unlock';position:absolute;bottom:0;left:0;right:0;padding:14px;text-align:center;background:linear-gradient(transparent,rgba(245,243,234,.95) 40%);border-radius:0 0 var(--radius) var(--radius);font-size:1rem;font-weight:600;color:var(--accent);cursor:pointer;pointer-events:auto;z-index:2;letter-spacing:.3px}
 .dash-card.locked:hover::after{color:var(--accent2)}
 
