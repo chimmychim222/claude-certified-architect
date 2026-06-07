@@ -113,7 +113,11 @@ footer a:hover{color:var(--accent)}
       <a href="/cca-foundations-exam" onclick="closeNav()">Exam</a>
       <a href="/cca-practice-questions" class="active" onclick="closeNav()">Questions</a>
       <a href="/cca-exam-guide" onclick="closeNav()">Guide</a>
-      <a href="/register/" style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:8px 16px;border-radius:6px;font-size:.88rem;font-weight:600;color:#fff;background:var(--accent);transition:all .2s;text-decoration:none" onclick="closeNav()">Register</a>
+      <!-- Was a solid-accent "Register" button — visitors mistook it for
+           creating an account on this site. It actually links to Anthropic's
+           external exam-registration info page, so it's now styled as a
+           secondary/outline link with explicit external-link semantics. -->
+      <a href="/register/" target="_blank" rel="noopener" aria-label="Official Claude Certified Architect exam registration on Anthropic's site (opens in a new tab)" style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:8px 16px;border-radius:6px;font-size:.88rem;font-weight:600;color:var(--accent);background:transparent;border:1px solid var(--accent);transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:4px;white-space:nowrap" onclick="closeNav()">Official Exam <span aria-hidden="true" style="font-size:.85em;line-height:1">&#8599;</span></a>
     </div>
   </div>
 </nav>

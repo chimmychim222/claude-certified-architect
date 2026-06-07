@@ -132,7 +132,11 @@ nav .inner{display:flex;align-items:center;justify-content:space-between;padding
       <a href="/cca-foundations-exam">Exam Sim</a>
       <a href="/cca-exam-guide">Guide</a>
       <a href="/blog" class="active">Blog</a>
-      <a href="/register">Register</a>
+      <!-- Was a plain "Register" nav-link, easily mistaken for "register/sign
+           up for this site." It actually opens Anthropic's external exam-
+           registration info page, so it now reads as an explicit external
+           link with an arrow + accessible label. -->
+      <a href="/register" target="_blank" rel="noopener" aria-label="Official Claude Certified Architect exam registration on Anthropic's site (opens in a new tab)">Official Exam <span aria-hidden="true" style="font-size:.85em;line-height:1">&#8599;</span></a>
     </div>
     <a href="/" class="nav-cta">Start Practicing</a>
     <button class="nav-hamburger" aria-label="Toggle menu"
