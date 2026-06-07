@@ -13,6 +13,20 @@
  *                                    required as the `x-admin-key` header on
  *                                    GET /admin/stale-pending-enrollments.
  *                                    Leaving it unset disables that endpoint entirely.
+ *
+ *   ALERT_EMAIL_TO   (optional)    — email address to notify when stale (>48h)
+ *                                    pending_enrollments are found. Reuses the
+ *                                    Resend setup above — no new provider needed.
+ *   ALERT_WEBHOOK_URL (optional)   — a Slack or Discord "incoming webhook" URL,
+ *                                    notified the same way. Set either/both/
+ *                                    neither; with neither set, stale findings
+ *                                    just fall back to a console.warn log line
+ *                                    (visible in the Render dashboard).
+ *
+ *   Also see the big comment box above GET /admin/stale-pending-enrollments
+ *   below for how to point a free external scheduler (cron-job.org etc.) at
+ *   it — that's what makes the stale-enrollment check actually dependable on
+ *   a free-tier dyno that sleeps, and keeps the instance warm as a bonus.
  */
 
 const admin      = require('firebase-admin');
@@ -266,6 +280,78 @@ app.post('/claim-enrollment', async (req, res) => {
 // doesn't depend on this process's uptime.
 const STALE_PENDING_THRESHOLD_MS = 48 * 60 * 60 * 1000; // 48 hours
 
+// ── Alert delivery ────────────────────────────────────────────────────────
+// Pure console.warn logging is easy to miss — Render's free tier doesn't
+// push log alerts, so a stale record could sit unseen for weeks. This sends
+// an actual notification, configured by env var (set either, both, or
+// neither):
+//
+//   ALERT_EMAIL_TO     — an email address to notify. Reuses the existing
+//                        Resend integration (and RESEND_API_KEY) above —
+//                        nothing new to provision if that's already set up.
+//   ALERT_WEBHOOK_URL  — a Slack or Discord "incoming webhook" URL. The
+//                        payload below sends both `text` (which Slack reads)
+//                        and `content` (which Discord requires) so the same
+//                        code works for either without needing to know which
+//                        one you're pointed at.
+//
+// If NEITHER is set — or every configured channel fails to deliver — this
+// falls back to the original console.warn behavior, so a stale batch never
+// goes completely unrecorded even with zero configuration.
+async function sendStaleEnrollmentAlert(stale) {
+  const plural  = stale.length === 1 ? '' : 's';
+  const lines   = stale.map(s =>
+    `• ${s.email} — Stripe session ${s.stripeSessionId || '(none)'} — ` +
+    (s.ageHours === null ? 'age unknown (missing timestamp)' : `${s.ageHours}h old`)
+  );
+  const summary =
+    `${stale.length} unclaimed Stripe purchase${plural} pending enrollment for more than 48 hours. ` +
+    `These customers paid but may not have course access yet:\n\n` + lines.join('\n');
+
+  let delivered = false;
+
+  if (process.env.ALERT_EMAIL_TO) {
+    try {
+      const ok = await sendViaResend({
+        to:      process.env.ALERT_EMAIL_TO,
+        subject: `[CCA] ${stale.length} stale pending enrollment${plural} need review`,
+        text:    summary,
+      });
+      delivered = delivered || ok;
+    } catch (err) {
+      console.error('[alert] email delivery threw:', err.message);
+    }
+  }
+
+  if (process.env.ALERT_WEBHOOK_URL) {
+    try {
+      const resp = await fetch(process.env.ALERT_WEBHOOK_URL, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ text: summary, content: summary }),
+      });
+      if (resp.ok) {
+        delivered = true;
+      } else {
+        console.error('[alert] webhook delivery failed:', resp.status, await resp.text());
+      }
+    } catch (err) {
+      console.error('[alert] webhook delivery threw:', err.message);
+    }
+  }
+
+  if (!delivered) {
+    // Covers two cases at once: no channel env var was set at all, or every
+    // configured channel failed above. Either way, the data still lands
+    // somewhere durable (Render's log dashboard).
+    console.warn(
+      `[pending_enrollments] ${stale.length} unclaimed record(s) older than 48h — needs manual review ` +
+      `(no alert channel configured or delivery failed; set ALERT_EMAIL_TO or ALERT_WEBHOOK_URL to get pinged):`,
+      JSON.stringify(stale)
+    );
+  }
+}
+
 async function findStalePendingEnrollments() {
   const cutoff = Date.now() - STALE_PENDING_THRESHOLD_MS;
   const snap   = await db.collection('pending_enrollments').get();
@@ -288,14 +374,11 @@ async function findStalePendingEnrollments() {
   return stale;
 }
 
-async function logStalePendingEnrollments() {
+async function checkStalePendingEnrollmentsAndAlert() {
   try {
     const stale = await findStalePendingEnrollments();
     if (stale.length) {
-      console.warn(
-        `[pending_enrollments] ${stale.length} unclaimed record(s) older than 48h — needs manual review:`,
-        JSON.stringify(stale)
-      );
+      await sendStaleEnrollmentAlert(stale);
     }
   } catch (err) {
     console.error('[pending_enrollments] stale check failed:', err.message);
@@ -303,25 +386,55 @@ async function logStalePendingEnrollments() {
 }
 
 // Once shortly after boot (catches anything that piled up while this
-// instance was asleep), then every 6 hours for as long as the process stays up.
-setTimeout(logStalePendingEnrollments, 60 * 1000);
-setInterval(logStalePendingEnrollments, 6 * 60 * 60 * 1000);
+// instance was asleep), then every 6 hours for as long as the process stays
+// up. NOTE: on Render's free tier the dyno sleeps after ~15 minutes idle, so
+// this interval is a best-effort backstop, not a reliable schedule — see the
+// admin endpoint + external-scheduler note below for the dependable path.
+setTimeout(checkStalePendingEnrollmentsAndAlert, 60 * 1000);
+setInterval(checkStalePendingEnrollmentsAndAlert, 6 * 60 * 60 * 1000);
 
 // GET /admin/stale-pending-enrollments
 // Header: x-admin-key: <ADMIN_API_KEY>
 //
 // On-demand, authoritative listing of unclaimed pending_enrollments older
-// than 48h — email, Stripe session ID, and age in hours for each — so
-// support can find and manually resolve them regardless of whether the
-// in-process interval above has run recently. Returns 401 (and the route is
-// effectively disabled) if ADMIN_API_KEY isn't set, so this can't be hit
-// with an empty/guessable key by accident.
+// than 48h — email, Stripe session ID, and age in hours for each — AND the
+// trigger point that actually fires the alert (see sendStaleEnrollmentAlert)
+// when the list is non-empty. Returns 401 (route effectively disabled) if
+// ADMIN_API_KEY isn't set, so it can't be hit with an empty/guessable key.
+//
+// ┌─────────────────────────────────────────────────────────────────────┐
+// │ SET THIS UP: point an external scheduler at this endpoint            │
+// │                                                                       │
+// │ The in-process interval above only runs while the dyno happens to    │
+// │ be awake — on Render's free tier that's not guaranteed. For a        │
+// │ dependable check, use a free service like https://cron-job.org (or   │
+// │ UptimeRobot, Better Uptime, etc.) to send a periodic GET here, e.g.  │
+// │ every 4-6 hours:                                                      │
+// │                                                                       │
+// │   URL:     https://claude-certified-architect.onrender.com/admin/    │
+// │            stale-pending-enrollments                                 │
+// │   Method:  GET                                                       │
+// │   Header:  x-admin-key: <your ADMIN_API_KEY value>                   │
+// │                                                                       │
+// │ This does double duty: it surfaces stale records on a schedule you   │
+// │ control (independent of this process's uptime), AND every hit keeps  │
+// │ the instance warm — directly helping the cold-start problem this     │
+// │ same audit flagged for the Stripe webhook and /claim-enrollment.     │
+// └─────────────────────────────────────────────────────────────────────┘
 app.get('/admin/stale-pending-enrollments', async (req, res) => {
   if (!process.env.ADMIN_API_KEY || req.headers['x-admin-key'] !== process.env.ADMIN_API_KEY) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   try {
     const stale = await findStalePendingEnrollments();
+    if (stale.length) {
+      // Awaited rather than fire-and-forget: this route is meant to be hit
+      // by an infrequent external scheduler, not a latency-sensitive
+      // client — better to spend an extra second guaranteeing the alert was
+      // attempted than risk losing it if the process idles out right after
+      // the response goes out.
+      await sendStaleEnrollmentAlert(stale);
+    }
     return res.json({ ok: true, count: stale.length, stale });
   } catch (err) {
     console.error('[pending_enrollments] admin listing failed:', err.message);
