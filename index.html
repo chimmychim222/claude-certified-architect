@@ -1085,6 +1085,11 @@ const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/cNi28k2GE7LngeRcc03ks00';
 let firebaseReady = false;
 let db = null;
 let auth = null;
+// Modular Auth function set (signInWithEmailAndPassword, onAuthStateChanged,
+// getIdTokenResult, etc.) — populated alongside `auth` once the dynamically
+// imported modular bundle loads. See the big comment at the Firebase init
+// block for why `auth` must ALSO be modular now (not compat `firebase.auth()`).
+let fbAuth = null;
 // IMPORTANT — why `db` is a MODULAR Firestore instance, not a compat one:
 // This project's Firestore data lives in a database whose literal database
 // ID is the custom string "default" — a *named* database, distinct from the
@@ -1109,12 +1114,44 @@ let auth = null;
 // not a property like in compat).
 document.addEventListener('DOMContentLoaded', async function() {
   try {
-    firebase.initializeApp(firebaseConfig);
-    auth = firebase.auth();
+    // IMPORTANT: app + auth + firestore must ALL come from this same
+    // dynamically-imported modular bundle graph (NOT compat firebase.app()/
+    // firebase.auth()). Two failed attempts proved this empirically, live:
+    //   1. Mixing compat app/auth with a separately-loaded modular Firestore
+    //      bundle while firebase-firestore-compat.js was still on the page:
+    //      that compat script had registered a 'firestore' component on the
+    //      compat app using ITS OWN bundled Firestore classes, so
+    //      getFirestore(app,'default') resolved through THAT factory and
+    //      returned an instance of the wrong bundle's Firestore class --
+    //      failing the modular bundle's `instanceof Firestore` checks in
+    //      doc()/collection() with "Expected first argument to collection()
+    //      to be a CollectionReference, a DocumentReference or
+    //      FirebaseFirestore".
+    //   2. Removing that compat script "fixed" #1 but broke it differently:
+    //      "Service firestore is not available" -- because compat
+    //      firebase-app-compat.js bundles its OWN internal copy of
+    //      @firebase/app with its OWN component registry, entirely separate
+    //      from the one the dynamically-imported modular Firestore bundle
+    //      self-registers into. Two separate bundle graphs do not share
+    //      component registrations -- there is no public bridge for it.
+    // The only robust fix: load app + auth + firestore together so they all
+    // share one registry and one set of classes. `auth` is therefore now a
+    // MODULAR Auth instance, and `fbAuth` exposes the modular auth function
+    // set (signInWithEmailAndPassword(auth,...), onAuthStateChanged(auth,...),
+    // getIdTokenResult(user,...), sendEmailVerification(user), etc. -- see
+    // each call site for v9-style usage). Compat firebase.initializeApp /
+    // firebase.auth() are no longer used anywhere in this file.
+    const [{ initializeApp }, authMod, fsMod] = await Promise.all([
+      import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js'),
+      import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js'),
+      import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js')
+    ]);
 
-    const fs = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    db = fs.getFirestore(firebase.app(), 'default');
-    window.__fs = fs;
+    const app = initializeApp(firebaseConfig);
+    auth   = authMod.getAuth(app);
+    fbAuth = authMod;
+    db     = fsMod.getFirestore(app, 'default');
+    window.__fs = fsMod;
 
     firebaseReady = true;
     initAuthListener();
@@ -1189,7 +1226,7 @@ function listenForSessionChanges(uid) {
       // Another device logged in — force logout here
       sessionId = null;
       if (sessionUnsubscribe) { sessionUnsubscribe(); sessionUnsubscribe = null; }
-      auth.signOut().then(() => {
+      fbAuth.signOut(auth).then(() => {
         enrolled = false;
         updateNavUI();
         updateDashCards();
@@ -1202,7 +1239,7 @@ function listenForSessionChanges(uid) {
 
 function initAuthListener() {
   if (!firebaseReady) return;
-  auth.onAuthStateChanged(async (user) => {
+  fbAuth.onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     if (user) {
       // Show the user's email in the nav immediately (enrolled badge will update below).
@@ -1211,7 +1248,7 @@ function initAuthListener() {
       // Check enrollment — custom claims first (immune to ad blockers),
       // then Firestore as fallback for users not yet on the new system.
       try {
-        const tokenResult = await user.getIdTokenResult(true);
+        const tokenResult = await fbAuth.getIdTokenResult(user, true);
         if (tokenResult.claims.enrolled) {
           markEnrolled(user);
         }
@@ -1391,7 +1428,7 @@ async function submitAuth() {
   try {
     if (authMode === 'signup') {
       const cred = await Promise.race([
-          auth.createUserWithEmailAndPassword(email, password),
+          fbAuth.createUserWithEmailAndPassword(auth, email, password),
           new Promise((_, reject) => setTimeout(() => reject(new Error('auth/timeout')), 15000))
         ]);
       // Fire off email verification (fire-and-forget). This is also what
@@ -1399,7 +1436,7 @@ async function submitAuth() {
       // it's the proof that this account actually controls the inbox a Stripe
       // payment may have been made under, so a stranger's email can't be used
       // to steal someone else's already-paid enrollment.
-      cred.user.sendEmailVerification().catch(e => console.warn('Verification email failed:', e.message));
+      fbAuth.sendEmailVerification(cred.user).catch(e => console.warn('Verification email failed:', e.message));
       // Create user document and register session
       sessionId = generateSessionId();
       // Use merge:true so we never overwrite an existing enrolled:true.
@@ -1413,7 +1450,7 @@ async function submitAuth() {
       }, { merge: true }).catch(e => console.warn('Firestore user doc write failed:', e));
     } else {
       const cred = await Promise.race([
-          auth.signInWithEmailAndPassword(email, password),
+          fbAuth.signInWithEmailAndPassword(auth, email, password),
           new Promise((_, reject) => setTimeout(() => reject(new Error('auth/timeout')), 15000))
         ]);
       // Register session (fire-and-forget — don't block modal close)
@@ -1446,7 +1483,7 @@ async function resetPassword() {
   const email = document.getElementById('auth-email').value.trim();
   if (!email) { showAuthError('Enter your email address first, then click "Forgot password."'); return; }
   try {
-    await auth.sendPasswordResetEmail(email);
+    await fbAuth.sendPasswordResetEmail(auth, email);
     showAuthError(''); // clear error
     const el = document.getElementById('auth-error');
     el.style.display = 'block';
@@ -1460,7 +1497,7 @@ async function resetPassword() {
 }
 
 function logOut() {
-  if (firebaseReady) auth.signOut();
+  if (firebaseReady) fbAuth.signOut(auth);
   currentUser = null;
   enrolled = false;
   updateNavUI();
@@ -1559,7 +1596,7 @@ async function claimPendingEnrollment(user) {
     // sending a stale token whose email_verified claim still reads false,
     // and the server-side gate in /claim-enrollment would keep rejecting
     // a perfectly legitimate claim.
-    const token = await user.getIdToken(true);
+    const token = await fbAuth.getIdToken(user, true);
     const resp  = await fetch(WEBHOOK_BASE + '/claim-enrollment', {
       method:  'POST',
       headers: { 'Authorization': 'Bearer ' + token }
@@ -1567,7 +1604,7 @@ async function claimPendingEnrollment(user) {
     if (!resp.ok) return { enrolled: false, reason: null };
     const data = await resp.json();
     if (data.enrolled) {
-      await user.getIdTokenResult(true); // refresh local claim cache
+      await fbAuth.getIdTokenResult(user, true); // refresh local claim cache
       markEnrolled(user);
       return { enrolled: true, reason: null };
     }
@@ -1623,8 +1660,8 @@ function showPendingVerificationBanner(user) {
       unlockBtn.textContent = 'Checking…';
       if (statusEl) statusEl.textContent = '';
       try {
-        await user.reload();
-        await user.getIdToken(true);
+        await fbAuth.reload(user);
+        await fbAuth.getIdToken(user, true);
         const claim = await claimPendingEnrollment(user);
         if (claim.enrolled) {
           markEnrolled(user);
@@ -1656,7 +1693,7 @@ function showPendingVerificationBanner(user) {
     resendBtn.onclick = () => {
       resendBtn.disabled = true;
       resendBtn.textContent = 'Sending…';
-      user.sendEmailVerification()
+      fbAuth.sendEmailVerification(user)
         .then(() => { resendBtn.textContent = 'Sent — check your inbox'; })
         .catch(e => {
           console.warn('[Enrollment] resend verification failed:', e.message);
@@ -1689,7 +1726,7 @@ async function confirmPaymentAndUnlock(user) {
 
   while (!confirmed && Date.now() < deadline) {
     try {
-      const tok = await user.getIdTokenResult(true);
+      const tok = await fbAuth.getIdTokenResult(user, true);
       if (tok.claims.enrolled) confirmed = true;
     } catch (e) {}
 
@@ -3861,7 +3898,7 @@ async function startTest(type) {
     // The global `enrolled` can lag if onAuthStateChanged fired concurrently.
     // Re-verify from the in-memory cached JWT — no network call, instant.
     try {
-      const tok = await currentUser.getIdTokenResult(); // cached, not forced
+      const tok = await fbAuth.getIdTokenResult(currentUser); // cached, not forced
       if (tok.claims.enrolled) {
         markEnrolled(currentUser); // fix the stale global + fire-once analytics in one shot
         updateNavUI();     // sync the badge too
