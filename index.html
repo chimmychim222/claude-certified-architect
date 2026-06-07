@@ -694,7 +694,7 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
       <h3 style="margin:0 0 8px;font-size:1.15rem">Welcome to Claude Certified Architects!</h3>
       <p style="color:var(--text2);font-size:.9rem;margin:0 0 22px;line-height:1.5">Your free account is ready. Here's where most people start:</p>
       <button class="btn-primary" style="width:100%;padding:14px;margin-bottom:10px" onclick="closeAuthModal();showSection('pricing')">See pricing &amp; enroll — $49</button>
-      <a class="btn-secondary" style="display:block;width:100%;padding:14px;text-align:center;text-decoration:none;box-sizing:border-box" href="/diagnostic/" onclick="closeAuthModal()">Take the free diagnostic first</a>
+      <a class="btn-secondary" style="display:block;width:100%;padding:14px;text-align:center;text-decoration:none;box-sizing:border-box" href="/diagnostic/" target="_blank" rel="noopener" onclick="closeAuthModal()">Take the free diagnostic first ↗</a>
     </div>
   </div>
 </div>
@@ -924,7 +924,7 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
      Both numbers are now read from the same live CSS variables nav itself
      is built from, so this banner always renders flush against the nav's
      actual bottom edge — never overlapping it, never leaving a gap. -->
-<div id="success-banner" style="display:none;position:fixed;top:calc(var(--banner-h, 0px) + var(--nav-h, 64px));left:0;right:0;z-index:150;background:rgba(45,122,95,.08);border-bottom:1px solid rgba(45,122,95,.2);padding:14px 24px;text-align:center;color:var(--green);font-size:.95rem;font-weight:500">
+<div id="success-banner" style="display:none;position:fixed;top:calc(var(--banner-h, 0px) + var(--nav-h, 64px));left:0;right:0;z-index:210;background:rgba(45,122,95,.08);border-bottom:1px solid rgba(45,122,95,.2);padding:14px 24px;text-align:center;color:var(--green);font-size:.95rem;font-weight:500;backdrop-filter:blur(8px)">
   Payment successful! Welcome to the Claude Certified Architect course. <button onclick="document.getElementById('success-banner').style.display='none'" style="margin-left:16px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px">Dismiss</button>
 </div>
 
@@ -1250,6 +1250,16 @@ const firebaseConfig = {
 
 const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/cNi28k2GE7LngeRcc03ks00';
 
+// Without a continue URL, Firebase's verification-email link routes to its
+// own generic hosted "Your email has been verified" page — a dead end with
+// no way back to the site. A buyer who clicks through from their inbox would
+// have to know to manually navigate back to claudecertifiedarchitects.com to
+// finish unlocking their purchase. Passing this through `sendEmailVerification`
+// puts a "Continue" link on that page back to the homepage, where
+// onAuthStateChanged automatically re-checks (and claims) the pending
+// enrollment with the now-verified token — no extra wiring needed.
+const VERIFY_ACTION_CODE_SETTINGS = { url: 'https://www.claudecertifiedarchitects.com/', handleCodeInApp: false };
+
 // Initialize Firebase
 let firebaseReady = false;
 let db = null;
@@ -1464,6 +1474,29 @@ function initAuthListener() {
       enrolled = false;
       sessionId = null;
       if (sessionUnsubscribe) { sessionUnsubscribe(); sessionUnsubscribe = null; }
+      // Anonymous visitor returning from Stripe checkout — they paid BEFORE
+      // creating a site account (the webhook stashed their purchase as a
+      // "pending enrollment" keyed by checkout email; see claimPendingEnrollment).
+      // The "?paid=true" handling above only runs inside the `if (user)`
+      // branch, so without this, an anonymous returning buyer got zero
+      // acknowledgment that anything happened — the param just sat unused in
+      // the URL and they'd have to independently guess "I should sign up now."
+      // We can't grant access here (only a verified account can claim the
+      // pending purchase), but we CAN confirm the payment landed and name the
+      // single most important detail for a smooth claim: sign up with the
+      // SAME email used at checkout (a mismatch is the #1 way buyers get stuck
+      // with no in-app recovery path — see claimPendingEnrollment's email-keyed lookup).
+      const anonParams = new URLSearchParams(window.location.search);
+      if (anonParams.get('paid') === 'true') {
+        window.history.replaceState({}, '', window.location.pathname);
+        const banner = document.getElementById('success-banner');
+        if (banner) {
+          banner.innerHTML = 'Payment received! Create a free account using <strong>the same email you checked out with</strong> to unlock your purchase. ' +
+            '<button onclick="openAuthModal(\'signup\')" style="margin-left:8px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px">Create my account</button>' +
+            '<button onclick="document.getElementById(\'success-banner\').style.display=\'none\'" style="margin-left:16px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px">Dismiss</button>';
+          banner.style.display = 'block';
+        }
+      }
     }
     // Update nav again after Firestore enrollment check completes
     updateNavUI();
@@ -1647,12 +1680,23 @@ async function submitAuth() {
           fbAuth.createUserWithEmailAndPassword(auth, email, password),
           new Promise((_, reject) => setTimeout(() => reject(new Error('auth/timeout')), 15000))
         ]);
-      // Fire off email verification (fire-and-forget). This is also what
-      // /claim-enrollment requires before honoring a pending-purchase claim —
-      // it's the proof that this account actually controls the inbox a Stripe
-      // payment may have been made under, so a stranger's email can't be used
-      // to steal someone else's already-paid enrollment.
-      fbAuth.sendEmailVerification(cred.user).catch(e => console.warn('Verification email failed:', e.message));
+      // Fire off email verification (fire-and-forget — don't block signup on
+      // mail delivery). This is also what /claim-enrollment requires before
+      // honoring a pending-purchase claim — it's the proof that this account
+      // actually controls the inbox a Stripe payment may have been made
+      // under, so a stranger's email can't be used to steal someone else's
+      // already-paid enrollment.
+      //
+      // "Fire-and-forget" previously meant a silent console.warn on failure —
+      // a buyer would just never receive the email and have no idea why, or
+      // that "Resend verification email" (in the pending-purchase banner) was
+      // their way out. Recording the failure here lets that banner open by
+      // leading with the resend action instead of "check your inbox" for an
+      // email that was never sent. See window.__verificationSendFailed below.
+      fbAuth.sendEmailVerification(cred.user, VERIFY_ACTION_CODE_SETTINGS).catch(e => {
+        console.warn('Verification email failed:', e.message);
+        window.__verificationSendFailed = true;
+      });
       // Create user document and register session
       sessionId = generateSessionId();
       // Use merge:true so we never overwrite an existing enrolled:true.
@@ -1856,9 +1900,18 @@ function showPendingVerificationBanner(user) {
   const email = user.email || 'your email address';
   const btn = "style=\"margin-left:8px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px\"";
   const dismissBtn = "<button onclick=\"document.getElementById('success-banner').style.display='none'\" style=\"margin-left:16px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px\">Dismiss</button>";
+  // If the original sendEmailVerification() call (fired at signup) failed,
+  // telling this person to "click the link in the email" sends them to wait
+  // on a message that was never sent. Lead with the resend action instead so
+  // there's an actual path forward — see window.__verificationSendFailed.
+  const sendFailed = window.__verificationSendFailed === true;
+  const introMsg = sendFailed
+    ? 'We found a pending purchase for <strong>' + email + '</strong>, but we weren&rsquo;t able to send the verification email automatically. ' +
+      'Click "Resend verification email" below, then open the link in that email and hit "I&rsquo;ve verified" — no need to reload the page.'
+    : 'We found a pending purchase for <strong>' + email + '</strong> — verify your email address to unlock it. ' +
+      'Click the link in the verification email, then hit "I&rsquo;ve verified" below — no need to reload the page.';
   banner.innerHTML =
-    'We found a pending purchase for <strong>' + email + '</strong> — verify your email address to unlock it. ' +
-    'Click the link in the verification email, then hit "I&rsquo;ve verified" below — no need to reload the page.' +
+    introMsg +
     ' <button id="unlock-now-btn" ' + btn + '>I&rsquo;ve verified &mdash; unlock now</button>' +
     ' <button id="resend-verify-btn" ' + btn + '>Resend verification email</button>' +
     ' <span id="verify-status-msg" style="display:block;margin-top:6px;font-size:.85rem;opacity:.85"></span>' +
@@ -1900,9 +1953,21 @@ function showPendingVerificationBanner(user) {
           return;
         }
         if (statusEl) {
+          // The previous "contact support" copy pointed nowhere — there is no
+          // support email, contact form, or other channel anywhere on this
+          // site (verified by audit). For someone who genuinely paid, that
+          // dead end is the difference between "minor friction" and "I paid
+          // $49 and have no way to ever get help." The single most likely
+          // real cause when a verified account finds no pending record is an
+          // email mismatch between checkout and sign-up (pending records are
+          // looked up by exact, lowercased email — see claimPendingEnrollment/
+          // /claim-enrollment) — so name that directly and give a concrete,
+          // self-serve next step instead of a channel that doesn't exist.
           statusEl.textContent = (claim.reason === 'unverified_email')
             ? "Still showing as unverified — make sure you clicked the link in the email (check spam too), then try again."
-            : "We couldn't find a matching pending purchase for this account. If you believe this is a mistake, contact support.";
+            : "No pending purchase matches " + (user.email || 'this account') + ". This usually means you checked out with a " +
+              "different email address. Try logging out and creating (or logging into) an account using the exact email " +
+              "address you entered at Stripe checkout — that's the email your purchase is linked to.";
         }
       } catch (e) {
         console.warn('[Enrollment] manual unlock check failed:', e.message);
@@ -1920,12 +1985,17 @@ function showPendingVerificationBanner(user) {
     resendBtn.onclick = () => {
       resendBtn.disabled = true;
       resendBtn.textContent = 'Sending…';
-      fbAuth.sendEmailVerification(user)
-        .then(() => { resendBtn.textContent = 'Sent — check your inbox'; })
+      fbAuth.sendEmailVerification(user, VERIFY_ACTION_CODE_SETTINGS)
+        .then(() => {
+          window.__verificationSendFailed = false;
+          resendBtn.textContent = 'Sent — check your inbox';
+        })
         .catch(e => {
           console.warn('[Enrollment] resend verification failed:', e.message);
+          window.__verificationSendFailed = true;
           resendBtn.disabled = false;
           resendBtn.textContent = 'Resend verification email';
+          if (statusEl) statusEl.textContent = "That didn't go through — please wait a moment and try again, or check that " + (user.email || 'your email address') + " is correct.";
         });
     };
   }

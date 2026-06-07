@@ -187,6 +187,13 @@ footer a{color:var(--text3);text-decoration:underline}
 /* ── ANIMATION ── */
 @keyframes fadeInUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
 .animate-in{animation:fadeInUp .4s ease forwards}
+
+/* ── SITE BANNER (independence notice — present site-wide; this page was
+   missing it, leaving it the one page where a visitor could land without
+   ever seeing the disclosure) ── */
+#site-banner{position:relative;background:var(--surface3);color:var(--text2);font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.72rem;line-height:1.4;text-align:center;padding:7px 44px 7px 16px;border-bottom:1px solid var(--border2)}
+#site-banner-close{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);font-size:1.1rem;line-height:1;cursor:pointer;padding:4px 7px;border-radius:4px;transition:color .15s}
+#site-banner-close:hover{color:var(--text)}
 </style>
 <!-- cca:schema:start -->
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"CCA Readiness Diagnostic","description":"Free 10-question CCA Foundations diagnostic quiz with per-domain scoring and a readiness estimate against the 720/1,000 passing standard.","url":"https://www.claudecertifiedarchitects.com/diagnostic/","isPartOf":{"@type":"WebSite","url":"https://www.claudecertifiedarchitects.com"}}</script>
@@ -194,6 +201,8 @@ footer a{color:var(--text3);text-decoration:underline}
 <!-- cca:schema:end -->
 </head>
 <body>
+<div id="site-banner" role="note" aria-label="Independence notice">Independent exam prep · Not affiliated with, authorized by, or endorsed by Anthropic.<button id="site-banner-close" aria-label="Dismiss notice">&#x2715;</button></div>
+<script>(function(){var b=document.getElementById('site-banner'),c=document.getElementById('site-banner-close');if(!b)return;if(localStorage.getItem('ccaBanner')==='0'){b.style.display='none';return;}c.addEventListener('click',function(){b.style.display='none';localStorage.setItem('ccaBanner','0');});})()</script>
 <!-- GTM noscript -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GT-K8FC4RXW" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
