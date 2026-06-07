@@ -988,23 +988,25 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
 <footer><div class="container"><div style="margin-bottom:12px"><a href="/cca-foundations-exam">CCA Foundations Exam</a> · <a href="/cca-practice-questions">Practice Questions</a> · <a href="/cca-exam-guide">Exam Guide</a> · <a href="/blog">Blog</a></div><p class="footer-disclaimer">This is an independent study resource. It is not affiliated with, authorized by, or endorsed by Anthropic. ‘Claude’ and ‘Claude Certified Architect’ are trademarks of their respective owner. We provide unofficial practice materials to help you prepare for the official certification exam.</p></div></footer>
 
 <!-- Firebase SDK -->
-<script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<!-- firebase-firestore-compat.js is INTENTIONALLY NOT loaded here.
-     All Firestore access now goes through the modular SDK (loaded via
-     dynamic import in the script below) so it can target the project's
-     named "default" database — see the big comment near `let db = null`.
-     Loading the compat Firestore bundle alongside it would register a
-     'firestore' component on the shared Firebase App using the COMPAT
-     bundle's own internally-bundled Firestore classes; getFirestore()
-     would then resolve through that factory and return an instance of
-     the WRONG bundle's Firestore class — causing
-     "Expected first argument to collection() to be a CollectionReference,
-     a DocumentReference or FirebaseFirestore" from doc()/collection()
-     instanceof checks (confirmed live: this exact error surfaced in the
-     login/signup modal once the modular migration shipped). Removing
-     this script tag lets the dynamically-imported modular bundle
-     register and use its own classes with no collision. -->
+<!-- firebase-app-compat.js / firebase-auth-compat.js / firebase-firestore-compat.js
+     are INTENTIONALLY NOT loaded here -- see the big comment at the
+     `DOMContentLoaded` handler near `let db = null` for the full story.
+     Short version: this project's Firestore data lives in a custom-named
+     database literally called "default" (not the SDK's reserved
+     "(default)"), reachable only via the modular getFirestore(app, dbId)
+     API. Mixing compat app/auth bundles with a separately-loaded modular
+     Firestore bundle was tried and failed twice, live, with two different
+     cross-bundle component-registry collisions: each compat bundle
+     carries its own internal copy of @firebase/app with its own isolated
+     component registry that a separately-loaded modular bundle can't see
+     or share -- so getFirestore() either returns an instance of the wrong
+     bundle's Firestore class ("Expected first argument to collection() to
+     be a CollectionReference, a DocumentReference or FirebaseFirestore")
+     or finds no 'firestore' component registered at all ("Service
+     firestore is not available"), both confirmed live while debugging
+     this. The fix: load the WHOLE client Firebase stack (app, auth,
+     firestore) as the MODULAR (v9) SDK via dynamic import below, so
+     everything shares one registry and one set of classes. -->
 
 <script>
 // ═══════════════════════════════════════
