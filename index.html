@@ -196,6 +196,56 @@ section .section-sub{color:var(--text2);margin-bottom:40px;font-size:1rem}
 .rb-card .rb-val{font-size:1.6rem;font-weight:700;color:var(--text)}
 .rb-card .rb-label{font-size:.78rem;color:var(--text3);margin-top:4px;font-family:-apple-system,system-ui,'Segoe UI',sans-serif}
 
+/* ── Progress dashboard ─────────────────────────────────────────────── */
+.progress-empty-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:64px 40px;text-align:center;max-width:540px;margin:0 auto;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.progress-empty-card .icon{font-size:2.4rem;margin-bottom:16px}
+.progress-empty-card h3{font-size:1.3rem;margin-bottom:10px;color:var(--text)}
+.progress-empty-card p{color:var(--text2);font-size:.92rem;margin-bottom:28px}
+.progress-summary-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:20px;margin-bottom:40px}
+.readiness-card,.weakest-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.rc-label,.wc-label{display:block;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text3);margin-bottom:10px}
+.rc-score{font-size:2.2rem;font-weight:800;color:var(--text);margin-bottom:14px;font-variant-numeric:tabular-nums}
+.rc-bar-track{width:100%;height:8px;background:var(--surface3);border-radius:4px;overflow:hidden;margin-bottom:14px}
+.rc-bar-fill{display:block;height:100%;border-radius:4px;transition:width .6s ease;background:var(--accent)}
+.rc-bar-fill.high{background:var(--green)}
+.rc-bar-fill.mid{background:var(--gold)}
+.rc-bar-fill.low{background:var(--red)}
+.rc-detail{color:var(--text2);font-size:.82rem;line-height:1.65}
+.wc-domain{font-size:1.2rem;font-weight:700;color:var(--text);margin-bottom:8px;line-height:1.4}
+.wc-detail{color:var(--text2);font-size:.82rem;line-height:1.65;margin-bottom:16px}
+.wc-pct{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.82rem;font-weight:700;border-radius:20px;padding:6px 14px;display:inline-block}
+.wc-pct.high{color:var(--green);background:rgba(45,122,95,.08);border:1px solid rgba(45,122,95,.2)}
+.wc-pct.mid{color:var(--gold2);background:rgba(217,119,87,.08);border:1px solid rgba(217,119,87,.2)}
+.wc-pct.low{color:var(--red);background:rgba(196,75,63,.06);border:1px solid rgba(196,75,63,.18)}
+.progress-subtitle{font-size:1.25rem;font-weight:700;color:var(--text);margin:8px 0 20px}
+.domain-mastery-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;margin-bottom:44px}
+.domain-mastery-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;transition:all .3s ease}
+.domain-mastery-card:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.06)}
+.dm-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px}
+.dm-name{font-size:.92rem;font-weight:600;color:var(--text);line-height:1.4}
+.dm-weight{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.7rem;color:var(--text3);white-space:nowrap;flex-shrink:0;margin-top:3px}
+.dm-pct{font-size:1.35rem;font-weight:700;margin-bottom:2px;font-variant-numeric:tabular-nums}
+.dm-pct.high{color:var(--green)}
+.dm-pct.mid{color:var(--gold2)}
+.dm-pct.low{color:var(--red)}
+.dm-pct-empty{font-size:.92rem;font-weight:500;color:var(--text3)}
+.dm-sub{color:var(--text3);font-size:.76rem;margin-bottom:14px;font-family:-apple-system,system-ui,'Segoe UI',sans-serif}
+.dm-trend{display:flex;align-items:flex-end;gap:4px;height:44px;margin-top:6px}
+.dm-bar{flex:1;border-radius:3px 3px 0 0;min-height:4px}
+.dm-bar.high{background:var(--green)}
+.dm-bar.mid{background:var(--gold)}
+.dm-bar.low{background:var(--red)}
+.dm-empty-trend{color:var(--text3);font-size:.76rem;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;align-self:center;margin:auto}
+.attempts-list{display:flex;flex-direction:column;gap:8px}
+.attempt-row{display:flex;align-items:center;justify-content:space-between;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 20px;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.85rem;transition:border-color .2s}
+.attempt-row:hover{border-color:var(--border2)}
+.attempt-row .ar-type{font-weight:600;color:var(--text);flex:1;min-width:0}
+.attempt-row .ar-date{color:var(--text3);flex-shrink:0}
+.attempt-row .ar-score{font-weight:700;flex-shrink:0;min-width:120px;text-align:right;font-variant-numeric:tabular-nums}
+.attempt-row .ar-score.high{color:var(--green)}
+.attempt-row .ar-score.mid{color:var(--gold2)}
+.attempt-row .ar-score.low{color:var(--red)}
+
 /* ── LESSON PLAN ── */
 .lessons-view{display:none}
 .lesson-nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:32px}
@@ -234,6 +284,8 @@ footer .footer-disclaimer{color:var(--text2);font-size:.875rem;line-height:1.65;
   .hero-stats .stat .num{font-size:1.4rem}
   .dash-grid{grid-template-columns:1fr}
   .results-breakdown{grid-template-columns:1fr 1fr}
+  .progress-summary-grid{grid-template-columns:1fr}
+  .domain-mastery-grid{grid-template-columns:1fr 1fr}
   .lesson-nav{gap:6px}
   .lesson-nav button{font-size:.75rem;padding:8px 12px}
   section{padding:60px 0}
@@ -300,6 +352,14 @@ footer .footer-disclaimer{color:var(--text2);font-size:.875rem;line-height:1.65;
   /* Dashboard */
   .dash-grid{grid-template-columns:1fr}
   .dash-card{padding:20px}
+
+  /* Progress */
+  .progress-summary-grid{grid-template-columns:1fr}
+  .domain-mastery-grid{grid-template-columns:1fr}
+  .readiness-card,.weakest-card{padding:22px}
+  .progress-empty-card{padding:44px 24px}
+  .attempt-row{flex-wrap:wrap;gap:6px 16px}
+  .attempt-row .ar-score{min-width:0;text-align:left}
 
   /* Section titles */
   section .section-title{font-size:1.4rem}
@@ -517,6 +577,7 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
       <a href="/register/" style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:6px 10px;border-radius:6px;font-size:.82rem;font-weight:600;color:#fff;background:var(--accent);transition:all .2s;text-decoration:none">Register</a>
       <button onclick="showSection('lessons')" data-nav="lessons">Lessons</button>
       <button onclick="showSection('dashboard')" data-nav="dashboard">Practice Tests</button>
+      <button onclick="showSection('progress')" data-nav="progress" id="nav-progress-link" style="display:none">Progress</button>
       <!-- Logged out state -->
       <div id="nav-logged-out" class="user-area">
         <button class="btn-primary btn-sm" style="padding:7px 18px;font-size:.8rem" onclick="openAuthModal('login')">Log In</button>
@@ -852,6 +913,52 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
   </div>
 </section>
 
+<!-- ═══════ PROGRESS DASHBOARD (enrolled users only) ═══════ -->
+<section class="progress-view" id="progress-section">
+  <div class="container">
+    <div class="section-title">Your Progress</div>
+    <div class="section-sub">Track how your mastery of each exam domain develops as you keep practicing.</div>
+
+    <!-- Empty state: shown until the user has completed at least one practice attempt -->
+    <div id="progress-empty" style="display:none">
+      <div class="progress-empty-card">
+        <div class="icon">📊</div>
+        <h3>No practice sessions yet</h3>
+        <p>Take your first practice session and we'll start tracking your domain mastery, an overall readiness estimate, and where to focus your study time — right here.</p>
+        <button class="btn-primary" onclick="showSection('dashboard')">Start a Practice Session</button>
+      </div>
+    </div>
+
+    <!-- Populated state -->
+    <div id="progress-content" style="display:none">
+      <div class="progress-summary-grid">
+        <div class="readiness-card">
+          <span class="rc-label">Estimated Readiness</span>
+          <div class="rc-score" id="readiness-score">— / 1,000</div>
+          <div class="rc-bar-track"><span class="rc-bar-fill" id="readiness-bar" style="width:0%"></span></div>
+          <p class="rc-detail">
+            Informal estimate from <span id="attempt-count">0</span> practice attempt(s), weighted by each domain's real exam percentage.
+            <span id="readiness-coverage-note"></span>
+            The official CCA exam uses a scaled <strong>720 / 1,000</strong> passing standard — this is <em>not</em> an official score and won't exactly match exam-day results.
+          </p>
+        </div>
+        <div class="weakest-card">
+          <span class="wc-label">Focus Area</span>
+          <div class="wc-domain" id="weakest-domain-name">—</div>
+          <p class="wc-detail">Your lowest-scoring domain so far is <span id="weakest-domain-weight">0</span>% of the real exam. Spending extra study time here typically moves your overall score the most.</p>
+          <span class="wc-pct" id="weakest-domain-pct">—</span>
+        </div>
+      </div>
+
+      <div class="progress-subtitle">Domain Mastery Over Time</div>
+      <div class="domain-mastery-grid" id="domain-mastery-grid"></div>
+
+      <div class="progress-subtitle">Recent Attempts</div>
+      <div class="attempts-list" id="attempts-list"></div>
+    </div>
+  </div>
+</section>
+
 <!-- cca:recent-posts:start -->
 <section class="blog-preview">
   <div class="bp-inner">
@@ -1002,6 +1109,10 @@ function updateNavUI() {
     loggedOut.style.display = 'flex';
     loggedIn.style.display = 'none';
   }
+  // "Progress" nav link is only meaningful for enrolled users (it tracks
+  // paid practice-test history).
+  const progressLink = document.getElementById('nav-progress-link');
+  if (progressLink) progressLink.style.display = (currentUser && enrolled) ? '' : 'none';
 }
 
 // Listen for auth state changes
@@ -1338,14 +1449,14 @@ function checkPaymentSuccess() {
 // NAVIGATION
 // ═══════════════════════════════════════
 function showSection(id) {
-  ['home','pricing','testimonials','dashboard','test','results','lessons'].forEach(s => {
+  ['home','pricing','testimonials','dashboard','test','results','lessons','progress'].forEach(s => {
     const el = document.getElementById(s + '-section');
     if (el) el.style.display = 'none';
   });
   document.querySelectorAll('.hero').forEach(h => h.style.display='none');
   var sqSection = document.getElementById('sample-questions');
   if (sqSection) sqSection.style.display = 'none';
-  document.querySelectorAll('.dashboard,.test-view,.results-view,.lessons-view').forEach(el => el.style.display='none');
+  document.querySelectorAll('.dashboard,.test-view,.results-view,.lessons-view,.progress-view').forEach(el => el.style.display='none');
   document.querySelectorAll('[data-nav]').forEach(b => b.classList.remove('active'));
 
   if (id === 'home') {
@@ -1373,8 +1484,177 @@ function showSection(id) {
     document.getElementById('lessons-section').style.display = 'block';
     document.querySelector('[data-nav="lessons"]').classList.add('active');
     if (!lessonsLoaded) loadLessons();
+  } else if (id === 'progress') {
+    document.getElementById('progress-section').style.display = 'block';
+    const navBtn = document.querySelector('[data-nav="progress"]');
+    if (navBtn) navBtn.classList.add('active');
+    loadProgress();
   }
   window.scrollTo({top:0, behavior:'smooth'});
+}
+
+// ═══════════════════════════════════════
+// PROGRESS DASHBOARD (enrolled users)
+// ═══════════════════════════════════════
+// Domain keys must match the `d` field stored on each question (see QUESTIONS
+// below) and the real CCA exam weightings used throughout the site.
+const PROGRESS_DOMAINS = [
+  { key: 'Agentic Architecture & Orchestration',   label: 'Agentic Architecture & Orchestration',   weight: 27 },
+  { key: 'Claude Code Configuration',              label: 'Claude Code Configuration & Workflows',  weight: 20 },
+  { key: 'Prompt Engineering & Structured Output', label: 'Prompt Engineering & Structured Output', weight: 20 },
+  { key: 'Tool Design & MCP Integration',          label: 'Tool Design & MCP Integration',          weight: 18 },
+  { key: 'Context Management & Reliability',       label: 'Context Management & Reliability',       weight: 15 },
+];
+const PROGRESS_TYPE_LABELS = { quick: 'Quick Sprint', focused: 'Focused Session', deep: 'Deep Practice', full: 'Full Certification Exam' };
+
+async function loadProgress() {
+  const emptyEl   = document.getElementById('progress-empty');
+  const contentEl = document.getElementById('progress-content');
+  if (!emptyEl || !contentEl) return;
+  if (!currentUser || !enrolled) {
+    emptyEl.style.display = 'block';
+    contentEl.style.display = 'none';
+    return;
+  }
+  try {
+    const snap = await db.collection('users').doc(currentUser.uid)
+      .collection('attempts').orderBy('takenAt', 'asc').limitToLast(50).get();
+    if (snap.empty) {
+      emptyEl.style.display = 'block';
+      contentEl.style.display = 'none';
+      return;
+    }
+    const attempts = snap.docs.map(d => d.data()).filter(a => a && a.domainScores);
+    if (!attempts.length) {
+      emptyEl.style.display = 'block';
+      contentEl.style.display = 'none';
+      return;
+    }
+    renderProgress(attempts);
+    emptyEl.style.display = 'none';
+    contentEl.style.display = 'block';
+  } catch (e) {
+    console.warn('[Progress] load failed:', e.message);
+    // Don't show a broken/half-populated dashboard — fall back to the empty state.
+    emptyEl.style.display = 'block';
+    contentEl.style.display = 'none';
+  }
+}
+
+function renderProgress(attempts) {
+  // Aggregate correct/total per domain across every attempt, plus a
+  // chronological per-attempt history (used for the "over time" trend bars).
+  const agg = {};
+  PROGRESS_DOMAINS.forEach(d => { agg[d.key] = { correct: 0, total: 0, history: [] }; });
+
+  attempts.forEach(a => {
+    const ds = a.domainScores || {};
+    Object.keys(ds).forEach(key => {
+      if (!agg[key]) agg[key] = { correct: 0, total: 0, history: [] };
+      const c = ds[key].correct || 0, t = ds[key].total || 0;
+      agg[key].correct += c;
+      agg[key].total += t;
+      if (t > 0) agg[key].history.push(Math.round((c / t) * 100));
+    });
+  });
+
+  // ── Readiness estimate ──
+  // Weighted by each domain's real exam percentage, renormalized across only
+  // the domains the user has actually attempted (never invents data for
+  // domains with zero attempts — those are simply excluded from the average).
+  let weightedSum = 0, coveredWeight = 0, coveredCount = 0;
+  PROGRESS_DOMAINS.forEach(d => {
+    const s = agg[d.key];
+    if (s.total > 0) {
+      weightedSum += (s.correct / s.total) * d.weight;
+      coveredWeight += d.weight;
+      coveredCount++;
+    }
+  });
+  const readinessScore = coveredWeight > 0 ? Math.round((weightedSum / coveredWeight) * 1000) : 0;
+  const passScore = 720;
+  const readinessCls = readinessScore >= passScore ? 'high' : readinessScore >= passScore * 0.85 ? 'mid' : 'low';
+
+  document.getElementById('readiness-score').textContent = readinessScore.toLocaleString() + ' / 1,000';
+  const bar = document.getElementById('readiness-bar');
+  bar.style.width = Math.min(100, (readinessScore / 1000) * 100) + '%';
+  bar.className = 'rc-bar-fill ' + readinessCls;
+  document.getElementById('attempt-count').textContent = attempts.length;
+  document.getElementById('readiness-coverage-note').textContent = coveredCount < PROGRESS_DOMAINS.length
+    ? ` This estimate currently covers ${coveredCount} of ${PROGRESS_DOMAINS.length} exam domains — keep practicing across all domains to sharpen it.`
+    : '';
+
+  // ── Weakest domain (lowest mastery among domains with attempts) ──
+  let weakest = null;
+  PROGRESS_DOMAINS.forEach(d => {
+    const s = agg[d.key];
+    if (s.total > 0) {
+      const pct = s.correct / s.total;
+      if (!weakest || pct < weakest.pct) weakest = { label: d.label, weight: d.weight, pct };
+    }
+  });
+  if (weakest) {
+    const wPct = Math.round(weakest.pct * 100);
+    const wCls = wPct >= 70 ? 'high' : wPct >= 50 ? 'mid' : 'low';
+    document.getElementById('weakest-domain-name').textContent = weakest.label;
+    document.getElementById('weakest-domain-weight').textContent = weakest.weight;
+    const pctEl = document.getElementById('weakest-domain-pct');
+    pctEl.textContent = wPct + '% mastery';
+    pctEl.className = 'wc-pct ' + wCls;
+  }
+
+  renderDomainMasteryGrid(agg);
+  renderAttemptsList(attempts);
+}
+
+function renderDomainMasteryGrid(agg) {
+  const grid = document.getElementById('domain-mastery-grid');
+  if (!grid) return;
+  grid.innerHTML = PROGRESS_DOMAINS.map(d => {
+    const s = agg[d.key];
+    const hasData = s.total > 0;
+    const pct = hasData ? Math.round((s.correct / s.total) * 100) : null;
+    const cls = pct === null ? '' : pct >= 70 ? 'high' : pct >= 50 ? 'mid' : 'low';
+
+    const trendHtml = hasData
+      ? s.history.slice(-12).map(p => {
+          const bcls = p >= 70 ? 'high' : p >= 50 ? 'mid' : 'low';
+          return `<div class="dm-bar ${bcls}" style="height:${Math.max(p, 6)}%" title="${p}% on this attempt"></div>`;
+        }).join('')
+      : '<div class="dm-empty-trend">Not practiced yet</div>';
+
+    return `
+    <div class="domain-mastery-card">
+      <div class="dm-top">
+        <span class="dm-name">${d.label}</span>
+        <span class="dm-weight">${d.weight}% of exam</span>
+      </div>
+      ${hasData
+        ? `<div class="dm-pct ${cls}">${pct}% mastery</div><div class="dm-sub">${s.correct}/${s.total} correct across your attempts</div>`
+        : `<div class="dm-pct dm-pct-empty">No attempts yet</div><div class="dm-sub">Take a session covering this domain to start tracking it</div>`}
+      <div class="dm-trend">${trendHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderAttemptsList(attempts) {
+  const list = document.getElementById('attempts-list');
+  if (!list) return;
+  const recent = attempts.slice(-12).slice().reverse(); // most recent first
+  list.innerHTML = recent.map(a => {
+    let dateStr = '—';
+    if (a.takenAt && typeof a.takenAt.toDate === 'function') {
+      dateStr = a.takenAt.toDate().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    const pct = typeof a.pct === 'number' ? a.pct : (a.totalQuestions ? Math.round((a.correct / a.totalQuestions) * 100) : 0);
+    const cls = pct >= 70 ? 'high' : pct >= 50 ? 'mid' : 'low';
+    const typeLabel = PROGRESS_TYPE_LABELS[a.type] || a.type || 'Practice session';
+    return `<div class="attempt-row">
+      <span class="ar-type">${typeLabel}</span>
+      <span class="ar-date">${dateStr}</span>
+      <span class="ar-score ${cls}">${a.correct}/${a.totalQuestions} · ${pct}%</span>
+    </div>`;
+  }).join('');
 }
 
 // ═══════════════════════════════════════
@@ -3453,6 +3733,21 @@ function finishTest() {
   document.getElementById('results-breakdown').innerHTML = breakdownHTML;
   document.getElementById('review-area').innerHTML = '';
   showSection('results');
+
+  // Persist this attempt for the Progress dashboard (enrolled users only —
+  // the dashboard itself is gated to enrolled accounts). Fire-and-forget:
+  // never block the results screen on a Firestore write.
+  if (enrolled && currentUser) {
+    db.collection('users').doc(currentUser.uid).collection('attempts').add({
+      type: t.type,
+      totalQuestions: t.config.questions,
+      correct: correct,
+      pct: pct,
+      domainScores: domainScores,
+      timeUsedSec: timeUsed,
+      takenAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(e => console.warn('[Progress] attempt save failed:', e.message));
+  }
 }
 
 function reviewTest() {
