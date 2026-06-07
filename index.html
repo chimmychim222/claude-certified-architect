@@ -1071,11 +1071,37 @@ const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/cNi28k2GE7LngeRcc03ks00';
 let firebaseReady = false;
 let db = null;
 let auth = null;
-document.addEventListener('DOMContentLoaded', function() {
+// IMPORTANT — why `db` is a MODULAR Firestore instance, not a compat one:
+// This project's Firestore data lives in a database whose literal database
+// ID is the custom string "default" — a *named* database, distinct from the
+// SDK's special reserved "(default)" database (which doesn't even exist for
+// this project; confirmed via scripts/diagnose-firestore.js, which traced a
+// blanket "5 NOT_FOUND" on every read/write through admin.firestore() back
+// to exactly this mismatch — see scripts/migrate-firestore-default-db.js for
+// the full investigation trail).
+//
+// The compat SDK (`firebase.firestore()`) can ONLY ever connect to
+// "(default)" — verified by inspecting the shipped compat bundle: its
+// internal factory calls getProvider("firestore").getImmediate() with no
+// identifier, hard-wiring it to the default instance, with no public way to
+// override it. Named databases are ONLY reachable via the modular (v9) API's
+// getFirestore(app, databaseId).
+//
+// So `db` here is intentionally a MODULAR Firestore instance pointed at
+// "default", loaded via dynamic import (works fine from a classic script).
+// `window.__fs` exposes the modular function set (doc, getDoc, setDoc, etc.)
+// for the rest of the app to call alongside it — see each call site for the
+// v9-style usage (note: snapshot.exists is a METHOD in modular — exists() —
+// not a property like in compat).
+document.addEventListener('DOMContentLoaded', async function() {
   try {
     firebase.initializeApp(firebaseConfig);
     auth = firebase.auth();
-    db = firebase.firestore();
+
+    const fs = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    db = fs.getFirestore(firebase.app(), 'default');
+    window.__fs = fs;
+
     firebaseReady = true;
     initAuthListener();
     checkPaymentSuccess();
@@ -1126,9 +1152,10 @@ function generateSessionId() {
 async function registerSession(uid) {
   sessionId = generateSessionId();
   try {
-    await db.collection('users').doc(uid).set({
+    const fs = window.__fs;
+    await fs.setDoc(fs.doc(db, 'users', uid), {
       activeSession: sessionId,
-      lastLoginAt: firebase.firestore.FieldValue.serverTimestamp()
+      lastLoginAt: fs.serverTimestamp()
     }, { merge: true });
   } catch(e) { console.warn('Session registration failed:', e); }
 }
@@ -1137,8 +1164,9 @@ function listenForSessionChanges(uid) {
   // Stop any existing listener
   if (sessionUnsubscribe) { sessionUnsubscribe(); sessionUnsubscribe = null; }
 
-  sessionUnsubscribe = db.collection('users').doc(uid).onSnapshot(snap => {
-    if (!snap.exists || !sessionId) return;
+  const fs = window.__fs;
+  sessionUnsubscribe = fs.onSnapshot(fs.doc(db, 'users', uid), snap => {
+    if (!snap.exists() || !sessionId) return;
     // Ignore cache-only events: the cached doc may have an old activeSession
     // from a previous login before our registerSession write reached the server.
     if (snap.metadata.fromCache) return;
@@ -1179,8 +1207,9 @@ function initAuthListener() {
         try {
           // source:'server' bypasses Firestore's local cache, which can
           // return stale data (e.g. the login session-write without enrolled).
-          const doc = await db.collection('users').doc(user.uid).get({ source: 'server' });
-          if (doc.exists && doc.data().enrolled) { markEnrolled(user); }
+          const fs = window.__fs;
+          const docSnap = await fs.getDocFromServer(fs.doc(db, 'users', user.uid));
+          if (docSnap.exists() && docSnap.data().enrolled) { markEnrolled(user); }
         } catch(e) { console.warn('[Auth] Firestore read error:', e.message); }
       }
       // Last resort: maybe this person paid via Stripe BEFORE this account
@@ -1362,11 +1391,11 @@ async function submitAuth() {
       // Use merge:true so we never overwrite an existing enrolled:true.
       // Never write enrolled:false — omit it so Firestore keeps whatever
       // value is already there (set by admin script or Stripe webhook).
-      db.collection('users').doc(cred.user.uid).set({
+      window.__fs.setDoc(window.__fs.doc(db, 'users', cred.user.uid), {
         email: email,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdAt: window.__fs.serverTimestamp(),
         activeSession: sessionId,
-        lastLoginAt: firebase.firestore.FieldValue.serverTimestamp()
+        lastLoginAt: window.__fs.serverTimestamp()
       }, { merge: true }).catch(e => console.warn('Firestore user doc write failed:', e));
     } else {
       const cred = await Promise.race([
@@ -1375,9 +1404,9 @@ async function submitAuth() {
         ]);
       // Register session (fire-and-forget — don't block modal close)
       sessionId = generateSessionId();
-      db.collection('users').doc(cred.user.uid).set({
+      window.__fs.setDoc(window.__fs.doc(db, 'users', cred.user.uid), {
         activeSession: sessionId,
-        lastLoginAt: firebase.firestore.FieldValue.serverTimestamp()
+        lastLoginAt: window.__fs.serverTimestamp()
       }, { merge: true }).catch(e => console.warn('Session write failed:', e));
     }
     closeAuthModal();
@@ -1448,7 +1477,8 @@ const WEBHOOK_BASE = 'https://claude-certified-architect.onrender.com';
 //     session) cannot both win and double-report the same purchase
 async function maybeFireExamPurchaseEvent(user) {
   if (!user || !db) return;
-  const ref = db.collection('users').doc(user.uid);
+  const fs  = window.__fs;
+  const ref = fs.doc(db, 'users', user.uid);
 
   // Cheap pre-check so the overwhelming majority of calls — every page
   // load by a user who converted in a *previous* session and already has
@@ -1457,15 +1487,15 @@ async function maybeFireExamPurchaseEvent(user) {
   // atomic path below; a false "already sent" reading is impossible,
   // because the flag is only ever set by that same atomic path.
   try {
-    const snap = await ref.get();
-    if (snap.exists && snap.data().examPurchaseEventSent === true) return;
+    const snap = await fs.getDoc(ref);
+    if (snap.exists() && snap.data().examPurchaseEventSent === true) return;
   } catch (e) { /* fall through — the transaction below is the source of truth */ }
 
   let shouldFire = false;
   try {
-    await db.runTransaction(async (tx) => {
-      const doc  = await tx.get(ref);
-      const data = doc.data() || {};
+    await fs.runTransaction(db, async (tx) => {
+      const docSnap = await tx.get(ref);
+      const data = docSnap.data() || {};
       // Only the server-written `enrolled` flag counts as a real purchase
       // (it's set exclusively by the webhook / claim-enrollment via the
       // Admin SDK) — never report a conversion off local/optimistic state.
@@ -1651,8 +1681,9 @@ async function confirmPaymentAndUnlock(user) {
 
     if (!confirmed) {
       try {
-        const doc = await db.collection('users').doc(user.uid).get({ source: 'server' });
-        if (doc.exists && doc.data().enrolled) confirmed = true;
+        const fs = window.__fs;
+        const docSnap = await fs.getDocFromServer(fs.doc(db, 'users', user.uid));
+        if (docSnap.exists() && docSnap.data().enrolled) confirmed = true;
       } catch (e) {}
     }
 
@@ -1802,8 +1833,13 @@ async function loadProgress() {
     return;
   }
   try {
-    const snap = await db.collection('users').doc(currentUser.uid)
-      .collection('attempts').orderBy('takenAt', 'asc').limitToLast(50).get();
+    const fs = window.__fs;
+    const attemptsQuery = fs.query(
+      fs.collection(db, 'users', currentUser.uid, 'attempts'),
+      fs.orderBy('takenAt', 'asc'),
+      fs.limitToLast(50)
+    );
+    const snap = await fs.getDocs(attemptsQuery);
     if (snap.empty) {
       emptyEl.style.display = 'block';
       contentEl.style.display = 'none';
@@ -4023,14 +4059,15 @@ function finishTest() {
   // the dashboard itself is gated to enrolled accounts). Fire-and-forget:
   // never block the results screen on a Firestore write.
   if (enrolled && currentUser) {
-    db.collection('users').doc(currentUser.uid).collection('attempts').add({
+    const fs = window.__fs;
+    fs.addDoc(fs.collection(db, 'users', currentUser.uid, 'attempts'), {
       type: t.type,
       totalQuestions: t.config.questions,
       correct: correct,
       pct: pct,
       domainScores: domainScores,
       timeUsedSec: timeUsed,
-      takenAt: firebase.firestore.FieldValue.serverTimestamp()
+      takenAt: fs.serverTimestamp()
     }).catch(e => console.warn('[Progress] attempt save failed:', e.message));
   }
 }

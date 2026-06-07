@@ -34,9 +34,18 @@ if (args.length < 2) {
 const serviceAccountPath = path.resolve(args[0]);
 const uids = args.slice(1);
 
+let firestoreDb;
 try {
   const sa = require(serviceAccountPath);
   admin.initializeApp({ credential: admin.credential.cert(sa) });
+  // IMPORTANT — this project's Firestore database has the custom database ID
+  // "default" (a literal, named database), NOT the SDK's special reserved
+  // "(default)" database that admin.firestore() connects to with no args.
+  // The "(default)" database is empty for this project — admin.firestore()
+  // would silently return "5 NOT_FOUND" for every read/write. Confirmed via
+  // scripts/diagnose-firestore.js. Must explicitly target "default":
+  const { getFirestore } = require('firebase-admin/firestore');
+  firestoreDb = getFirestore(admin.app(), 'default');
 } catch (e) {
   console.error('\nERROR: Could not load service account file:', serviceAccountPath);
   console.error('Make sure the path is correct and the file is valid JSON.\n');
@@ -58,7 +67,9 @@ if (uids.length === 0) {
         enrolled: true,
       });
       // Also write to Firestore for the fallback path
-      const db = admin.firestore();
+      // (using firestoreDb — the explicitly-targeted "default" database;
+      // see the comment near admin.initializeApp above for why this matters)
+      const db = firestoreDb;
       await db.collection('users').doc(uid).set(
         { enrolled: true, enrolledAt: admin.firestore.FieldValue.serverTimestamp() },
         { merge: true }

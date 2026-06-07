@@ -11,3 +11,4 @@ _check_*.py
 # Temporary files
 *.tmp
 homepage_check.html
+node_modules/

@@ -26,7 +26,16 @@ if (!admin.apps.length) {
 }
 
 const auth = admin.auth();
-const db   = admin.firestore();
+// IMPORTANT — do NOT use admin.firestore() (no args) here.
+// This project's Firestore database has the custom database ID "default"
+// (a literal, named database) — NOT the SDK's special reserved "(default)"
+// database that admin.firestore() connects to by default. The "(default)"
+// database is empty for this project, so admin.firestore() silently returns
+// "5 NOT_FOUND" for every read/write. Confirmed empirically with
+// scripts/diagnose-firestore.js (see scripts/stripe-webhook.js for the
+// same fix + fuller explanation — this function mirrors that server).
+const { getFirestore } = require('firebase-admin/firestore');
+const db   = getFirestore(admin.app(), 'default');
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
