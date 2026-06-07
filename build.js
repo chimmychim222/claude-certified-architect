@@ -642,7 +642,7 @@ function generateSitemap(posts = []) {
 
   const dest = path.join(__dirname, 'sitemap.xml');
   fs.writeFileSync(dest, xml, 'utf8');
-  console.log('✓ sitemap.xml  (' + today + ', ' + (6 + posts.length) + ' URLs)');
+  console.log('✓ sitemap.xml  (' + today + ', ' + (7 + posts.length) + ' URLs)');
 }
 
 // ---------------------------------------------------------------------------
