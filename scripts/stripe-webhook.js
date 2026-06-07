@@ -109,8 +109,39 @@ app.post(
       return res.status(400).send('No customer email found');
     }
 
+    // Look up the Firebase account for this email. If none exists yet — the
+    // customer paid before signing up, or checked out with a different email
+    // than they'll use to create their account — stash the purchase as a
+    // "pending enrollment" so /claim-enrollment can apply it later, once a
+    // matching account shows up. Returning 200 here (instead of 500) tells
+    // Stripe delivery succeeded; otherwise it retries for up to 3 days and
+    // then silently gives up, permanently losing the enrollment.
+    let userRecord;
     try {
-      const userRecord     = await auth.getUserByEmail(customerEmail);
+      userRecord = await auth.getUserByEmail(customerEmail);
+    } catch (err) {
+      if (err.code === 'auth/user-not-found') {
+        try {
+          await db.collection('pending_enrollments').doc(customerEmail.toLowerCase()).set(
+            {
+              email:           customerEmail,
+              stripeSessionId: session.id,
+              createdAt:       admin.firestore.FieldValue.serverTimestamp(),
+            },
+            { merge: true }
+          );
+          console.log(`Pending enrollment stashed (no account yet): ${customerEmail}`);
+          return res.json({ ok: true, pending: true });
+        } catch (stashErr) {
+          console.error('Failed to stash pending enrollment:', stashErr.message);
+          return res.status(500).send(stashErr.message);
+        }
+      }
+      console.error('Enrollment lookup error:', err.message);
+      return res.status(500).send(err.message);
+    }
+
+    try {
       const uid            = userRecord.uid;
       const existingClaims = userRecord.customClaims || {};
 
@@ -126,6 +157,10 @@ app.post(
         { merge: true }
       );
 
+      // Clear any stale pending record for this email (e.g. a Stripe retry
+      // that arrived after the account was created and matched normally).
+      db.collection('pending_enrollments').doc(customerEmail.toLowerCase()).delete().catch(() => {});
+
       console.log(`Enrolled: ${customerEmail} (${uid})`);
       return res.json({ ok: true, enrolled: uid });
 
@@ -135,6 +170,64 @@ app.post(
     }
   }
 );
+
+// ── Claim a pending enrollment ────────────────────────────────────────────────
+// POST /claim-enrollment
+// Header: Authorization: Bearer <Firebase ID token>
+//
+// Covers the "paid before the account existed" gap: when the webhook above
+// can't find a Firebase user for the checkout email, it stashes a pending
+// enrollment keyed by that email. Once that person signs up or logs in, the
+// client calls this endpoint with a verified ID token; if the token's email
+// matches a pending record, we apply the enrollment (custom claim + Firestore)
+// right then, exactly as the webhook would have.
+app.post('/claim-enrollment', async (req, res) => {
+  const authHeader = req.headers.authorization || '';
+  const m = authHeader.match(/^Bearer (.+)$/);
+  if (!m) return res.status(401).json({ error: 'Missing bearer token' });
+
+  let decoded;
+  try {
+    decoded = await auth.verifyIdToken(m[1]);
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+
+  const uid   = decoded.uid;
+  const email = (decoded.email || '').toLowerCase();
+  if (!email) return res.json({ ok: true, enrolled: false });
+
+  try {
+    const pendingRef = db.collection('pending_enrollments').doc(email);
+    const pendingDoc = await pendingRef.get();
+    if (!pendingDoc.exists) {
+      return res.json({ ok: true, enrolled: false });
+    }
+
+    const pending        = pendingDoc.data();
+    const userRecord     = await auth.getUser(uid);
+    const existingClaims = userRecord.customClaims || {};
+
+    await auth.setCustomUserClaims(uid, { ...existingClaims, enrolled: true });
+    await db.collection('users').doc(uid).set(
+      {
+        enrolled:        true,
+        enrolledAt:      admin.firestore.FieldValue.serverTimestamp(),
+        email:           userRecord.email,
+        stripeSessionId: pending.stripeSessionId || null,
+      },
+      { merge: true }
+    );
+    await pendingRef.delete();
+
+    console.log(`Claimed pending enrollment: ${email} (${uid})`);
+    return res.json({ ok: true, enrolled: true });
+
+  } catch (err) {
+    console.error('Claim-enrollment error:', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
 
 // ── Diagnostic email capture ──────────────────────────────────────────────────
 // POST /diagnostic-email

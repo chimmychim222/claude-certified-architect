@@ -1183,28 +1183,30 @@ function initAuthListener() {
           if (doc.exists && doc.data().enrolled) { enrolled = true; }
         } catch(e) { console.warn('[Auth] Firestore read error:', e.message); }
       }
+      // Last resort: maybe this person paid via Stripe BEFORE this account
+      // existed (or checked out with a different email). The webhook would
+      // have stashed a "pending enrollment" for that email server-side —
+      // claim it now that we can prove who they are via a verified ID token.
+      if (!enrolled) {
+        await claimPendingEnrollment(user);
+      }
       if (!sessionId) {
         await registerSession(user.uid);
       }
       // Listen for session takeover from other devices
       listenForSessionChanges(user.uid);
 
-      // Check for returning from Stripe payment
+      // Returning from Stripe checkout? The redirect carries "?paid=true" as
+      // a UX hint only — we deliberately do NOT trust it to grant access by
+      // itself (anyone could type ?paid=true into the address bar). It just
+      // triggers a short poll against server-verified enrollment sources
+      // (Firebase custom claims + Firestore, both written only by the Stripe
+      // webhook via the Admin SDK) so a genuine purchaser sees confirmation
+      // without waiting for a manual refresh.
       const params = new URLSearchParams(window.location.search);
       if (params.get('paid') === 'true') {
-        enrolled = true;
-        // Save enrollment to Firestore
-        try {
-          await db.collection('users').doc(user.uid).set({
-            email: user.email,
-            enrolled: true,
-            enrolledAt: firebase.firestore.FieldValue.serverTimestamp()
-          }, { merge: true });
-        } catch(e) { console.warn('Firestore write error:', e); }
-        if(typeof gtag!=='undefined'){gtag('event','exam_purchase',{currency:'USD',value:49,transaction_id:user.uid+'_'+Date.now()});}
-        document.getElementById('success-banner').style.display = 'block';
         window.history.replaceState({}, '', window.location.pathname);
-        showSection('dashboard');
+        if (!enrolled) confirmPaymentAndUnlock(user);
       }
     } else {
       enrolled = false;
@@ -1416,6 +1418,89 @@ function logOut() {
 // ═══════════════════════════════════════
 // STRIPE PAYMENT (requires login)
 // ═══════════════════════════════════════
+const WEBHOOK_BASE = 'https://claude-certified-architect.onrender.com';
+
+// Ask the webhook server whether a "pending enrollment" exists for the
+// current user's verified email. This covers the case where someone paid via
+// Stripe BEFORE creating a site account (or checked out with a different
+// email than the one they later sign up / log in with): the webhook couldn't
+// find a matching Firebase user at payment time, so it stashed the purchase
+// server-side. When the matching account shows up, we claim it here. Returns
+// true if enrollment was applied.
+async function claimPendingEnrollment(user) {
+  if (!user) return false;
+  try {
+    const token = await user.getIdToken();
+    const resp  = await fetch(WEBHOOK_BASE + '/claim-enrollment', {
+      method:  'POST',
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!resp.ok) return false;
+    const data = await resp.json();
+    if (data.enrolled) {
+      await user.getIdTokenResult(true); // refresh local claim cache
+      enrolled = true;
+      return true;
+    }
+  } catch (e) {
+    console.warn('[Enrollment] claim check failed:', e.message);
+  }
+  return false;
+}
+
+// Poll server-verified enrollment sources for a short window after returning
+// from Stripe checkout. We never grant access locally based on the URL alone
+// — every source checked here (custom claims, Firestore "enrolled" field via
+// source:'server', and the claim-enrollment endpoint) is written exclusively
+// by the webhook's Admin SDK, which only runs after Stripe confirms payment.
+// This just closes the gap between "Stripe redirected me back" and "the
+// webhook (possibly cold-starting on Render's free tier) has finished."
+let _confirmingPayment = false;
+async function confirmPaymentAndUnlock(user) {
+  if (_confirmingPayment || !user) return;
+  _confirmingPayment = true;
+
+  const banner = document.getElementById('success-banner');
+  const dismissBtn = "<button onclick=\"document.getElementById('success-banner').style.display='none'\" style=\"margin-left:16px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px\">Dismiss</button>";
+  banner.innerHTML = 'Confirming your payment with Stripe&hellip; this can take up to a minute.' + dismissBtn;
+  banner.style.display = 'block';
+
+  const deadline = Date.now() + 75000; // generous — covers Render free-tier cold starts
+  let confirmed = false;
+
+  while (!confirmed && Date.now() < deadline) {
+    try {
+      const tok = await user.getIdTokenResult(true);
+      if (tok.claims.enrolled) confirmed = true;
+    } catch (e) {}
+
+    if (!confirmed) {
+      try {
+        const doc = await db.collection('users').doc(user.uid).get({ source: 'server' });
+        if (doc.exists && doc.data().enrolled) confirmed = true;
+      } catch (e) {}
+    }
+
+    if (!confirmed) confirmed = await claimPendingEnrollment(user);
+    if (!confirmed) await new Promise(r => setTimeout(r, 5000));
+  }
+
+  _confirmingPayment = false;
+
+  if (confirmed) {
+    enrolled = true;
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'exam_purchase', { currency: 'USD', value: 49, transaction_id: user.uid + '_' + Date.now() });
+    }
+    banner.innerHTML = 'Payment successful! Welcome to the Claude Certified Architect course.' + dismissBtn;
+    updateNavUI();
+    updateDashCards();
+    showSection('dashboard');
+  } else {
+    banner.innerHTML = "We're still confirming your payment with Stripe — this can occasionally take a few minutes. Please refresh this page shortly; your access will appear automatically once it's confirmed." + dismissBtn;
+  }
+}
+
 function openPaymentModal() {
   if (!currentUser) {
     // Not logged in — go straight to Stripe without email prefill.
