@@ -159,6 +159,22 @@ const registerSchemas = [
   ])
 ];
 
+/** Schemas for /diagnostic */
+const diagnosticSchemas = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: 'CCA Readiness Diagnostic',
+    description: 'Free 10-question CCA Foundations diagnostic quiz with per-domain scoring and a readiness estimate against the 720/1,000 passing standard.',
+    url: BASE + '/diagnostic/',
+    isPartOf: { '@type': 'WebSite', url: BASE }
+  },
+  breadcrumb([
+    { name: 'Home',       url: BASE },
+    { name: 'Diagnostic', url: BASE + '/diagnostic' }
+  ])
+];
+
 // ---------------------------------------------------------------------------
 // Helpers — existing pages
 // ---------------------------------------------------------------------------
@@ -398,11 +414,27 @@ function generateBlogPost(post) {
     ? (post.ogImage.startsWith('http') ? post.ogImage : BASE + post.ogImage)
     : BASE + '/og-image-v2.png';
 
-  const schemas = [articleJsonLd(post), breadcrumb([
+  const schemaList = [articleJsonLd(post), breadcrumb([
     { name: 'Home', url: BASE },
     { name: 'Blog', url: `${BASE}/blog/` },
     { name: post.title, url: `${BASE}/blog/${post.slug}/` }
-  ])].map(s => `<script type="application/ld+json">${JSON.stringify(s)}</script>`).join('\n');
+  ])];
+
+  // If the post defines an `faq` array ({q, a} pairs matching its visible
+  // FAQ section), emit FAQPage structured data alongside the Article schema.
+  if (Array.isArray(post.faq) && post.faq.length) {
+    schemaList.push({
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: post.faq.map(item => ({
+        '@type': 'Question',
+        name: item.q,
+        acceptedAnswer: { '@type': 'Answer', text: item.a }
+      }))
+    });
+  }
+
+  const schemas = schemaList.map(s => `<script type="application/ld+json">${JSON.stringify(s)}</script>`).join('\n');
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -586,6 +618,7 @@ function generateSitemap(posts = []) {
     { loc: BASE + '/cca-exam-guide/',           priority: '0.8', changefreq: 'monthly', lastmod: today },
     { loc: BASE + '/blog/',                     priority: '0.7', changefreq: 'weekly',  lastmod: today },
     { loc: BASE + '/register/',               priority: '0.8', changefreq: 'monthly', lastmod: today },
+    { loc: BASE + '/diagnostic/',             priority: '0.8', changefreq: 'monthly', lastmod: today },
     ...posts.map(p => ({
       loc:        `${BASE}/blog/${p.slug}/`,
       priority:   '0.8',
@@ -609,7 +642,7 @@ function generateSitemap(posts = []) {
 
   const dest = path.join(__dirname, 'sitemap.xml');
   fs.writeFileSync(dest, xml, 'utf8');
-  console.log('✓ sitemap.xml  (' + today + ', ' + (5 + posts.length) + ' URLs)');
+  console.log('✓ sitemap.xml  (' + today + ', ' + (6 + posts.length) + ' URLs)');
 }
 
 // ---------------------------------------------------------------------------
@@ -631,6 +664,9 @@ processFile(path.join(__dirname, 'cca-exam-guide',         'index.html'),
 
 processFile(path.join(__dirname, 'register', 'index.html'),
   ...registerSchemas);
+
+processFile(path.join(__dirname, 'diagnostic', 'index.html'),
+  ...diagnosticSchemas);
 
 
 console.log('\nBuilding blog…\n');

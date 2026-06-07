@@ -575,6 +575,16 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
 .q-paywall p{color:var(--text2);font-size:.95rem;line-height:1.65;margin:0 auto 28px;max-width:400px}
 .q-paywall .btn-primary{display:inline-block;text-decoration:none}
 .q-paywall-sub{margin-top:14px;font-size:.82rem;color:var(--text3);font-family:-apple-system,system-ui,'Segoe UI',sans-serif}
+.faq-section{background:var(--bg);border-top:1px solid var(--border);padding:64px 0}
+.faq-section .faq-inner{max-width:760px;margin:0 auto;padding:0 24px}
+.faq-section .section-label{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-family:-apple-system,system-ui,'Segoe UI',sans-serif;margin-bottom:10px}
+.faq-section h2{font-size:1.55rem;margin-bottom:24px;color:var(--text)}
+.faq-item{border-bottom:1px solid var(--border)}
+.faq-item summary{padding:18px 4px;font-weight:700;color:var(--text);cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:16px;font-size:.97rem}
+.faq-item summary::-webkit-details-marker{display:none}
+.faq-item summary .faq-icon{color:var(--accent);font-size:1.2rem;font-weight:400;flex-shrink:0}
+.faq-item[open] summary .faq-icon{transform:rotate(45deg)}
+.faq-item p{padding:0 4px 18px;color:var(--text2);font-size:.9rem;line-height:1.7;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;margin:0}
 </style>
 </head>
 <body>
@@ -1074,6 +1084,52 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
   </div>
 </section>
 <!-- cca:recent-posts:end -->
+<section class="faq-section">
+  <div class="faq-inner">
+    <div class="section-label">COMMON QUESTIONS</div>
+    <h2>Frequently Asked Questions</h2>
+    <details class="faq-item">
+      <summary>What is the Claude Certified Architect (CCA) Foundations exam? <span class="faq-icon">+</span></summary>
+      <p>The CCA Foundations exam is Anthropic's official certification for professionals who design and build production-grade applications with Claude. It tests knowledge across five domains: Agentic Architecture, Claude Code Configuration, Prompt Engineering, Tool Design &amp; MCP, and Context Management.</p>
+    </details>
+    <details class="faq-item">
+      <summary>How many questions are on the CCA Foundations exam? <span class="faq-icon">+</span></summary>
+      <p>The CCA Foundations exam consists of 60 scenario-based multiple choice questions with a 120-minute time limit. Our practice platform offers 400 independent practice questions across all five domains.</p>
+    </details>
+    <details class="faq-item">
+      <summary>What is the passing score for the CCA exam? <span class="faq-icon">+</span></summary>
+      <p>The CCA Foundations exam uses a scaled scoring system of 100–1,000. The passing score is 720 out of 1,000 — this is a scaled score, not a percentage of questions answered correctly.</p>
+    </details>
+    <details class="faq-item">
+      <summary>Which domain has the most weight on the CCA exam? <span class="faq-icon">+</span></summary>
+      <p>Agentic Architecture carries the highest weight at 27%, followed by Claude Code Configuration and Prompt Engineering at 20% each, Tool Design &amp; MCP at 18%, and Context Management at 15%.</p>
+    </details>
+    <details class="faq-item">
+      <summary>How long does it take to prepare for the CCA Foundations exam? <span class="faq-icon">+</span></summary>
+      <p>Most students prepare in 1–2 weeks using daily practice sessions. Our Quick Sprint mode (10 questions, 20 minutes) is ideal for daily practice, while the full 120-minute exam simulation is recommended in the final days before your test.</p>
+    </details>
+    <details class="faq-item">
+      <summary>What is the Model Context Protocol (MCP) and why is it on the CCA exam? <span class="faq-icon">+</span></summary>
+      <p>MCP (Model Context Protocol) is Anthropic's open standard for connecting Claude to external tools and data sources. It accounts for 18% of the CCA exam and covers MCP server architecture, tool schema design, transport layers (stdio and SSE), and security considerations.</p>
+    </details>
+    <details class="faq-item">
+      <summary>What is the PRECISE framework tested on the CCA exam? <span class="faq-icon">+</span></summary>
+      <p>PRECISE is a prompt engineering framework tested in the Prompt Engineering domain (20% of the exam). It stands for Persona, Role, Explicit instructions, Context, Instructions, Steps, and Examples — a structured approach for designing effective system prompts.</p>
+    </details>
+    <details class="faq-item">
+      <summary>What types of questions appear on the CCA practice exam? <span class="faq-icon">+</span></summary>
+      <p>All questions are scenario-based — you are placed in a real-world architectural situation and must choose the best decision. There are no simple recall or definition questions. Topics include agent loop design, tool selection, prompt optimization, and context window management.</p>
+    </details>
+    <details class="faq-item">
+      <summary>How is the CCA Foundations practice exam different from other AI certifications? <span class="faq-icon">+</span></summary>
+      <p>The CCA Foundations exam is specific to Anthropic's Claude and covers Claude-specific capabilities like Constitutional AI, the CLAUDE.md configuration system, Claude Code, and the Model Context Protocol. It focuses on practical architecture decisions rather than general AI theory.</p>
+    </details>
+    <details class="faq-item">
+      <summary>What happens after passing the CCA Foundations exam? <span class="faq-icon">+</span></summary>
+      <p>The CCA Foundations certification is valid for 2 years. It demonstrates expertise in building production-grade Claude-powered applications and is recognized by organizations adopting Anthropic's AI in their products and workflows.</p>
+    </details>
+  </div>
+</section>
 <footer><div class="container"><div style="margin-bottom:12px"><a href="/cca-foundations-exam">CCA Foundations Exam</a> · <a href="/cca-practice-questions">Practice Questions</a> · <a href="/cca-exam-guide">Exam Guide</a> · <a href="/blog">Blog</a></div><p class="footer-disclaimer">This is an independent study resource. It is not affiliated with, authorized by, or endorsed by Anthropic. ‘Claude’ and ‘Claude Certified Architect’ are trademarks of their respective owner. We provide unofficial practice materials to help you prepare for the official certification exam.</p></div></footer>
 
 <!-- Firebase SDK -->
