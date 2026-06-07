@@ -76,7 +76,7 @@ nav .nav-links a.nav-cta:hover{background:var(--accent2);color:#fff}
 .info-card .card-value{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1rem;font-weight:600;color:var(--text);line-height:1.35}
 
 /* REGISTER CARD */
-.register-card{background:var(--surface);border:2px solid var(--accent);border-radius:var(--radius);padding:28px 32px;margin-top:4px;display:flex;align-items:flex-start;gap:20px}
+.register-card{background:var(--surface);border:2px solid var(--accent);border-radius:var(--radius);padding:28px 32px;margin-top:4px;display:flex;align-items:flex-start;gap:20px;scroll-margin-top:80px}
 .register-card-icon{flex-shrink:0;width:40px;height:40px;background:rgba(217,119,87,.1);border-radius:8px;display:flex;align-items:center;justify-content:center}
 .register-card-body{flex:1}
 .register-card-body h3{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1.05rem;font-weight:700;color:var(--text);margin-bottom:6px}
@@ -149,7 +149,15 @@ footer a:hover{color:var(--accent)}
       <a href="/cca-practice-questions/" onclick="closeNav()">Questions</a>
       <a href="/cca-exam-guide/" onclick="closeNav()">Guide</a>
       <a href="/blog/" onclick="closeNav()">Blog</a>
-      <a href="/register/" class="nav-cta active" onclick="closeNav()">Register</a>
+      <!-- This is the page you're already on, so the prominent nav-cta
+           "Register" button previously self-linked to /register/ — clicking
+           it appeared to do nothing (no navigation, no visible change).
+           Instead, point it at the actual registration action further down
+           this page (the "Go to Registration Portal" card) so the click
+           visibly does something useful: smoothly scrolls you straight to
+           it. scroll-behavior:smooth is already set globally on html{}, and
+           .register-card has scroll-margin-top to clear the fixed nav. -->
+      <a href="#register-action" class="nav-cta active" aria-label="Jump to the exam registration portal link below" onclick="closeNav()">Register</a>
     </div>
   </div>
 </nav>
@@ -242,7 +250,7 @@ footer a:hover{color:var(--accent)}
 
     </div><!-- /overview-grid -->
 
-    <div class="register-card">
+    <div class="register-card" id="register-action">
       <div class="register-card-icon" aria-hidden="true">
         <svg width="20" height="20" fill="none" stroke="var(--accent)" stroke-width="2" viewBox="0 0 24 24" focusable="false"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
       </div>
