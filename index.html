@@ -887,7 +887,15 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
 </section>
 
 <!-- ═══════ SUCCESS BANNER (shown after Stripe redirect) ═══════ -->
-<div id="success-banner" style="display:none;position:fixed;top:64px;left:0;right:0;z-index:150;background:rgba(45,122,95,.08);border-bottom:1px solid rgba(45,122,95,.2);padding:14px 24px;text-align:center;color:var(--green);font-size:.95rem;font-weight:500">
+<!-- top was a hardcoded 64px — correct only when the site-notice banner is
+     absent (--banner-h: 0px), since nav sits at top: var(--banner-h) and is
+     ~64px tall itself. On mobile the notice banner can wrap onto two lines
+     and grow taller than that, which pushes nav further down — but this
+     element stayed pinned at 64px and overlapped it for first-time visitors.
+     Adding var(--banner-h) keeps this banner locked to "64px below the nav's
+     current top", i.e. always directly beneath the nav, exactly like nav
+     itself tracks the live banner height. -->
+<div id="success-banner" style="display:none;position:fixed;top:calc(var(--banner-h, 0px) + 64px);left:0;right:0;z-index:150;background:rgba(45,122,95,.08);border-bottom:1px solid rgba(45,122,95,.2);padding:14px 24px;text-align:center;color:var(--green);font-size:.95rem;font-weight:500">
   Payment successful! Welcome to the Claude Certified Architect course. <button onclick="document.getElementById('success-banner').style.display='none'" style="margin-left:16px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px">Dismiss</button>
 </div>
 
