@@ -6,25 +6,29 @@
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GT-K8FC4RXW');</script>
 <!-- End Google Tag Manager -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>CCA Blog | Claude Certified Architect Guides &amp; Study Tips</title>
-<meta name="description" content="Guides on Claude architecture, prompt engineering, MCP, agentic systems, and passing the CCA Foundations exam on your first attempt.">
-<link rel="canonical" href="https://www.claudecertifiedarchitects.com/blog/">
-<meta property="og:type" content="website">
-<meta property="og:title" content="CCA Blog | Claude Certified Architect Guides &amp; Study Tips">
-<meta property="og:description" content="Articles and guides on Claude architecture, prompt engineering, MCP, and passing the CCA Foundations exam.">
-<meta property="og:url" content="https://www.claudecertifiedarchitects.com/blog/">
+<title>CCA Domain 1: Agentic Architecture &amp; Orchestration (27%)</title>
+<meta name="description" content="Domain 1 is 27% of the CCA exam, its largest section. What agentic architecture and orchestration covers, a worked scenario, and traps that catch candidates.">
+<link rel="canonical" href="https://www.claudecertifiedarchitects.com/blog/agentic-architecture-orchestration-cca-domain-1/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CCA Domain 1: Agentic Architecture &amp; Orchestration (27%)">
+<meta property="og:description" content="Domain 1 is 27% of the CCA exam, its largest section. What agentic architecture and orchestration covers, a worked scenario, and traps that catch candidates.">
+<meta property="og:url" content="https://www.claudecertifiedarchitects.com/blog/agentic-architecture-orchestration-cca-domain-1/">
 <meta property="og:site_name" content="Claude Certified Architects">
 <meta property="og:image" content="https://www.claudecertifiedarchitects.com/og-image-v2.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:type" content="image/png">
+<meta property="article:published_time" content="2026-05-26">
+<meta property="article:modified_time" content="2026-05-26">
+<meta property="article:section" content="CCA Exam Preparation">
 <meta name="author" content="Claude Certified Architects">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="CCA Blog | Claude Certified Architect Guides &amp; Study Tips">
-<meta name="twitter:description" content="Articles and guides on Claude architecture, prompt engineering, MCP, and passing the CCA Foundations exam.">
+<meta name="twitter:title" content="CCA Domain 1: Agentic Architecture &amp; Orchestration (27%)">
+<meta name="twitter:description" content="Domain 1 is 27% of the CCA exam, its largest section. What agentic architecture and orchestration covers, a worked scenario, and traps that catch candidates.">
 <meta name="twitter:image" content="https://www.claudecertifiedarchitects.com/og-image-v2.png">
 <link rel="preconnect" href="https://www.googletagmanager.com">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.claudecertifiedarchitects.com"},{"@type":"ListItem","position":2,"name":"Blog","item":"https://www.claudecertifiedarchitects.com/blog"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"CCA Domain 1: Agentic Architecture & Orchestration (27%)","description":"Domain 1 is 27% of the CCA exam, its largest section. What agentic architecture and orchestration covers, a worked scenario, and traps that catch candidates.","url":"https://www.claudecertifiedarchitects.com/blog/agentic-architecture-orchestration-cca-domain-1/","datePublished":"2026-05-26","dateModified":"2026-05-26","image":"https://www.claudecertifiedarchitects.com/og-image-v2.png","publisher":{"@type":"Organization","name":"Claude Certified Architects","url":"https://www.claudecertifiedarchitects.com"},"author":{"@type":"Organization","name":"Claude Certified Architects","url":"https://www.claudecertifiedarchitects.com"},"isPartOf":{"@type":"WebSite","url":"https://www.claudecertifiedarchitects.com"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.claudecertifiedarchitects.com"},{"@type":"ListItem","position":2,"name":"Blog","item":"https://www.claudecertifiedarchitects.com/blog/"},{"@type":"ListItem","position":3,"name":"CCA Domain 1: Agentic Architecture & Orchestration (27%)","item":"https://www.claudecertifiedarchitects.com/blog/agentic-architecture-orchestration-cca-domain-1/"}]}</script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -145,97 +149,55 @@ nav .inner{display:flex;align-items:center;justify-content:space-between;padding
     </button>
   </div>
 </nav>
-<main class="blog-wrap">
-  <div class="bc" role="navigation" aria-label="Breadcrumb">
-    <ol><li><a href="/">Home</a></li><li><span aria-current="page">Blog</span></li></ol>
-  </div>
-  <header class="blog-header">
-    <h1>Blog</h1>
-    <p>Guides and insights on Claude architecture, prompt engineering, and CCA exam prep.</p>
-  </header>
-  <div class="post-list">
-    
-    <div class="post-card">
-      <div class="post-card-date">June 7, 2026</div>
-      <div class="post-card-title"><a href="/blog/context-management-reliability-cca-domain-5/">CCA Domain 5: Context Management &amp; Reliability (15%)</a></div>
-      <p class="post-card-desc">Domain 5 is 15% of the CCA exam, its smallest. What context management and reliability covers, a worked long-conversation scenario, and traps to avoid.</p>
+<main class="post-wrap">
+  <article>
+    <header>
+      <div class="bc" role="navigation" aria-label="Breadcrumb">
+        <ol>
+          <li><a href="/">Home</a></li>
+          <li><a href="/blog">Blog</a></li>
+          <li><span aria-current="page">Agentic Architecture &amp; Orchestration: Inside the CCA Exam's Biggest Domain (27%)</span></li>
+        </ol>
+      </div>
+      <h1 class="post-title">Agentic Architecture &amp; Orchestration: Inside the CCA Exam's Biggest Domain (27%)</h1>
+      <p class="post-meta"><time datetime="2026-05-26">May 26, 2026</time></p>
+    </header>
+    <div class="post-body">
+      <p>Domain 1 — Agentic Architecture &amp; Orchestration — carries more weight than any other section of the CCA Foundations exam: 27% of your final score, more than the next two domains combined would need to add up to match it. If you're going to over-invest your study time anywhere, this is where the math says to do it. It's also, not coincidentally, the domain that tests the kind of judgment that's hardest to fake: not "do you know what an agent loop is" but "can you tell when a sophisticated-sounding architecture is the right call, and when it's expensive overkill."</p>
+
+<p>This domain sits inside our <a href="/blog/cca-foundations-exam-domains-explained">full breakdown of all five exam domains</a> — here we go one level deeper into what it actually tests, how it shows up in scenario questions, and where candidates lose marks they should have kept.</p>
+
+<h2>What This Domain Actually Tests</h2>
+<p>Strip away the terminology and Domain 1 is asking one core question, repeatedly, from different angles: <em>given this task, what is the simplest architecture that reliably gets it done?</em> The topics it draws on to ask that question include:</p>
+<ul>
+  <li>The agent loop — gathering context, taking action, checking the result, and deciding what happens next</li>
+  <li>Single-agent designs versus orchestrator-and-subagent patterns</li>
+  <li>When running work in parallel actually helps, and when it just adds coordination cost</li>
+  <li>Reliability mechanics: retries, checkpoints, and human-in-the-loop gates for high-stakes actions</li>
+  <li>Scoping autonomy — minimal footprint, reversible actions, and clear escalation boundaries</li>
+</ul>
+
+<h2>Orchestrators and Subagents: A Pattern, Not a Default</h2>
+<p>The orchestrator/subagent pattern — one coordinating agent that delegates focused pieces of work to specialised subagents — is one of the most useful architectures in this domain, and one of the most over-applied the first time you encounter it. It earns its complexity when subagents genuinely benefit from an isolated context (so a long research detour doesn't pollute the main conversation), when separate permission boundaries matter (a billing-lookup subagent shouldn't carry the same authority as the agent that issues refunds), or when independent pieces of work can run concurrently without stepping on each other.</p>
+<p>It does <em>not</em> earn its complexity just because a task involves "multiple steps." Plenty of multi-step tasks are best served by a single agent working through a sequence of tool calls — orchestration adds latency (agents have to hand off and wait on each other), cost (more model calls), and failure surface (more places for a handoff to go wrong). The exam consistently rewards candidates who can recognise when a single, well-equipped agent is the correct, boring, reliable answer.</p>
+
+<h2>Worked Scenario: Designing a Support-Ticket Triage System</h2>
+<p>Imagine a SaaS company wants to automate the first pass of its support queue. Incoming tickets need to be classified by topic and urgency, matched against account and billing records, drafted a response, and — for billing disputes above $500 — routed to a human for review before anything goes out. How would you architect this?</p>
+<p>A reasonable first instinct is "one agent, several tools": a classification step, an account-lookup tool, a drafting step, all run by a single agent in sequence. For a low-volume queue with simple disputes, that's often exactly right — it's simpler to build, easier to debug, and has fewer places to fail.</p>
+<p>The case for an orchestrator with subagents strengthens as the scenario does. If tickets need to be processed concurrently at real volume, an orchestrator can dispatch independent tickets to parallel subagent runs without their contexts colliding. If the billing lookup touches sensitive financial data, scoping it to a subagent with narrowly-permissioned, read-only tools — rather than handing those same tools to the agent that also drafts customer-facing replies — is a meaningful security improvement, not just an architectural nicety.</p>
+<p>And the $500 escalation threshold is the detail that separates a correct design from an almost-correct one: that check has to be enforced in code, at the orchestration layer, as a hard gate the agent cannot route around — not as an instruction in a prompt asking the agent to "escalate disputes over $500." A prompt is guidance. A threshold that protects customers and the business from the wrong message going out needs to be a guarantee.</p>
+
+<h2>Traps That Catch Candidates in This Domain</h2>
+<ul>
+  <li><strong>Reaching for multi-agent because it sounds more sophisticated.</strong> The exam rewards matching architecture to actual task complexity — not the most elaborate-sounding option on the answer list. If a single agent with the right tools gets the job done reliably, that's the correct answer, even when a fancier-looking alternative is sitting right next to it.</li>
+  <li><strong>Treating "parallel" as a synonym for "faster."</strong> When step B genuinely depends on the output of step A, running them in parallel doesn't speed anything up — it produces wrong answers, race conditions, or work that has to be redone once the dependency is discovered. Look for the dependency in the scenario before reaching for concurrency.</li>
+  <li><strong>Skipping the verification step to save a round trip.</strong> An agent loop that acts without checking whether the action actually achieved its goal compounds small errors into large ones across a long run. Scenario questions often present the "fast" answer as one that skips verification — and the correct answer puts it back in.</li>
+  <li><strong>Putting safety-critical control flow in the prompt.</strong> Escalation thresholds, approval gates, and irreversible-action checks belong in code the model cannot talk its way around — a theme this domain shares with several others, and one we cover in more depth in our <a href="/blog/cca-exam-anti-patterns">anti-patterns guide</a>.</li>
+</ul>
+
+<p>Domain 1 rewards pattern recognition built through repetition more than memorised definitions — which is exactly what scenario practice is for. <a href="/cca-practice-questions">Work through our free practice question bank</a> (400 scenario-based questions across all five domains, each with a full explanation) to build that instinct, or take the <a href="/diagnostic/">free 10-question diagnostic</a> to see how your Domain 1 judgment scores right now, before you commit a study plan to it.</p>
     </div>
-    <div class="post-card">
-      <div class="post-card-date">June 5, 2026</div>
-      <div class="post-card-title"><a href="/blog/tool-design-mcp-cca-domain-4/">CCA Domain 4: Tool Design &amp; MCP (18%)</a></div>
-      <p class="post-card-desc">Domain 4 is 18% of the CCA exam. What tool design and MCP covers, a worked calendar-agent scenario on tool granularity, and the traps that cost marks.</p>
-    </div>
-    <div class="post-card">
-      <div class="post-card-date">June 4, 2026</div>
-      <div class="post-card-title"><a href="/blog/cca-exam-study-schedule-30-day-plan/">CCA Exam Study Schedule: 30-Day Preparation Plan That Works</a></div>
-      <p class="post-card-desc">A proven 30-day CCA Foundations exam study schedule covering all five domains, with weekly breakdowns, daily focus areas, and practice question targets.</p>
-    </div>
-    <div class="post-card">
-      <div class="post-card-date">June 4, 2026</div>
-      <div class="post-card-title"><a href="/blog/how-to-write-effective-claude-md-file/">How to Write an Effective CLAUDE.md File: A Practical Guide</a></div>
-      <p class="post-card-desc">How to write a CLAUDE.md file that improves AI agent performance, with step-by-step guidance, annotated examples, common mistakes, and CCA exam tips.</p>
-    </div>
-    <div class="post-card">
-      <div class="post-card-date">June 3, 2026</div>
-      <div class="post-card-title"><a href="/blog/why-claude-certification-is-important/">Why Claude Certification Is Important in 2026</a></div>
-      <p class="post-card-desc">Why the CCA matters — what it verifies, why enterprises are beginning to require it, and what certification does for your career that experience alone cannot.</p>
-    </div>
-    <div class="post-card">
-      <div class="post-card-date">June 2, 2026</div>
-      <div class="post-card-title"><a href="/blog/cca-real-world-reports-responsibilities-salaries/">Working as a Claude Certified Architect: Pay and Roles</a></div>
-      <p class="post-card-desc">First-hand accounts from CCA credential holders on what they do day-to-day, what their roles pay, and how the certification changed their career trajectory.</p>
-    </div>
-    <div class="post-card">
-      <div class="post-card-date">May 30, 2026</div>
-      <div class="post-card-title"><a href="/blog/prompt-engineering-structured-output-cca-domain-3/">CCA Domain 3: Prompt Engineering &amp; Structured Output (20%)</a></div>
-      <p class="post-card-desc">Domain 3 is 20% of the CCA exam. What prompt engineering and structured output covers, a worked extraction scenario, and the traps that cost candidates marks.</p>
-    </div>
-    <div class="post-card">
-      <div class="post-card-date">May 28, 2026</div>
-      <div class="post-card-title"><a href="/blog/claude-code-config-workflows-cca-domain-2/">CCA Domain 2: Claude Code Config &amp; Workflows (20%)</a></div>
-      <p class="post-card-desc">Domain 2 is 20% of the CCA exam. What Claude Code configuration and workflows covers, a worked team-setup scenario, and where candidates lose marks.</p>
-    </div>
-    <div class="post-card">
-      <div class="post-card-date">May 26, 2026</div>
-      <div class="post-card-title"><a href="/blog/agentic-architecture-orchestration-cca-domain-1/">CCA Domain 1: Agentic Architecture &amp; Orchestration (27%)</a></div>
-      <p class="post-card-desc">Domain 1 is 27% of the CCA exam, its largest section. What agentic architecture and orchestration covers, a worked scenario, and traps that catch candidates.</p>
-    </div>
-    <div class="post-card">
-      <div class="post-card-date">May 11, 2026</div>
-      <div class="post-card-title"><a href="/blog/claude-certified-architect-salary-career-2026/">Claude Certified Architect Salary and Career Outlook in 2026</a></div>
-      <p class="post-card-desc">What CCA-credentialed architects earn in 2026, which roles command the highest pay, and how the credential shifts salary expectations in enterprise AI hiring.</p>
-    </div>
-    <div class="post-card">
-      <div class="post-card-date">May 11, 2026</div>
-      <div class="post-card-title"><a href="/blog/how-to-become-claude-certified-architect/">How to Become a Claude Certified Architect in 2026</a></div>
-      <p class="post-card-desc">How to build a career as a Claude Certified Architect in 2026 — the roles that exist, the skills that matter, and how to land the highest-paid positions.</p>
-    </div>
-    <div class="post-card">
-      <div class="post-card-date">April 30, 2026</div>
-      <div class="post-card-title"><a href="/blog/cca-foundations-exam-practice-questions-free/">10 Free CCA Practice Questions With Full Explanations</a></div>
-      <p class="post-card-desc">Free CCA Foundations exam practice questions across all five domains, each with four answer choices and a detailed explanation of why the correct answer works.</p>
-    </div>
-    <div class="post-card">
-      <div class="post-card-date">April 28, 2026</div>
-      <div class="post-card-title"><a href="/blog/cca-exam-anti-patterns/">CCA Exam Anti-Patterns: 7 Mistakes That Fail Candidates</a></div>
-      <p class="post-card-desc">Seven architectural anti-patterns that appear on the CCA Foundations exam — why candidates who recognise them pass, and why candidates who don't, fail.</p>
-    </div>
-    <div class="post-card">
-      <div class="post-card-date">April 25, 2026</div>
-      <div class="post-card-title"><a href="/blog/is-cca-certification-worth-it-2026/">Is the CCA Certification Worth It in 2026?</a></div>
-      <p class="post-card-desc">An honest assessment of the CCA credential — who it's actually for, enterprise adoption numbers, the myths, and whether the prep time is justified.</p>
-    </div>
-    <div class="post-card">
-      <div class="post-card-date">April 20, 2026</div>
-      <div class="post-card-title"><a href="/blog/cca-foundations-exam-guide-2026/">Claude Certified Architect Exam Guide 2026</a></div>
-      <p class="post-card-desc">The complete 2026 CCA Foundations study guide — domain weights, sample questions, a realistic study timeline, and the answers to the most common exam questions.</p>
-    </div>
-    <div class="post-card">
-      <div class="post-card-date">April 19, 2026</div>
-      <div class="post-card-title"><a href="/blog/cca-foundations-exam-domains-explained/">The 5 CCA Foundations Exam Domains Explained</a></div>
-      <p class="post-card-desc">A detailed breakdown of all five CCA Foundations exam domains — weights, key topics, and exactly what to study to maximise your score.</p>
-    </div>
-  </div>
+  </article>
 </main>
 <footer class="site-footer">
   <p style="margin:0 0 10px">&copy; 2026 Claude Certified Architects &nbsp;&middot;&nbsp; <a href="/">Home</a> &nbsp;&middot;&nbsp; <a href="/blog">Blog</a></p>
