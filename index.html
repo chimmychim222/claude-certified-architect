@@ -40,7 +40,7 @@
 <!-- cca:schema:end -->
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--banner-h:0px;
+:root{--banner-h:0px;--nav-h:64px;
   --bg:#f5f3ea;--surface:#fff;--surface2:#f0ede4;--surface3:#e8e5dc;
   --border:#d9d5ca;--border2:#c5c0b5;
   --text:#191918;--text2:#5a5a52;--text3:#8a8a7f;
@@ -624,6 +624,25 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
     </div>
   </div>
 </nav>
+<!-- Track the nav's actual rendered height in --nav-h, mirroring how
+     --banner-h tracks the site-notice banner above. nav's height isn't a
+     fixed constant — it changes with viewport width (the nav-links row
+     wraps differently at different breakpoints) AND with login state (the
+     logged-in user-area — email + badge + logout button — can occupy more
+     vertical space than the logged-out Login/Sign Up buttons, especially on
+     narrow screens). A hardcoded "64px" assumption is exactly what caused
+     #success-banner to overlap the nav by a few px on mobile in the first
+     place. ResizeObserver catches every one of those cases automatically —
+     far more robust than hand-wiring a re-measure into each code path that
+     can change nav's contents. -->
+<script>(function(){
+  var nav = document.querySelector('nav');
+  if(!nav) return;
+  function setNavH(){ document.documentElement.style.setProperty('--nav-h', nav.offsetHeight+'px'); }
+  setNavH();
+  if (window.ResizeObserver) { new ResizeObserver(setNavH).observe(nav); }
+  else { window.addEventListener('resize', setNavH); }
+})()</script>
 
 <!-- ═══════ AUTH MODAL ═══════ -->
 <div class="modal-overlay" id="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
@@ -887,15 +906,15 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
 </section>
 
 <!-- ═══════ SUCCESS BANNER (shown after Stripe redirect) ═══════ -->
-<!-- top was a hardcoded 64px — correct only when the site-notice banner is
-     absent (--banner-h: 0px), since nav sits at top: var(--banner-h) and is
-     ~64px tall itself. On mobile the notice banner can wrap onto two lines
-     and grow taller than that, which pushes nav further down — but this
-     element stayed pinned at 64px and overlapped it for first-time visitors.
-     Adding var(--banner-h) keeps this banner locked to "64px below the nav's
-     current top", i.e. always directly beneath the nav, exactly like nav
-     itself tracks the live banner height. -->
-<div id="success-banner" style="display:none;position:fixed;top:calc(var(--banner-h, 0px) + 64px);left:0;right:0;z-index:150;background:rgba(45,122,95,.08);border-bottom:1px solid rgba(45,122,95,.2);padding:14px 24px;text-align:center;color:var(--green);font-size:.95rem;font-weight:500">
+<!-- top was a hardcoded 64px — wrong on two counts: (1) nav sits at
+     top: var(--banner-h), which grows when the site-notice banner wraps
+     onto two lines on mobile, and (2) nav's own height isn't a constant
+     64px either — it varies with viewport width and login state (see the
+     --nav-h ResizeObserver right after </nav> for the full explanation).
+     Both numbers are now read from the same live CSS variables nav itself
+     is built from, so this banner always renders flush against the nav's
+     actual bottom edge — never overlapping it, never leaving a gap. -->
+<div id="success-banner" style="display:none;position:fixed;top:calc(var(--banner-h, 0px) + var(--nav-h, 64px));left:0;right:0;z-index:150;background:rgba(45,122,95,.08);border-bottom:1px solid rgba(45,122,95,.2);padding:14px 24px;text-align:center;color:var(--green);font-size:.95rem;font-weight:500">
   Payment successful! Welcome to the Claude Certified Architect course. <button onclick="document.getElementById('success-banner').style.display='none'" style="margin-left:16px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px">Dismiss</button>
 </div>
 
