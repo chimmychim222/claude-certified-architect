@@ -1088,10 +1088,24 @@ function formatPrice(cur) {
 }
 function updateCurrency() {
   const cur = document.getElementById('currency-select').value;
-  const formatted = formatPrice(cur);
-  document.getElementById('price-display').textContent = formatted;
-  document.getElementById('modal-price').textContent = formatted + ' ' + cur;
-  document.getElementById('pay-btn-price').textContent = formatted;
+  const display = document.getElementById('price-display');
+  // The Stripe Payment Link behind "Proceed to Secure Checkout" always
+  // charges in USD — there's no multi-currency checkout wired up. So a
+  // converted figure here is an FX *estimate* for the visitor's orientation
+  // only, never the actual amount that will be charged. Showing it as a
+  // bare "€45" would read as a price quote and surprise people at checkout
+  // when Stripe charges $49 USD instead. Label it unambiguously as an
+  // approximation that still resolves to the real USD charge.
+  //
+  // (This also used to write into #modal-price and #pay-btn-price, two
+  // elements that no longer exist in the page — that threw a TypeError on
+  // every currency change. Both references are gone now; #price-display is
+  // the only element this control actually drives.)
+  if (cur === 'USD') {
+    display.textContent = '$49.00';
+  } else {
+    display.textContent = '≈ ' + formatPrice(cur) + ' (billed as $49 USD)';
+  }
 }
 
 // ═══════════════════════════════════════
