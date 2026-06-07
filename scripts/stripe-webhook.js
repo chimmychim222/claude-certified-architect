@@ -9,6 +9,10 @@
  *   RESEND_API_KEY                 — Resend → API Keys → Create API Key
  *                                    (domain claudecertifiedarchitects.com must be verified
  *                                    in Resend before emails will send)
+ *   ADMIN_API_KEY                  — any long random string you generate yourself;
+ *                                    required as the `x-admin-key` header on
+ *                                    GET /admin/stale-pending-enrollments.
+ *                                    Leaving it unset disables that endpoint entirely.
  */
 
 const admin      = require('firebase-admin');
@@ -238,6 +242,89 @@ app.post('/claim-enrollment', async (req, res) => {
 
   } catch (err) {
     console.error('Claim-enrollment error:', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Stale pending-enrollment monitoring ───────────────────────────────────────
+// pending_enrollments records are created when the webhook can't find a
+// matching Firebase account (the customer paid before signing up — see the
+// stash logic above). The expected reconciliation path is: they create or
+// log into an account with the same email, verify it, and /claim-enrollment
+// applies the purchase. A record still sitting here ~48h later usually means
+// that path stalled — they never came back, signed up with a different
+// email, or are stuck on the email_verified gate without realizing why.
+// That's a real "paid and got nothing" situation that deserves a human to
+// look at it (and possibly enroll them manually), not silent data rot.
+//
+// Render's free tier has no managed cron, so "scheduled job" here means an
+// in-process interval — it only catches stale records while this instance
+// happens to be awake, which for a low-traffic box is an honest limitation,
+// not a guarantee. The admin endpoint below is the authoritative, on-demand
+// counterpart: point an external uptime monitor at it on a daily schedule
+// (which has the side benefit of keeping the instance warm) for a check that
+// doesn't depend on this process's uptime.
+const STALE_PENDING_THRESHOLD_MS = 48 * 60 * 60 * 1000; // 48 hours
+
+async function findStalePendingEnrollments() {
+  const cutoff = Date.now() - STALE_PENDING_THRESHOLD_MS;
+  const snap   = await db.collection('pending_enrollments').get();
+  const stale  = [];
+  snap.forEach(doc => {
+    const data = doc.data();
+    const createdAtMs = (data.createdAt && typeof data.createdAt.toMillis === 'function')
+      ? data.createdAt.toMillis()
+      : null;
+    // Missing timestamp (e.g. a write that raced serverTimestamp resolution)
+    // is flagged as stale too — better to over-report than silently miss one.
+    if (createdAtMs === null || createdAtMs <= cutoff) {
+      stale.push({
+        email:           data.email || doc.id,
+        stripeSessionId: data.stripeSessionId || null,
+        ageHours:        createdAtMs === null ? null : Math.round((Date.now() - createdAtMs) / 3600000),
+      });
+    }
+  });
+  return stale;
+}
+
+async function logStalePendingEnrollments() {
+  try {
+    const stale = await findStalePendingEnrollments();
+    if (stale.length) {
+      console.warn(
+        `[pending_enrollments] ${stale.length} unclaimed record(s) older than 48h — needs manual review:`,
+        JSON.stringify(stale)
+      );
+    }
+  } catch (err) {
+    console.error('[pending_enrollments] stale check failed:', err.message);
+  }
+}
+
+// Once shortly after boot (catches anything that piled up while this
+// instance was asleep), then every 6 hours for as long as the process stays up.
+setTimeout(logStalePendingEnrollments, 60 * 1000);
+setInterval(logStalePendingEnrollments, 6 * 60 * 60 * 1000);
+
+// GET /admin/stale-pending-enrollments
+// Header: x-admin-key: <ADMIN_API_KEY>
+//
+// On-demand, authoritative listing of unclaimed pending_enrollments older
+// than 48h — email, Stripe session ID, and age in hours for each — so
+// support can find and manually resolve them regardless of whether the
+// in-process interval above has run recently. Returns 401 (and the route is
+// effectively disabled) if ADMIN_API_KEY isn't set, so this can't be hit
+// with an empty/guessable key by accident.
+app.get('/admin/stale-pending-enrollments', async (req, res) => {
+  if (!process.env.ADMIN_API_KEY || req.headers['x-admin-key'] !== process.env.ADMIN_API_KEY) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  try {
+    const stale = await findStalePendingEnrollments();
+    return res.json({ ok: true, count: stale.length, stale });
+  } catch (err) {
+    console.error('[pending_enrollments] admin listing failed:', err.message);
     return res.status(500).json({ error: err.message });
   }
 });

@@ -1171,7 +1171,7 @@ function initAuthListener() {
       try {
         const tokenResult = await user.getIdTokenResult(true);
         if (tokenResult.claims.enrolled) {
-          enrolled = true;
+          markEnrolled(user);
         }
       } catch(e) { console.warn('[Auth] Token refresh error:', e.message); }
 
@@ -1180,7 +1180,7 @@ function initAuthListener() {
           // source:'server' bypasses Firestore's local cache, which can
           // return stale data (e.g. the login session-write without enrolled).
           const doc = await db.collection('users').doc(user.uid).get({ source: 'server' });
-          if (doc.exists && doc.data().enrolled) { enrolled = true; }
+          if (doc.exists && doc.data().enrolled) { markEnrolled(user); }
         } catch(e) { console.warn('[Auth] Firestore read error:', e.message); }
       }
       // Last resort: maybe this person paid via Stripe BEFORE this account
@@ -1429,6 +1429,75 @@ function logOut() {
 // ═══════════════════════════════════════
 const WEBHOOK_BASE = 'https://claude-certified-architect.onrender.com';
 
+// ─────────────────────────────────────────────────────────────────────────
+// "exam_purchase" conversion event — fire exactly once per user, ever, the
+// moment their enrolled status is first confirmed true, no matter which
+// code path discovers it (webhook-synced custom claim on sign-in, the
+// Firestore fallback read, a claimed pending enrollment, the post-checkout
+// confirmation poll, the manual "I've verified" recheck, or the lazy
+// re-check inside startTest — there are six distinct places `enrolled` can
+// flip false → true).
+//
+// Guarded by a DURABLE, SERVER-SIDE flag — users/{uid}.examPurchaseEventSent
+// — instead of an in-memory variable, because:
+//   • in-memory state resets on every reload, new tab, or new device, which
+//     would re-fire the event each time an already-converted user returns
+//   • a Firestore transaction makes "have I already claimed the right to
+//     fire?" atomic, so two near-simultaneous callers (two tabs open at
+//     once, or two of the six code paths both noticing in the same
+//     session) cannot both win and double-report the same purchase
+async function maybeFireExamPurchaseEvent(user) {
+  if (!user || !db) return;
+  const ref = db.collection('users').doc(user.uid);
+
+  // Cheap pre-check so the overwhelming majority of calls — every page
+  // load by a user who converted in a *previous* session and already has
+  // the flag set — skip the transaction (an extra read+write). A false
+  // "not yet sent" reading here just falls through to the authoritative,
+  // atomic path below; a false "already sent" reading is impossible,
+  // because the flag is only ever set by that same atomic path.
+  try {
+    const snap = await ref.get();
+    if (snap.exists && snap.data().examPurchaseEventSent === true) return;
+  } catch (e) { /* fall through — the transaction below is the source of truth */ }
+
+  let shouldFire = false;
+  try {
+    await db.runTransaction(async (tx) => {
+      const doc  = await tx.get(ref);
+      const data = doc.data() || {};
+      // Only the server-written `enrolled` flag counts as a real purchase
+      // (it's set exclusively by the webhook / claim-enrollment via the
+      // Admin SDK) — never report a conversion off local/optimistic state.
+      if (data.enrolled !== true) return;
+      if (data.examPurchaseEventSent === true) return;
+      tx.set(ref, { examPurchaseEventSent: true }, { merge: true });
+      shouldFire = true;
+    });
+  } catch (e) {
+    console.warn('[Analytics] exam_purchase guard transaction failed:', e.message);
+    return; // fail closed: better to retry next session than risk a double count
+  }
+
+  if (shouldFire && typeof gtag !== 'undefined') {
+    gtag('event', 'exam_purchase', {
+      currency:       'USD',
+      value:          49,
+      transaction_id: user.uid + '_' + Date.now(),
+    });
+  }
+}
+
+// Local-state setter for `enrolled` that funnels through the guarded,
+// fire-once analytics check above. Every place that discovers enrollment
+// calls this instead of assigning `enrolled = true` directly, so the
+// conversion event lives in exactly one place rather than being scattered
+// (and duplicated, or missed) across each detection path.
+function markEnrolled(user) {
+  enrolled = true;
+  maybeFireExamPurchaseEvent(user);
+}
+
 // Ask the webhook server whether a "pending enrollment" exists for the
 // current user's verified email. This covers the case where someone paid via
 // Stripe BEFORE creating a site account (or checked out with a different
@@ -1455,7 +1524,7 @@ async function claimPendingEnrollment(user) {
     const data = await resp.json();
     if (data.enrolled) {
       await user.getIdTokenResult(true); // refresh local claim cache
-      enrolled = true;
+      markEnrolled(user);
       return { enrolled: true, reason: null };
     }
     // data.reason surfaces server-side gates, e.g. 'unverified_email' — a
@@ -1514,7 +1583,7 @@ function showPendingVerificationBanner(user) {
         await user.getIdToken(true);
         const claim = await claimPendingEnrollment(user);
         if (claim.enrolled) {
-          enrolled = true;
+          markEnrolled(user);
           updateNavUI();
           updateDashCards();
           showSection('dashboard');
@@ -1607,10 +1676,13 @@ async function confirmPaymentAndUnlock(user) {
   _confirmingPayment = false;
 
   if (confirmed) {
-    enrolled = true;
-    if (typeof gtag !== 'undefined') {
-      gtag('event', 'exam_purchase', { currency: 'USD', value: 49, transaction_id: user.uid + '_' + Date.now() });
-    }
+    // markEnrolled() also (idempotently, durably-guarded) fires the
+    // one-time "exam_purchase" conversion event — see maybeFireExamPurchaseEvent.
+    // It used to fire unconditionally right here, which both (a) miscounted
+    // returning users whose enrollment was merely *re-confirmed* by this
+    // poll rather than newly granted, and (b) missed conversions detected
+    // through any of the other five paths that can flip `enrolled` true.
+    markEnrolled(user);
     banner.innerHTML = 'Payment successful! Welcome to the Claude Certified Architect course.' + dismissBtn;
     updateNavUI();
     updateDashCards();
@@ -1637,10 +1709,19 @@ function openPaymentModal() {
 function checkPaymentSuccess() {
   const params = new URLSearchParams(window.location.search);
   if (params.get('paid') === 'true' && !firebaseReady) {
-    // Non-Firebase fallback
+    // Non-Firebase fallback. NOTE: this branch appears unreachable from the
+    // current init flow — checkPaymentSuccess() is only ever invoked
+    // immediately after `firebaseReady = true` is set (see DOMContentLoaded
+    // above), and the catch-block for a failed Firebase init never calls it.
+    // Left intact rather than deleted (out of scope of the analytics
+    // cleanup), but its old `exam_purchase` gtag firing — a *second*,
+    // independent firing location for the same event, keyed on a fabricated
+    // 'anon_'+timestamp id with no de-dupe — has been removed. There's no
+    // Firebase user here to hang a durable per-user flag off of, and the
+    // centralized, guarded firing now lives solely in markEnrolled() /
+    // maybeFireExamPurchaseEvent() above.
     enrolled = true;
     localStorage.setItem('cca_enrolled', 'true');
-    if(typeof gtag!=='undefined'){gtag('event','exam_purchase',{currency:'USD',value:49,transaction_id:'anon_'+Date.now()});}
     document.getElementById('success-banner').style.display = 'block';
     window.history.replaceState({}, '', window.location.pathname);
     showSection('dashboard');
@@ -3732,7 +3813,7 @@ async function startTest(type) {
     try {
       const tok = await currentUser.getIdTokenResult(); // cached, not forced
       if (tok.claims.enrolled) {
-        enrolled = true;   // fix the stale global in one shot
+        markEnrolled(currentUser); // fix the stale global + fire-once analytics in one shot
         updateNavUI();     // sync the badge too
         updateDashCards(); // sync the card badges too
       }
@@ -4092,6 +4173,40 @@ document.querySelectorAll('.hero-stats .num[data-count]').forEach(el => {
   }, { threshold: 0.3 });
   obs2.observe(el);
 });
+
+// ═══════ PRE-WARM THE RENDER WEBHOOK SERVER ═══════
+// scripts/stripe-webhook.js runs on Render's free tier, which spins down
+// after ~15 minutes idle and can take 30-60+ seconds to cold-start (this is
+// exactly the latency confirmPaymentAndUnlock's poll above has to absorb).
+// Today the server's first real wake-up call is usually the Stripe webhook
+// firing seconds after checkout — too late to dodge the cold start. Someone
+// scrolling to the pricing section is a strong "about to buy" signal, so
+// nudge the server awake right then with a no-op GET to its health route.
+//
+// Strictly fire-and-forget: must never block the UI, throw, or surface
+// anything to the user if Render is asleep, slow, mid-deploy, or simply
+// unreachable — this is a best-effort latency optimization, nothing more.
+// Debounced to once per page session (a `let` flag, reset on reload) since
+// a single hit is enough to keep the instance warm for the ~15 minutes a
+// typical pricing-to-checkout journey takes.
+(function(){
+  const pricingSection = document.getElementById('pricing-section');
+  if (!pricingSection || !window.IntersectionObserver) return;
+  let warmed = false;
+  const warmObs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting && !warmed) {
+        warmed = true;
+        warmObs.disconnect();
+        // mode:'no-cors' — we don't read the response (and don't need CORS
+        // headers for it); the round trip to the server is what wakes it.
+        fetch(WEBHOOK_BASE + '/', { method: 'GET', mode: 'no-cors', cache: 'no-store' })
+          .catch(() => { /* swallow — purely best-effort */ });
+      }
+    });
+  }, { threshold: 0.2 });
+  warmObs.observe(pricingSection);
+})();
 
 // ═══════ HERO ANIMATION (safe for iOS) ═══════
 (function(){
