@@ -990,7 +990,21 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
 <!-- Firebase SDK -->
 <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<!-- firebase-firestore-compat.js is INTENTIONALLY NOT loaded here.
+     All Firestore access now goes through the modular SDK (loaded via
+     dynamic import in the script below) so it can target the project's
+     named "default" database — see the big comment near `let db = null`.
+     Loading the compat Firestore bundle alongside it would register a
+     'firestore' component on the shared Firebase App using the COMPAT
+     bundle's own internally-bundled Firestore classes; getFirestore()
+     would then resolve through that factory and return an instance of
+     the WRONG bundle's Firestore class — causing
+     "Expected first argument to collection() to be a CollectionReference,
+     a DocumentReference or FirebaseFirestore" from doc()/collection()
+     instanceof checks (confirmed live: this exact error surfaced in the
+     login/signup modal once the modular migration shipped). Removing
+     this script tag lets the dynamically-imported modular bundle
+     register and use its own classes with no collision. -->
 
 <script>
 // ═══════════════════════════════════════
