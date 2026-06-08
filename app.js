@@ -410,6 +410,14 @@ function updatePricingCTAs() {
   const checkoutBtn = document.getElementById('checkout-btn');
   const goToDashboard = () => showSection('dashboard');
 
+  // The "Already sure you want full access?" lead-in only makes sense as a
+  // question aimed at someone who hasn't bought yet — paired with a button
+  // that now reads "Enrolled ✓ — Go to dashboard" it's a confusing leftover.
+  // Hide just that span for enrolled visitors so the demoted block quietly
+  // becomes a single "go to your dashboard" link with no purchase framing.
+  const heroPrompt = document.getElementById('hero-enroll-prompt');
+  if (heroPrompt) heroPrompt.style.display = enrolled ? 'none' : '';
+
   if (heroBtn) {
     if (enrolled) {
       heroBtn.textContent = 'Enrolled ✓ — Go to dashboard';

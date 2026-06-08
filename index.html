@@ -127,7 +127,19 @@ nav .logout-btn:hover{color:var(--red);border-color:var(--red)}
 .btn-green:hover{background:var(--green2);border-color:var(--green2)}
 
 /* ── SECTIONS ── */
-section{padding:80px 0;position:relative;z-index:1}
+/* Top padding tracks the fixed nav's *actual* rendered height (--nav-h,
+   maintained live by the ResizeObserver right after </nav>) plus the notice
+   banner (--banner-h) and 32px of breathing room — NOT a hardcoded guess.
+   nav height isn't constant: it grows whenever the nav-links row needs more
+   width than the logo can spare (e.g. the "Start the Free Diagnostic" /
+   "Official Exam" links added during the funnel reorg can wrap the
+   "Certification" tagline onto its own line on mid-width desktop viewports).
+   A static 80px assumption is exactly what let that growth clip the top of
+   .section-title on Practice Tests / Lessons / Progress — same class of bug
+   --nav-h was already introduced to solve for #success-banner. .hero,
+   .testimonials-section and .sample-q-section set their own larger padding
+   below and aren't affected (class selectors win over this type selector). */
+section{padding:calc(var(--banner-h, 0px) + var(--nav-h, 64px) + 32px) 0 80px;position:relative;z-index:1}
 section .section-title{font-size:1.8rem;font-weight:700;margin-bottom:8px;color:var(--text)}
 section .section-sub{color:var(--text2);margin-bottom:40px;font-size:1rem}
 
@@ -329,7 +341,10 @@ footer .footer-disclaimer{color:var(--text2);font-size:.875rem;line-height:1.65;
   .domain-mastery-grid{grid-template-columns:1fr 1fr}
   .lesson-nav{gap:6px}
   .lesson-nav button{font-size:.75rem;padding:8px 12px}
-  section{padding:60px 0}
+  /* Tablet: nav-links collapses to less width pressure but the logo's tagline
+     can still wrap at some widths in this range — keep top padding tied to
+     the live --nav-h instead of re-guessing a smaller constant. */
+  section{padding:calc(var(--banner-h, 0px) + var(--nav-h, 64px) + 20px) 0 60px}
   .container{padding:0 16px}
 }
 
@@ -782,7 +797,14 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
          see the :not(.btn-enrolled) rule above for how the demoted look
          steps aside for that state) instead of a redundant purchase prompt. -->
     <div class="hero-enroll-demoted">
-      <span>Already sure you want full access?</span>
+      <!-- This framing only makes sense as a question to someone who hasn't
+           bought yet — "Already sure you want full access?" read as a non
+           sequitur next to a button that already says "Enrolled ✓ — Go to
+           dashboard". updatePricingCTAs() hides this span (and only this
+           span) once `enrolled` is true, leaving just the single relabeled
+           button so an enrolled visitor sees nothing but their dashboard
+           link here — no leftover purchase-prompt copy. -->
+      <span id="hero-enroll-prompt">Already sure you want full access?</span>
       <button class="btn-primary" id="hero-enroll-btn" onclick="showSection('pricing')">Enroll Now — $49</button>
     </div>
   </div>
