@@ -385,6 +385,12 @@ function updateDashCards() {
     card.onclick = () => openPaymentModal();
   });
 
+  // Show the "not sure yet? take the free diagnostic" hint above the locked
+  // cards for unenrolled visitors only — an enrolled user has nothing locked
+  // here and doesn't need routing toward the diagnostic funnel.
+  const diagHint = document.getElementById('dash-diagnostic-hint');
+  if (diagHint) diagHint.style.display = enrolled ? 'none' : '';
+
   // Keep the purchase CTAs in sync with enrollment too — they share the same
   // `enrolled` flips as the dashboard cards, so driving them from here means
   // every code path that calls updateDashCards() (auth state changes, claim
@@ -3624,6 +3630,7 @@ function showFocusedPaywall() {
       <h2>You've seen the first 5 — unlock all 400 questions and timed exams for $49</h2>
       <p>All 400 scenario-based questions across five CCA domains, four timed exam modes, and every answer fully explained.</p>
       <button class="btn-primary" onclick="openPaymentModal()">Unlock full access — $49</button>
+      <p class="q-paywall-altlink">Not sure yet? <a href="/diagnostic/">Take the free diagnostic</a> to see your weakest domain first</p>
       <div class="q-paywall-sub">One-time payment · Lifetime access · 10-day money-back guarantee</div>
     </div>`;
   document.getElementById('question-dots').innerHTML = '';
