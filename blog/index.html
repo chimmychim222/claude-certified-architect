@@ -84,6 +84,14 @@ nav .inner{display:flex;align-items:center;justify-content:space-between;padding
 .post-body th{text-align:left;padding:10px 14px;border-bottom:2px solid var(--border);font-weight:600;color:var(--text)}
 .post-body td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text2)}
 
+/* ── Related articles (internal-linking block at end of each post) ── */
+.related-posts{margin-top:3em;padding-top:1.8em;border-top:1px solid var(--border)}
+.related-posts h2{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1.05rem;font-weight:700;color:var(--text);margin:0 0 .9em;letter-spacing:-.2px}
+.related-posts ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.6em}
+.related-posts li{margin:0}
+.related-posts a{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;color:var(--accent);text-decoration:none;font-weight:600;font-size:.95rem;line-height:1.4}
+.related-posts a:hover{text-decoration:underline}
+
 /* ── Blog index ── */
 .blog-wrap{max-width:720px;margin:0 auto;padding:96px clamp(1.5rem,4vw,2.5rem) 80px}
 .blog-header{margin-bottom:44px;padding-bottom:28px;border-bottom:1px solid var(--border)}
@@ -131,6 +139,7 @@ nav .inner{display:flex;align-items:center;justify-content:space-between;padding
       <a href="/cca-practice-questions">Practice</a>
       <a href="/cca-foundations-exam">Exam Sim</a>
       <a href="/cca-exam-guide">Guide</a>
+      <a href="/diagnostic">Diagnostic</a>
       <a href="/blog" class="active">Blog</a>
       <!-- Was a plain "Register" nav-link, easily mistaken for "register/sign
            up for this site." It actually opens Anthropic's external exam-
@@ -238,7 +247,8 @@ nav .inner{display:flex;align-items:center;justify-content:space-between;padding
   </div>
 </main>
 <footer class="site-footer">
-  <p style="margin:0 0 10px">&copy; 2026 Claude Certified Architects &nbsp;&middot;&nbsp; <a href="/">Home</a> &nbsp;&middot;&nbsp; <a href="/blog">Blog</a></p>
+  <p style="margin:0 0 6px">&copy; 2026 Claude Certified Architects</p>
+  <p style="margin:0 0 10px;font-size:.82rem"><a href="/">Home</a> &nbsp;&middot;&nbsp; <a href="/cca-practice-questions">Practice Questions</a> &nbsp;&middot;&nbsp; <a href="/cca-foundations-exam">Foundations Exam Simulator</a> &nbsp;&middot;&nbsp; <a href="/cca-exam-guide">Exam Guide</a> &nbsp;&middot;&nbsp; <a href="/diagnostic/">Free Diagnostic Quiz</a> &nbsp;&middot;&nbsp; <a href="/blog">Blog</a> &nbsp;&middot;&nbsp; <a href="/register/">Official Exam Registration</a></p>
   <p style="max-width:620px;margin:0 auto;font-size:.85rem;line-height:1.65;color:#c8c8be">This is an independent study resource. It is not affiliated with, authorized by, or endorsed by Anthropic. ‘Claude’ and ‘Claude Certified Architect’ are trademarks of their respective owner. We provide unofficial practice materials to help you prepare for the official certification exam.</p>
 </footer>
 </body>

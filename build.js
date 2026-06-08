@@ -274,6 +274,60 @@ function loadPosts() {
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
+/**
+ * Topic groupings used to pick contextually-relevant "Related Articles" links
+ * for each post (internal-linking strength — every post should link to
+ * several others, not just be reachable via the /blog index card). Posts in
+ * the same group are surfaced first; the list is padded with posts from other
+ * groups so every post always gets a full set of related links regardless of
+ * how the bank of posts grows over time.
+ */
+const POST_TOPICS = {
+  'agentic-architecture-orchestration-cca-domain-1':  'domain',
+  'claude-code-config-workflows-cca-domain-2':        'domain',
+  'prompt-engineering-structured-output-cca-domain-3':'domain',
+  'tool-design-mcp-cca-domain-4':                     'domain',
+  'context-management-reliability-cca-domain-5':      'domain',
+  'cca-foundations-exam-domains-explained':           'domain',
+  'cca-exam-study-schedule-30-day-plan':              'prep',
+  'cca-exam-anti-patterns':                           'prep',
+  'cca-foundations-exam-practice-questions-free':     'prep',
+  'how-to-write-effective-claude-md-file':            'prep',
+  'cca-foundations-exam-guide-2026':                  'prep',
+  'cca-real-world-reports-responsibilities-salaries': 'career',
+  'claude-certified-architect-salary-career-2026':    'career',
+  'why-claude-certification-is-important':            'career',
+  'is-cca-certification-worth-it-2026':               'career',
+  'how-to-become-claude-certified-architect':         'career',
+};
+
+/**
+ * Pick `n` related posts for `post` using a cyclic "ring" within its topic
+ * group: post at index i links to the next n posts in the group (wrapping
+ * around). This — unlike a naive "first n same-topic" pick — distributes
+ * inbound related-article links EVENLY across every post in the group (each
+ * post ends up with exactly `n` same-topic inbound links, not just the ones
+ * that happen to sort first), so no post is left thin on contextual internal
+ * links. Falls back to other-topic posts only if a group is smaller than n+1.
+ */
+function relatedPosts(post, allPosts, n = 3) {
+  const topic = POST_TOPICS[post.slug];
+  const group = allPosts.filter(p => POST_TOPICS[p.slug] === topic);
+  const idx = group.findIndex(p => p.slug === post.slug);
+  const picked = [];
+  for (let k = 1; k <= group.length - 1 && picked.length < n; k++) {
+    picked.push(group[(idx + k) % group.length]);
+  }
+  if (picked.length < n) {
+    const others = allPosts.filter(p => p.slug !== post.slug && POST_TOPICS[p.slug] !== topic);
+    for (const p of others) {
+      if (picked.length >= n) break;
+      picked.push(p);
+    }
+  }
+  return picked;
+}
+
 /** Inline CSS shared by all blog pages */
 function sharedCSS() {
   return `<style>
@@ -335,6 +389,14 @@ nav .inner{display:flex;align-items:center;justify-content:space-between;padding
 .post-body th{text-align:left;padding:10px 14px;border-bottom:2px solid var(--border);font-weight:600;color:var(--text)}
 .post-body td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text2)}
 
+/* ── Related articles (internal-linking block at end of each post) ── */
+.related-posts{margin-top:3em;padding-top:1.8em;border-top:1px solid var(--border)}
+.related-posts h2{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1.05rem;font-weight:700;color:var(--text);margin:0 0 .9em;letter-spacing:-.2px}
+.related-posts ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.6em}
+.related-posts li{margin:0}
+.related-posts a{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;color:var(--accent);text-decoration:none;font-weight:600;font-size:.95rem;line-height:1.4}
+.related-posts a:hover{text-decoration:underline}
+
 /* ── Blog index ── */
 .blog-wrap{max-width:720px;margin:0 auto;padding:96px clamp(1.5rem,4vw,2.5rem) 80px}
 .blog-header{margin-bottom:44px;padding-bottom:28px;border-bottom:1px solid var(--border)}
@@ -383,6 +445,7 @@ function blogNav(activePage) {
       ${link('/cca-practice-questions', 'Practice')}
       ${link('/cca-foundations-exam', 'Exam Sim')}
       ${link('/cca-exam-guide', 'Guide')}
+      ${link('/diagnostic', 'Diagnostic')}
       ${link('/blog', 'Blog')}
       <!-- Was a plain "Register" nav-link, easily mistaken for "register/sign
            up for this site." It actually opens Anthropic's external exam-
@@ -402,8 +465,21 @@ function blogNav(activePage) {
 /** Shared footer HTML */
 function blogFooter() {
   const year = new Date().getFullYear();
+  // Mini-sitemap: every key page on the site, with descriptive anchor text,
+  // reachable from every blog post's footer (strengthens internal linking
+  // and keeps every important page within 1–2 clicks of any page on the site).
+  const links = [
+    ['/', 'Home'],
+    ['/cca-practice-questions', 'Practice Questions'],
+    ['/cca-foundations-exam', 'Foundations Exam Simulator'],
+    ['/cca-exam-guide', 'Exam Guide'],
+    ['/diagnostic/', 'Free Diagnostic Quiz'],
+    ['/blog', 'Blog'],
+    ['/register/', 'Official Exam Registration'],
+  ].map(([href, label]) => `<a href="${href}">${label}</a>`).join(' &nbsp;&middot;&nbsp; ');
   return `<footer class="site-footer">
-  <p style="margin:0 0 10px">&copy; ${year} Claude Certified Architects &nbsp;&middot;&nbsp; <a href="/">Home</a> &nbsp;&middot;&nbsp; <a href="/blog">Blog</a></p>
+  <p style="margin:0 0 6px">&copy; ${year} Claude Certified Architects</p>
+  <p style="margin:0 0 10px;font-size:.82rem">${links}</p>
   <p style="max-width:620px;margin:0 auto;font-size:.85rem;line-height:1.65;color:#c8c8be">This is an independent study resource. It is not affiliated with, authorized by, or endorsed by Anthropic. ‘Claude’ and ‘Claude Certified Architect’ are trademarks of their respective owner. We provide unofficial practice materials to help you prepare for the official certification exam.</p>
 </footer>`;
 }
@@ -429,7 +505,7 @@ function articleJsonLd(post) {
 }
 
 /** Generate one blog post page → blog/<slug>/index.html */
-function generateBlogPost(post) {
+function generateBlogPost(post, _index, allPosts) {
   const ogImg = post.ogImage
     ? (post.ogImage.startsWith('http') ? post.ogImage : BASE + post.ogImage)
     : BASE + '/og-image-v2.png';
@@ -509,6 +585,16 @@ ${blogNav('/blog')}
     <div class="post-body">
       ${post.body}
     </div>
+    ${(() => {
+      const related = relatedPosts(post, allPosts || []);
+      if (!related.length) return '';
+      return `<section class="related-posts" aria-label="Related articles">
+      <h2>Related Articles</h2>
+      <ul>
+        ${related.map(p => `<li><a href="/blog/${p.slug}/">${escHtml(p.title)}</a></li>`).join('\n        ')}
+      </ul>
+    </section>`;
+    })()}
   </article>
 </main>
 ${blogFooter()}
