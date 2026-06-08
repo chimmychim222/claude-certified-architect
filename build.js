@@ -185,7 +185,7 @@ const diagnosticSchemas = [
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     name: 'CCA Readiness Diagnostic',
-    description: 'Free 10-question CCA Foundations diagnostic quiz — get a per-domain score, a readiness estimate against the 720/1,000 passing standard, no account needed.',
+    description: 'Free 10-question CCA Foundations diagnostic quiz: get a per-domain score and a readiness estimate against the 720/1,000 passing standard.',
     url: BASE + '/diagnostic/',
     isPartOf: { '@type': 'WebSite', url: BASE }
   },
