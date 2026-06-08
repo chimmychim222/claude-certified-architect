@@ -59,14 +59,29 @@ const courseSchema = {
   teaches: schema.course.teaches,
   timeRequired: schema.course.timeRequired,
   courseMode: schema.course.courseMode,
+  inLanguage: schema.course.inLanguage
+};
+
+/** Organization (for homepage) — identifies the publisher/business entity */
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: schema.course.provider,
+  url: BASE,
+  logo: BASE + '/apple-touch-icon.png'
+};
+
+/** WebSite (for homepage) — identifies the site itself.
+ *  No SearchAction: the site has no on-site search feature, and a
+ *  SearchAction pointing at a non-existent endpoint would be structured
+ *  data that doesn't match real site functionality. */
+const websiteSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: schema.course.provider,
+  url: BASE,
   inLanguage: schema.course.inLanguage,
-  aggregateRating: {
-    '@type': 'AggregateRating',
-    ratingValue: schema.rating.ratingValue,
-    reviewCount: schema.rating.reviewCount,
-    bestRating: schema.rating.bestRating,
-    worstRating: schema.rating.worstRating
-  }
+  publisher: { '@type': 'Organization', name: schema.course.provider, url: BASE }
 };
 
 /** FAQPage (for homepage) */
@@ -99,8 +114,8 @@ const examSchemas = [
   {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: 'CCA Foundations Exam Practice | Claude Certified Architect',
-    description: 'Full-length CCA Foundations exam simulation with 60 timed, domain-weighted questions. Aligned with the Claude Certified Architect certification format.',
+    name: 'CCA Foundations Exam Practice Test',
+    description: 'Full-length CCA Foundations practice test — 60 timed, domain-weighted questions across all 5 exam domains, with explanations and a scored breakdown.',
     url: BASE + '/cca-foundations-exam/',
     isPartOf: { '@type': 'WebSite', url: BASE }
   },
@@ -115,8 +130,8 @@ const questionsSchemas = [
   {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: 'CCA Practice Questions | 400 Scenario-Based Exam Prep',
-    description: '400 scenario-based practice questions covering all 5 CCA Foundations exam domains with detailed explanations and domain-weighted scoring.',
+    name: 'Free CCA Practice Questions',
+    description: 'Free CCA practice questions across all 5 exam domains — detailed explanations, multiple test modes, and domain-weighted scoring to help you pass.',
     url: BASE + '/cca-practice-questions/',
     isPartOf: { '@type': 'WebSite', url: BASE }
   },
@@ -129,12 +144,17 @@ const questionsSchemas = [
 /** Schemas for /cca-exam-guide */
 const guideSchemas = [
   {
+    // WebPage (not Article): the page shows no visible byline or published/
+    // updated date, so an Article type \u2014 which Google expects to carry
+    // datePublished + author \u2014 would be incomplete or require fabricated
+    // data that doesn't appear on the page. WebPage matches what's actually
+    // shown, consistent with the other reference pages on this site
+    // (cca-foundations-exam, cca-practice-questions, diagnostic, register).
     '@context': 'https://schema.org',
-    '@type': 'Article',
-    headline: 'CCA Exam Guide \u2014 How to Pass the Claude Certified Architect Exam',
-    description: 'Complete guide to the CCA Foundations exam format, domains, scoring, and study strategies.',
+    '@type': 'WebPage',
+    name: 'Claude Certified Architect Exam Guide',
+    description: 'The complete Claude Certified Architect exam guide \u2014 format, domain weights, passing score, and study strategies across all 5 CCA Foundations domains.',
     url: BASE + '/cca-exam-guide/',
-    publisher: { '@type': 'Organization', name: 'Claude Certified Architects', url: BASE },
     isPartOf: { '@type': 'WebSite', url: BASE }
   },
   breadcrumb([
@@ -148,8 +168,8 @@ const registerSchemas = [
   {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: 'Register for the Claude Certified Architect Exam',
-    description: "Request access to the CCA Foundations exam through Anthropic's Skilljar portal.",
+    name: 'Register for the CCA Exam',
+    description: "Register for the CCA Foundations exam through Anthropic's Skilljar portal. Review exam details, passing score, format, and cost before requesting access.",
     url: BASE + '/register/',
     isPartOf: { '@type': 'WebSite', url: BASE }
   },
@@ -165,7 +185,7 @@ const diagnosticSchemas = [
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     name: 'CCA Readiness Diagnostic',
-    description: 'Free 10-question CCA Foundations diagnostic quiz with per-domain scoring and a readiness estimate against the 720/1,000 passing standard.',
+    description: 'Free 10-question CCA Foundations diagnostic quiz — get a per-domain score, a readiness estimate against the 720/1,000 passing standard, no account needed.',
     url: BASE + '/diagnostic/',
     isPartOf: { '@type': 'WebSite', url: BASE }
   },
@@ -651,7 +671,7 @@ function generateSitemap(posts = []) {
 console.log('Pre-rendering JSON-LD…\n');
 
 processFile(path.join(__dirname, 'index.html'),
-  courseSchema, faqSchema);
+  organizationSchema, websiteSchema, courseSchema, faqSchema);
 
 processFile(path.join(__dirname, 'cca-foundations-exam',  'index.html'),
   ...examSchemas);
