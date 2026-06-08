@@ -153,7 +153,7 @@ const guideSchemas = [
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     name: 'Claude Certified Architect Exam Guide',
-    description: 'The complete Claude Certified Architect exam guide \u2014 format, domain weights, passing score, and study strategies across all 5 CCA Foundations domains.',
+    description: 'The Claude Certified Architect exam guide: format, domain weights, passing score, and proven study strategies for all 5 domains.',
     url: BASE + '/cca-exam-guide/',
     isPartOf: { '@type': 'WebSite', url: BASE }
   },
