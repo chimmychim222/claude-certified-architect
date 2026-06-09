@@ -299,6 +299,10 @@ const POST_TOPICS = {
   'why-claude-certification-is-important':            'career',
   'is-cca-certification-worth-it-2026':               'career',
   'how-to-become-claude-certified-architect':         'career',
+  'claude-certified-architect-certification-worth-it':'career',
+  'ai-engineer-certifications-2026':                  'career',
+  'how-hard-is-cca-foundations-exam':                 'prep',
+  'how-to-learn-claude-agent-development':            'prep',
 };
 
 /**
