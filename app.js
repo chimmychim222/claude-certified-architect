@@ -619,28 +619,40 @@ async function submitAuth() {
       });
       // Create user document and register session
       sessionId = generateSessionId();
-      await fsReady;
-      // Use merge:true so we never overwrite an existing enrolled:true.
-      // Never write enrolled:false — omit it so Firestore keeps whatever
-      // value is already there (set by admin script or Stripe webhook).
-      window.__fs.setDoc(window.__fs.doc(db, 'users', cred.user.uid), {
-        email: email,
-        createdAt: window.__fs.serverTimestamp(),
-        activeSession: sessionId,
-        lastLoginAt: window.__fs.serverTimestamp()
-      }, { merge: true }).catch(e => console.warn('Firestore user doc write failed:', e));
+      // Auth already succeeded above (the account exists) — a Firestore
+      // hiccup here (lazy bundle failing to load, or the write itself
+      // failing) must not fall into the catch below and get reported as
+      // an auth error, which would re-show the signup form over a logged-in
+      // session. Just log and move on; registerSession/the auth listener
+      // will retry session bookkeeping on the next state change.
+      try {
+        await fsReady;
+        // Use merge:true so we never overwrite an existing enrolled:true.
+        // Never write enrolled:false — omit it so Firestore keeps whatever
+        // value is already there (set by admin script or Stripe webhook).
+        window.__fs.setDoc(window.__fs.doc(db, 'users', cred.user.uid), {
+          email: email,
+          createdAt: window.__fs.serverTimestamp(),
+          activeSession: sessionId,
+          lastLoginAt: window.__fs.serverTimestamp()
+        }, { merge: true }).catch(e => console.warn('Firestore user doc write failed:', e));
+      } catch (e) { console.warn('[Auth] Firestore unavailable, session not registered:', e.message); }
     } else {
       const cred = await Promise.race([
           fbAuth.signInWithEmailAndPassword(auth, email, password),
           new Promise((_, reject) => setTimeout(() => reject(new Error('auth/timeout')), 15000))
         ]);
-      // Register session (fire-and-forget — don't block modal close)
+      // Register session (fire-and-forget — don't block modal close).
+      // Same reasoning as the signup branch above: a Firestore failure here
+      // must not be mistaken for a login failure.
       sessionId = generateSessionId();
-      await fsReady;
-      window.__fs.setDoc(window.__fs.doc(db, 'users', cred.user.uid), {
-        activeSession: sessionId,
-        lastLoginAt: window.__fs.serverTimestamp()
-      }, { merge: true }).catch(e => console.warn('Session write failed:', e));
+      try {
+        await fsReady;
+        window.__fs.setDoc(window.__fs.doc(db, 'users', cred.user.uid), {
+          activeSession: sessionId,
+          lastLoginAt: window.__fs.serverTimestamp()
+        }, { merge: true }).catch(e => console.warn('Session write failed:', e));
+      } catch (e) { console.warn('[Auth] Firestore unavailable, session not registered:', e.message); }
     }
     if (authMode === 'signup') {
       // Don't silently close the modal on a brand-new, unenrolled account —
@@ -721,7 +733,17 @@ const WEBHOOK_BASE = 'https://claude-certified-architect.onrender.com';
 //     session) cannot both win and double-report the same purchase
 async function maybeFireExamPurchaseEvent(user) {
   if (!user) return;
-  await ensureFirestore();
+  // markEnrolled() calls this fire-and-forget (no .catch), so a rejection
+  // here would be an unhandled promise rejection. Fail closed like the
+  // transaction below: if Firestore can't load, skip this check — the
+  // durable examPurchaseEventSent flag means the next markEnrolled() call
+  // (next page load/session) retries it, nothing is lost.
+  try {
+    await ensureFirestore();
+  } catch (e) {
+    console.warn('[Analytics] Firestore unavailable, exam_purchase check skipped:', e.message);
+    return;
+  }
   const fs  = window.__fs;
   const ref = fs.doc(db, 'users', user.uid);
 
@@ -935,69 +957,78 @@ let _confirmingPayment = false;
 async function confirmPaymentAndUnlock(user) {
   if (_confirmingPayment || !user) return;
   _confirmingPayment = true;
-  try {
-    await ensureFirestore();
-  } catch (e) {
-    console.warn('[Payment] Firestore unavailable, cannot confirm:', e.message);
-    _confirmingPayment = false;
-    return;
-  }
 
   const banner = document.getElementById('success-banner');
   const dismissBtn = "<button onclick=\"document.getElementById('success-banner').style.display='none'\" style=\"margin-left:16px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px\">Dismiss</button>";
-  banner.innerHTML = 'Confirming your payment with Stripe&hellip; this can take up to a minute.' + dismissBtn;
-  banner.style.display = 'block';
+  const stillConfirmingMsg = "We're still confirming your payment with Stripe — this can occasionally take a few minutes. Please refresh this page shortly; your access will appear automatically once it's confirmed." + dismissBtn;
 
-  const deadline = Date.now() + 75000; // generous — covers Render free-tier cold starts
-  let confirmed = false;
+  try {
+    await ensureFirestore();
 
-  while (!confirmed && Date.now() < deadline) {
-    try {
-      const tok = await fbAuth.getIdTokenResult(user, true);
-      if (tok.claims.enrolled) confirmed = true;
-    } catch (e) {}
+    banner.innerHTML = 'Confirming your payment with Stripe&hellip; this can take up to a minute.' + dismissBtn;
+    banner.style.display = 'block';
 
-    if (!confirmed) {
+    const deadline = Date.now() + 75000; // generous — covers Render free-tier cold starts
+    let confirmed = false;
+
+    while (!confirmed && Date.now() < deadline) {
       try {
-        const fs = window.__fs;
-        const docSnap = await fs.getDocFromServer(fs.doc(db, 'users', user.uid));
-        if (docSnap.exists() && docSnap.data().enrolled) confirmed = true;
+        const tok = await fbAuth.getIdTokenResult(user, true);
+        if (tok.claims.enrolled) confirmed = true;
       } catch (e) {}
-    }
 
-    if (!confirmed) {
-      const claim = await claimPendingEnrollment(user);
-      if (claim.enrolled) {
-        confirmed = true;
-      } else if (claim.reason === 'unverified_email') {
-        // No amount of polling fixes this — the account must verify its
-        // email before the server will release the pending enrollment.
-        // Stop spinning and hand the user something actionable instead of
-        // a 75-second "still confirming…" message that will never resolve.
-        _confirmingPayment = false;
-        showPendingVerificationBanner(user);
-        return;
+      if (!confirmed) {
+        try {
+          const fs = window.__fs;
+          const docSnap = await fs.getDocFromServer(fs.doc(db, 'users', user.uid));
+          if (docSnap.exists() && docSnap.data().enrolled) confirmed = true;
+        } catch (e) {}
       }
+
+      if (!confirmed) {
+        const claim = await claimPendingEnrollment(user);
+        if (claim.enrolled) {
+          confirmed = true;
+        } else if (claim.reason === 'unverified_email') {
+          // No amount of polling fixes this — the account must verify its
+          // email before the server will release the pending enrollment.
+          // Stop spinning and hand the user something actionable instead of
+          // a 75-second "still confirming…" message that will never resolve.
+          showPendingVerificationBanner(user);
+          return;
+        }
+      }
+      if (!confirmed) await new Promise(r => setTimeout(r, 5000));
     }
-    if (!confirmed) await new Promise(r => setTimeout(r, 5000));
-  }
 
-  _confirmingPayment = false;
-
-  if (confirmed) {
-    // markEnrolled() also (idempotently, durably-guarded) fires the
-    // one-time "exam_purchase" conversion event — see maybeFireExamPurchaseEvent.
-    // It used to fire unconditionally right here, which both (a) miscounted
-    // returning users whose enrollment was merely *re-confirmed* by this
-    // poll rather than newly granted, and (b) missed conversions detected
-    // through any of the other five paths that can flip `enrolled` true.
-    markEnrolled(user);
-    banner.innerHTML = 'Payment successful! Welcome to the Claude Certified Architect course.' + dismissBtn;
-    updateNavUI();
-    updateDashCards();
-    showSection('dashboard');
-  } else {
-    banner.innerHTML = "We're still confirming your payment with Stripe — this can occasionally take a few minutes. Please refresh this page shortly; your access will appear automatically once it's confirmed." + dismissBtn;
+    if (confirmed) {
+      // markEnrolled() also (idempotently, durably-guarded) fires the
+      // one-time "exam_purchase" conversion event — see maybeFireExamPurchaseEvent.
+      // It used to fire unconditionally right here, which both (a) miscounted
+      // returning users whose enrollment was merely *re-confirmed* by this
+      // poll rather than newly granted, and (b) missed conversions detected
+      // through any of the other five paths that can flip `enrolled` true.
+      markEnrolled(user);
+      banner.innerHTML = 'Payment successful! Welcome to the Claude Certified Architect course.' + dismissBtn;
+      updateNavUI();
+      updateDashCards();
+      showSection('dashboard');
+    } else {
+      banner.innerHTML = stillConfirmingMsg;
+    }
+  } catch (e) {
+    // Covers ensureFirestore() failing to load (e.g. a CDN blip right when
+    // the user lands back from Stripe) as well as any other unexpected
+    // error from the block above. Either way, fall back to the same
+    // "refresh shortly" messaging — the finally below resets the guard so
+    // a later trigger (e.g. the next onAuthStateChanged, or a page reload)
+    // can retry, instead of leaving the banner stuck on "Confirming..." or
+    // silently no-oping for the rest of the session.
+    console.warn('[Payment] confirmPaymentAndUnlock failed:', e.message);
+    banner.innerHTML = stillConfirmingMsg;
+    banner.style.display = 'block';
+  } finally {
+    _confirmingPayment = false;
   }
 }
 
