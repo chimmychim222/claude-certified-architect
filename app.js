@@ -109,6 +109,8 @@ const VERIFY_ACTION_CODE_SETTINGS = { url: 'https://www.claudecertifiedarchitect
 let firebaseReady = false;
 let db = null;
 let auth = null;
+let firebaseApp = null;
+let firestoreLoadPromise = null;
 // Modular Auth function set (signInWithEmailAndPassword, onAuthStateChanged,
 // getIdTokenResult, etc.) — populated alongside `auth` once the dynamically
 // imported modular bundle loads. See the big comment at the Firebase init
@@ -135,14 +137,17 @@ let fbAuth = null;
 // `window.__fs` exposes the modular function set (doc, getDoc, setDoc, etc.)
 // for the rest of the app to call alongside it — see each call site for the
 // v9-style usage (note: snapshot.exists is a METHOD in modular — exists() —
-// not a property like in compat).
+// not a property like in compat). Firestore (~92KB, almost entirely unused
+// by an anonymous homepage visitor) is loaded lazily by ensureFirestore()
+// below, separately from the app+auth bundle.
 document.addEventListener('DOMContentLoaded', function() {
   function loadFirebase() {
   (async function() {
   try {
-    // IMPORTANT: app + auth + firestore must ALL come from this same
-    // dynamically-imported modular bundle graph (NOT compat firebase.app()/
-    // firebase.auth()). Two failed attempts proved this empirically, live:
+    // IMPORTANT: app, auth, and (lazily, via ensureFirestore below) firestore
+    // must ALL come from this same modular (v9) bundle family (NOT compat
+    // firebase.app()/firebase.auth()). Two failed attempts proved this
+    // empirically, live:
     //   1. Mixing compat app/auth with a separately-loaded modular Firestore
     //      bundle while firebase-firestore-compat.js was still on the page:
     //      that compat script had registered a 'firestore' component on the
@@ -160,24 +165,30 @@ document.addEventListener('DOMContentLoaded', function() {
     //      from the one the dynamically-imported modular Firestore bundle
     //      self-registers into. Two separate bundle graphs do not share
     //      component registrations -- there is no public bridge for it.
-    // The only robust fix: load app + auth + firestore together so they all
-    // share one registry and one set of classes. `auth` is therefore now a
-    // MODULAR Auth instance, and `fbAuth` exposes the modular auth function
-    // set (signInWithEmailAndPassword(auth,...), onAuthStateChanged(auth,...),
+    // The fix: app, auth, and firestore are ALL the modular (v9) SDK from the
+    // same gstatic firebasejs/10.12.0 family, sharing one registry and one
+    // set of classes. `auth` is therefore a MODULAR Auth instance, and
+    // `fbAuth` exposes the modular auth function set
+    // (signInWithEmailAndPassword(auth,...), onAuthStateChanged(auth,...),
     // getIdTokenResult(user,...), sendEmailVerification(user), etc. -- see
     // each call site for v9-style usage). Compat firebase.initializeApp /
     // firebase.auth() are no longer used anywhere in this file.
-    const [{ initializeApp }, authMod, fsMod] = await Promise.all([
+    //
+    // Loading firestore separately/later (ensureFirestore, reusing this same
+    // `firebaseApp` instance) rather than in this initial Promise.all was
+    // verified live to still share the registry correctly: an unauthenticated
+    // getDoc() against the lazily-loaded `db` returns the backend's
+    // "permission-denied" (proof the modular Firestore bundle found and
+    // registered against this app), not the client-side registry-collision
+    // errors from #1/#2 above.
+    const [{ initializeApp }, authMod] = await Promise.all([
       import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js'),
-      import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js'),
-      import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js')
+      import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js')
     ]);
 
-    const app = initializeApp(firebaseConfig);
-    auth   = authMod.getAuth(app);
+    firebaseApp = initializeApp(firebaseConfig);
+    auth   = authMod.getAuth(firebaseApp);
     fbAuth = authMod;
-    db     = fsMod.getFirestore(app, 'default');
-    window.__fs = fsMod;
 
     firebaseReady = true;
     initAuthListener();
@@ -193,6 +204,27 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(loadFirebase, 1);
   }
 });
+
+// Lazily loads the modular Firestore SDK and points it at this project's
+// custom-named "default" database (see the big `db` comment above).
+// Memoized so concurrent callers (e.g. the auth-state listener and a login
+// submission racing each other) share one in-flight import instead of
+// fetching the bundle twice.
+function ensureFirestore() {
+  if (db) return Promise.resolve();
+  if (!firestoreLoadPromise) {
+    firestoreLoadPromise = import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js')
+      .then(fsMod => {
+        db = fsMod.getFirestore(firebaseApp, 'default');
+        window.__fs = fsMod;
+      })
+      .catch(e => {
+        firestoreLoadPromise = null; // allow retry on next call
+        throw e;
+      });
+  }
+  return firestoreLoadPromise;
+}
 
 // ═══════════════════════════════════════
 // AUTH STATE
@@ -278,39 +310,54 @@ function initAuthListener() {
       // Show the user's email in the nav immediately (enrolled badge will update below).
       updateNavUI();
 
-      // Check enrollment — custom claims first (immune to ad blockers),
-      // then Firestore as fallback for users not yet on the new system.
+      // Check enrollment — custom claims first (immune to ad blockers, and
+      // crucially Auth-only: no Firestore needed). This is what lets a
+      // returning enrolled user resolve to the enrolled/dashboard state
+      // immediately, without waiting on the lazily-loaded Firestore bundle
+      // below. Firestore is the fallback for users not yet on the new system.
       try {
         const tokenResult = await fbAuth.getIdTokenResult(user, true);
         if (tokenResult.claims.enrolled) {
           markEnrolled(user);
+          updateNavUI();
+          updateDashCards();
         }
       } catch(e) { console.warn('[Auth] Token refresh error:', e.message); }
 
-      if (!enrolled) {
-        try {
-          // source:'server' bypasses Firestore's local cache, which can
-          // return stale data (e.g. the login session-write without enrolled).
-          const fs = window.__fs;
-          const docSnap = await fs.getDocFromServer(fs.doc(db, 'users', user.uid));
-          if (docSnap.exists() && docSnap.data().enrolled) { markEnrolled(user); }
-        } catch(e) { console.warn('[Auth] Firestore read error:', e.message); }
-      }
-      // Last resort: maybe this person paid via Stripe BEFORE this account
-      // existed (or checked out with a different email). The webhook would
-      // have stashed a "pending enrollment" for that email server-side —
-      // claim it now that we can prove who they are via a verified ID token.
-      if (!enrolled) {
-        const claim = await claimPendingEnrollment(user);
-        if (claim.reason === 'unverified_email') {
-          showPendingVerificationBanner(user);
+      // Everything below — the Firestore enrollment fallback, the pending-
+      // purchase claim's analytics write, session registration/anti-sharing,
+      // attempt history, etc. — needs Firestore. Load it now: this only runs
+      // for a logged-in user (anonymous homepage visitors never reach this
+      // branch), so Firestore (~92KB) stays un-downloaded until there's an
+      // actual session to manage.
+      try {
+        await ensureFirestore();
+
+        if (!enrolled) {
+          try {
+            // source:'server' bypasses Firestore's local cache, which can
+            // return stale data (e.g. the login session-write without enrolled).
+            const fs = window.__fs;
+            const docSnap = await fs.getDocFromServer(fs.doc(db, 'users', user.uid));
+            if (docSnap.exists() && docSnap.data().enrolled) { markEnrolled(user); }
+          } catch(e) { console.warn('[Auth] Firestore read error:', e.message); }
         }
-      }
-      if (!sessionId) {
-        await registerSession(user.uid);
-      }
-      // Listen for session takeover from other devices
-      listenForSessionChanges(user.uid);
+        // Last resort: maybe this person paid via Stripe BEFORE this account
+        // existed (or checked out with a different email). The webhook would
+        // have stashed a "pending enrollment" for that email server-side —
+        // claim it now that we can prove who they are via a verified ID token.
+        if (!enrolled) {
+          const claim = await claimPendingEnrollment(user);
+          if (claim.reason === 'unverified_email') {
+            showPendingVerificationBanner(user);
+          }
+        }
+        if (!sessionId) {
+          await registerSession(user.uid);
+        }
+        // Listen for session takeover from other devices
+        listenForSessionChanges(user.uid);
+      } catch(e) { console.warn('[Auth] Firestore unavailable:', e.message); }
 
       // Returning from Stripe checkout? The redirect carries "?paid=true" as
       // a UX hint only — we deliberately do NOT trust it to grant access by
@@ -535,6 +582,11 @@ async function submitAuth() {
     if (password !== confirm) { showAuthError('Passwords do not match.'); return; }
   }
 
+  // Kick off the Firestore bundle load now, in parallel with the auth
+  // round-trip below — both signup and login immediately write a
+  // user/session doc to Firestore once auth succeeds.
+  const fsReady = ensureFirestore();
+
   const btn = document.getElementById('auth-submit-btn');
   const formArea = document.getElementById('auth-form-area');
   const loading = document.getElementById('auth-loading');
@@ -567,6 +619,7 @@ async function submitAuth() {
       });
       // Create user document and register session
       sessionId = generateSessionId();
+      await fsReady;
       // Use merge:true so we never overwrite an existing enrolled:true.
       // Never write enrolled:false — omit it so Firestore keeps whatever
       // value is already there (set by admin script or Stripe webhook).
@@ -583,6 +636,7 @@ async function submitAuth() {
         ]);
       // Register session (fire-and-forget — don't block modal close)
       sessionId = generateSessionId();
+      await fsReady;
       window.__fs.setDoc(window.__fs.doc(db, 'users', cred.user.uid), {
         activeSession: sessionId,
         lastLoginAt: window.__fs.serverTimestamp()
@@ -666,7 +720,8 @@ const WEBHOOK_BASE = 'https://claude-certified-architect.onrender.com';
 //     once, or two of the six code paths both noticing in the same
 //     session) cannot both win and double-report the same purchase
 async function maybeFireExamPurchaseEvent(user) {
-  if (!user || !db) return;
+  if (!user) return;
+  await ensureFirestore();
   const fs  = window.__fs;
   const ref = fs.doc(db, 'users', user.uid);
 
@@ -880,6 +935,13 @@ let _confirmingPayment = false;
 async function confirmPaymentAndUnlock(user) {
   if (_confirmingPayment || !user) return;
   _confirmingPayment = true;
+  try {
+    await ensureFirestore();
+  } catch (e) {
+    console.warn('[Payment] Firestore unavailable, cannot confirm:', e.message);
+    _confirmingPayment = false;
+    return;
+  }
 
   const banner = document.getElementById('success-banner');
   const dismissBtn = "<button onclick=\"document.getElementById('success-banner').style.display='none'\" style=\"margin-left:16px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px\">Dismiss</button>";
@@ -1049,6 +1111,7 @@ async function loadProgress() {
     return;
   }
   try {
+    await ensureFirestore();
     const fs = window.__fs;
     const attemptsQuery = fs.query(
       fs.collection(db, 'users', currentUser.uid, 'attempts'),
@@ -3275,15 +3338,17 @@ function finishTest() {
   // the dashboard itself is gated to enrolled accounts). Fire-and-forget:
   // never block the results screen on a Firestore write.
   if (enrolled && currentUser) {
-    const fs = window.__fs;
-    fs.addDoc(fs.collection(db, 'users', currentUser.uid, 'attempts'), {
-      type: t.type,
-      totalQuestions: t.config.questions,
-      correct: correct,
-      pct: pct,
-      domainScores: domainScores,
-      timeUsedSec: timeUsed,
-      takenAt: fs.serverTimestamp()
+    ensureFirestore().then(() => {
+      const fs = window.__fs;
+      return fs.addDoc(fs.collection(db, 'users', currentUser.uid, 'attempts'), {
+        type: t.type,
+        totalQuestions: t.config.questions,
+        correct: correct,
+        pct: pct,
+        domainScores: domainScores,
+        timeUsedSec: timeUsed,
+        takenAt: fs.serverTimestamp()
+      });
     }).catch(e => console.warn('[Progress] attempt save failed:', e.message));
   }
 }
