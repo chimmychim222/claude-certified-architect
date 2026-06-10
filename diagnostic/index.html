@@ -46,7 +46,12 @@ nav .nav-links a:hover{color:var(--text);background:var(--surface2)}
 nav .nav-links a.active{color:var(--text);font-weight:600}
 nav .nav-cta{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.8rem;font-weight:600;color:#fff;background:var(--accent-btn);border:none;padding:7px 16px;border-radius:var(--radius-sm);cursor:pointer;text-decoration:none;transition:background .2s}
 nav .nav-cta:hover{background:var(--accent2);color:#fff}
-@media(max-width:600px){nav .nav-links{display:none}nav .logo{font-size:.95rem}}
+@media(max-width:600px){
+  nav .nav-inner{flex-wrap:wrap;height:auto;padding:10px 0;row-gap:8px}
+  nav .nav-links{flex-basis:100%;flex-wrap:wrap;order:3}
+  nav .nav-links a{min-height:44px;display:flex;align-items:center;padding:8px 12px}
+  nav .logo{font-size:.95rem}
+}
 
 /* ── BREADCRUMB ── */
 .breadcrumb{padding:14px 0 0;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.78rem;color:var(--text3);background:transparent}
@@ -68,7 +73,7 @@ nav .nav-cta:hover{background:var(--accent2);color:#fff}
 .intro-meta-item svg{color:var(--accent)}
 .btn-primary{display:inline-block;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.95rem;font-weight:700;color:#fff;background:var(--accent-btn);border:none;padding:14px 32px;border-radius:var(--radius);cursor:pointer;text-decoration:none;transition:background .2s,transform .15s;letter-spacing:.1px}
 .btn-primary:hover{background:var(--accent2);color:#fff;transform:translateY(-1px)}
-.btn-secondary{display:inline-block;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.88rem;font-weight:600;color:var(--accent-text);background:transparent;border:1.5px solid var(--accent);padding:11px 24px;border-radius:var(--radius);cursor:pointer;text-decoration:none;transition:all .2s}
+.btn-secondary{display:inline-flex;align-items:center;justify-content:center;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.88rem;font-weight:600;color:var(--accent-text);background:transparent;border:1.5px solid var(--accent);padding:11px 24px;min-height:44px;border-radius:var(--radius);cursor:pointer;text-decoration:none;transition:all .2s}
 .btn-secondary:hover{background:rgba(217,119,87,.08);color:var(--accent2)}
 .intro-note{margin-top:18px;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.78rem;color:var(--text3)}
 .domain-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;max-width:700px;margin:0 auto}
@@ -186,9 +191,9 @@ nav .nav-cta:hover{background:var(--accent2);color:#fff}
 .email-capture{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:22px 24px;text-align:center;margin-top:20px}
 .email-capture-heading{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-weight:600;font-size:.97rem;color:var(--text);margin:0 0 12px}
 .email-row{display:flex;gap:8px;max-width:380px;margin:0 auto 8px}
-.email-row input[type=email]{flex:1;padding:9px 13px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);transition:border-color .15s}
+.email-row input[type=email]{flex:1;padding:9px 13px;min-height:44px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);transition:border-color .15s}
 .email-row input[type=email]:focus{outline:none;border-color:var(--accent)}
-.email-row .btn-send{padding:9px 18px;background:var(--accent-btn);color:#fff;border:none;border-radius:8px;font-size:.88rem;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-weight:600;cursor:pointer;white-space:nowrap;transition:opacity .15s}
+.email-row .btn-send{padding:9px 18px;min-height:44px;background:var(--accent-btn);color:#fff;border:none;border-radius:8px;font-size:.88rem;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-weight:600;cursor:pointer;white-space:nowrap;transition:opacity .15s}
 .email-row .btn-send:hover{opacity:.88}
 .email-row .btn-send:disabled{opacity:.5;cursor:default}
 .email-consent{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.74rem;color:var(--text3);margin:0}
@@ -208,7 +213,7 @@ footer a{color:var(--text3);text-decoration:underline}
    missing it, leaving it the one page where a visitor could land without
    ever seeing the disclosure) ── */
 #site-banner{position:relative;background:var(--surface3);color:var(--text2);font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.72rem;line-height:1.4;text-align:center;padding:7px 44px 7px 16px;border-bottom:1px solid var(--border2)}
-#site-banner-close{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);font-size:1.1rem;line-height:1;cursor:pointer;padding:4px 7px;border-radius:4px;transition:color .15s}
+#site-banner-close{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);font-size:1.1rem;line-height:1;cursor:pointer;padding:4px 7px;border-radius:4px;transition:color .15s;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center}
 #site-banner-close:hover{color:var(--text)}
 </style>
 <!-- cca:schema:start -->
