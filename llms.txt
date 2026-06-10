@@ -1,0 +1,49 @@
+# Claude Certified Architects
+
+> Independent practice-exam platform and study resource for Anthropic's Claude Certified Architect (CCA) Foundations certification. Not affiliated with, authorized by, or endorsed by Anthropic.
+
+Claude Certified Architects (claudecertifiedarchitects.com) provides unofficial practice materials for the CCA Foundations exam: a 400-question scenario-based question bank, a full-length 60-question/120-minute timed exam simulation, a free 10-question diagnostic quiz, an exam guide, and a blog covering all 5 CCA exam domains (Agentic Architecture & Orchestration, Claude Code Configuration & Workflow, Prompt Engineering & Structured Output, Tool Design & MCP, and Context Management & Reliability). The CCA Foundations exam uses a 100-1,000 scaled score with a passing score of 720. 'Claude' and 'Claude Certified Architect' are trademarks of their respective owner.
+
+## Key Pages
+
+- [Home](https://www.claudecertifiedarchitects.com/): Overview of the practice platform, practice modes, and entry point to the question bank.
+- [CCA Foundations Exam Simulation](https://www.claudecertifiedarchitects.com/cca-foundations-exam/): Full-length, 60-question, 120-minute timed practice exam covering all 5 domains with a scored breakdown.
+- [Free Practice Questions](https://www.claudecertifiedarchitects.com/cca-practice-questions/): 400 scenario-based practice questions with explanations across all 5 domains and multiple test modes.
+- [Exam Guide](https://www.claudecertifiedarchitects.com/cca-exam-guide/): Exam format, domain weights, passing score (720/1,000), and study strategies.
+- [Free Diagnostic Quiz](https://www.claudecertifiedarchitects.com/diagnostic/): 10-question, no-login readiness check with a per-domain score.
+- [Official Exam Registration](https://www.claudecertifiedarchitects.com/register/): How to register for the official CCA Foundations exam via Anthropic's Skilljar portal.
+- [Blog](https://www.claudecertifiedarchitects.com/blog/): Articles on CCA exam prep, the 5 exam domains, certification value, and Claude agent development.
+
+## CCA Exam Domain Guides
+
+- [Domain 1: Agentic Architecture & Orchestration (27%)](https://www.claudecertifiedarchitects.com/blog/agentic-architecture-orchestration-cca-domain-1/): The highest-weighted domain — agent design patterns, orchestration, and common exam traps.
+- [Domain 2: Claude Code Configuration & Workflow (20%)](https://www.claudecertifiedarchitects.com/blog/claude-code-config-workflows-cca-domain-2/): CLAUDE.md, project setup, and workflow scenarios.
+- [Domain 3: Prompt Engineering & Structured Output (20%)](https://www.claudecertifiedarchitects.com/blog/prompt-engineering-structured-output-cca-domain-3/): Prompt design, structured output, and the PRECISE framework.
+- [Domain 4: Tool Design & MCP (18%)](https://www.claudecertifiedarchitects.com/blog/tool-design-mcp-cca-domain-4/): MCP server architecture, tool schema design, and tool-granularity scenarios.
+- [Domain 5: Context Management & Reliability (15%)](https://www.claudecertifiedarchitects.com/blog/context-management-reliability-cca-domain-5/): Token budgets, caching strategies, and long-conversation reliability.
+- [The 5 CCA Foundations Exam Domains Explained](https://www.claudecertifiedarchitects.com/blog/cca-foundations-exam-domains-explained/): Domain weights, key topics, and what to study for each domain.
+- [Claude Certified Architect Exam Guide 2026](https://www.claudecertifiedarchitects.com/blog/cca-foundations-exam-guide-2026/): Domain weights, sample questions, and a study timeline.
+- [CCA Exam Study Schedule: 30-Day Preparation Plan](https://www.claudecertifiedarchitects.com/blog/cca-exam-study-schedule-30-day-plan/): Weekly breakdowns and daily focus areas for a 30-day study plan.
+- [10 Free CCA Practice Questions With Explanations](https://www.claudecertifiedarchitects.com/blog/cca-foundations-exam-practice-questions-free/): Sample questions across all five domains with answer explanations.
+- [CCA Exam Anti-Patterns: 7 Mistakes That Fail Candidates](https://www.claudecertifiedarchitects.com/blog/cca-exam-anti-patterns/): Architectural anti-patterns that commonly appear on the exam.
+- [How Hard Is the Claude Foundations Certification?](https://www.claudecertifiedarchitects.com/blog/how-hard-is-cca-foundations-exam/): A realistic difficulty assessment and where most candidates lose points.
+
+## Certification Value & Career
+
+- [Is the Claude Certified Architect Certification Worth It?](https://www.claudecertifiedarchitects.com/blog/claude-certified-architect-certification-worth-it/): Cost, benefits, and who should pursue the CCA.
+- [Is the CCA Certification Worth It in 2026?](https://www.claudecertifiedarchitects.com/blog/is-cca-certification-worth-it-2026/): Enterprise adoption trends, common myths, and the ROI of prep time.
+- [Why Claude Certification Is Important in 2026](https://www.claudecertifiedarchitects.com/blog/why-claude-certification-is-important/): What the CCA verifies and why employers are starting to ask for it.
+- [How to Become a Claude Certified Architect (2026)](https://www.claudecertifiedarchitects.com/blog/how-to-become-claude-certified-architect/): Career path, job roles, and what hiring managers look for.
+- [Claude Certified Architect Salary and Career Outlook in 2026](https://www.claudecertifiedarchitects.com/blog/claude-certified-architect-salary-career-2026/): Salary data and how the credential affects hiring.
+- [Life as a Claude Certified Architect: Pay & Roles](https://www.claudecertifiedarchitects.com/blog/cca-real-world-reports-responsibilities-salaries/): First-hand accounts from credential holders on day-to-day responsibilities.
+- [AI Engineer Certifications Worth Getting in 2026](https://www.claudecertifiedarchitects.com/blog/ai-engineer-certifications-2026/): Which AI certifications signal real skills and how to prioritize them.
+- [CCA vs AWS AI Practitioner: Which Certification to Choose](https://www.claudecertifiedarchitects.com/blog/cca-vs-aws-ai-practitioner-which-certification/): A comparison of scope, difficulty, and salary impact.
+
+## Claude Development Skills
+
+- [What's the Best Way to Learn to Build AI Agents with Claude?](https://www.claudecertifiedarchitects.com/blog/how-to-learn-claude-agent-development/): A structured learning path for building production-grade Claude agents.
+- [How to Write an Effective CLAUDE.md File](https://www.claudecertifiedarchitects.com/blog/how-to-write-effective-claude-md-file/): Practical guide with examples, common mistakes, and exam-relevant tips.
+
+## Optional
+
+- [Sitemap](https://www.claudecertifiedarchitects.com/sitemap.xml): Full list of indexable URLs with last-modified dates.

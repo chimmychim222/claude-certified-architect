@@ -501,7 +501,7 @@ function articleJsonLd(post) {
     description: post.description,
     url: `${BASE}/blog/${post.slug}/`,
     datePublished: post.date,
-    dateModified: post.date,
+    dateModified: post.updated || post.date,
     image: img,
     publisher: { '@type': 'Organization', name: 'Claude Certified Architects', url: BASE },
     author:    { '@type': 'Organization', name: 'Claude Certified Architects', url: BASE },
@@ -585,7 +585,7 @@ ${blogNav('/blog/')}
         </ol>
       </div>
       <h1 class="post-title">${escHtml(post.h1 || post.title)}</h1>
-      <p class="post-meta"><time datetime="${post.date}">${formatDate(post.date)}</time></p>
+      <p class="post-meta">By Claude Certified Architects · <time datetime="${post.date}">${formatDate(post.date)}</time>${post.updated ? ` · Updated <time datetime="${post.updated}">${formatDate(post.updated)}</time>` : ''}</p>
     </header>
     <div class="post-body">
       ${post.body}
@@ -789,7 +789,7 @@ function generateSitemap(posts = []) {
       loc:        `${BASE}/blog/${p.slug}/`,
       priority:   '0.8',
       changefreq: 'monthly',
-      lastmod:    p.date.slice(0, 10)
+      lastmod:    (p.updated || p.date).slice(0, 10)
     }))
   ];
 
