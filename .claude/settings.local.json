@@ -445,7 +445,19 @@
       "Bash(npx --no-install lighthouse http://localhost:5055/diagnostic/ --only-categories=accessibility --form-factor=desktop --screenEmulation.mobile=false --screenEmulation.width=1350 --screenEmulation.height=940 --screenEmulation.deviceScaleFactor=1 --output=json --output-path=_lighthouse_local/diag-desktop.json --chrome-flags=\"--headless\" --quiet)",
       "Bash(npx --no-install lighthouse \"http://localhost:5055/blog/cca-foundations-exam-guide-2026/\" --only-categories=accessibility --form-factor=mobile --screenEmulation.mobile=true --screenEmulation.width=412 --screenEmulation.height=823 --screenEmulation.deviceScaleFactor=1.75 --output=json --output-path=_lighthouse_local/blog-mobile.json --chrome-flags=\"--headless\" --quiet)",
       "Bash(npx --no-install lighthouse \"http://localhost:5055/blog/cca-foundations-exam-guide-2026/\" --only-categories=accessibility --form-factor=desktop --screenEmulation.mobile=false --screenEmulation.width=1350 --screenEmulation.height=940 --screenEmulation.deviceScaleFactor=1 --output=json --output-path=_lighthouse_local/blog-desktop.json --chrome-flags=\"--headless\" --quiet)",
-      "Bash(git status *)"
+      "Bash(git status *)",
+      "Bash(npx lighthouse *)",
+      "Bash(node -e \"const r=require\\('./_lighthouse/home-mobile-local-before2.json'\\); console.log\\('TBT:', r.audits['total-blocking-time'].numericValue, 'bootup:', r.audits['bootup-time'].numericValue, 'LCP:', r.audits['largest-contentful-paint'].numericValue, 'score:', r.categories.performance.score\\)\")",
+      "Bash(node -e \"const r=require\\('./_lighthouse/home-mobile-local-after2.json'\\); console.log\\('TBT:', r.audits['total-blocking-time'].numericValue, 'bootup:', r.audits['bootup-time'].numericValue, 'LCP:', r.audits['largest-contentful-paint'].numericValue, 'score:', r.categories.performance.score\\)\")",
+      "Bash(git check-ignore *)",
+      "Bash(curl -s -o /tmp/indexnow_response.txt -w 'HTTP_STATUS:%{http_code}\\\\n' -X POST https://api.indexnow.org/indexnow -H 'Content-Type: application/json; charset=utf-8' -d '{ *)",
+      "Bash(cat package.json)",
+      "Bash(ls sitemap.xml)",
+      "Bash(node scripts/indexnow-submit.js)",
+      "Bash(node --check scripts/audit-enrollments.js)",
+      "Bash(node --check scripts/_audit-remediate.js)",
+      "Bash(node scripts/audit-enrollments.js \"C:\\\\Users\\\\joshu\\\\Desktop\\\\testing keys\\\\claude-certification-testing-firebase-adminsdk-fbsvc-65fdc2cdbd.json\" \"C:\\\\Users\\\\joshu\\\\Desktop\\\\testing keys\\\\stripe-readonly-key.txt\")",
+      "Bash(echo \"exit=$?\")"
     ]
   }
 }

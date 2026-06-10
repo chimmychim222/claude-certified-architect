@@ -13,3 +13,6 @@ _check_*.py
 homepage_check.html
 node_modules/
 _lighthouse/
+
+# Service account / API keys for local audit scripts (never commit)
+testing keys/
