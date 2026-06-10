@@ -140,16 +140,16 @@ nav .inner{display:flex;align-items:center;justify-content:space-between;padding
   <div class="inner">
     <a href="/" class="nav-logo">CCA <span>Practice Platform</span></a>
     <div class="nav-links" id="blog-nav-links">
-      <a href="/cca-practice-questions">Practice</a>
-      <a href="/cca-foundations-exam">Exam Sim</a>
-      <a href="/cca-exam-guide">Guide</a>
-      <a href="/diagnostic">Diagnostic</a>
-      <a href="/blog" class="active">Blog</a>
+      <a href="/cca-practice-questions/">Practice</a>
+      <a href="/cca-foundations-exam/">Exam Sim</a>
+      <a href="/cca-exam-guide/">Guide</a>
+      <a href="/diagnostic/">Diagnostic</a>
+      <a href="/blog/" class="active">Blog</a>
       <!-- Was a plain "Register" nav-link, easily mistaken for "register/sign
            up for this site." It actually opens Anthropic's external exam-
            registration info page, so it now reads as an explicit external
            link with an arrow + accessible label. -->
-      <a href="/register" aria-label="Official Claude Certified Architect exam registration on Anthropic's site">Official Exam <span aria-hidden="true" style="font-size:.85em;line-height:1">&#8599;</span></a>
+      <a href="/register/" aria-label="Official Claude Certified Architect exam registration on Anthropic's site">Official Exam <span aria-hidden="true" style="font-size:.85em;line-height:1">&#8599;</span></a>
     </div>
     <a href="/" class="nav-cta">Start Practicing</a>
     <button class="nav-hamburger" aria-label="Toggle menu"
@@ -164,7 +164,7 @@ nav .inner{display:flex;align-items:center;justify-content:space-between;padding
       <div class="bc" role="navigation" aria-label="Breadcrumb">
         <ol>
           <li><a href="/">Home</a></li>
-          <li><a href="/blog">Blog</a></li>
+          <li><a href="/blog/">Blog</a></li>
           <li><span aria-current="page">CCA Foundations Exam Study Schedule: Complete 30-Day Preparation Plan</span></li>
         </ol>
       </div>
@@ -207,29 +207,29 @@ nav .inner{display:flex;align-items:center;justify-content:space-between;padding
 <ul>
   <li><strong>Days 1–3 — The agent loop and architecture choice:</strong> Study the observe–think–act–respond cycle, when a single agent is sufficient versus when an orchestrator/subagent split is the right call, and parallel vs. sequential subagent execution. Work through 15–20 scenario questions on architecture selection, reviewing every explanation in full — including on questions you got right.</li>
   <li><strong>Days 4–5 — Reliability and escalation patterns:</strong> Focus on the patterns the exam returns to again and again: minimal-footprint design, human-in-the-loop interrupts, clarifying ambiguity before a long autonomous run, and recovery strategies when a subagent fails mid-task. These are the "two answers both look right" questions — the domain where judgment, not recall, decides your score.</li>
-  <li><strong>Days 6–7 — Practice and consolidation:</strong> Run 30–40 Domain 1 practice questions back to back, in exam-like conditions (no notes, no pausing). Then read our <a href="/blog/agentic-architecture-orchestration-cca-domain-1">deep dive on Agentic Architecture &amp; Orchestration</a>, which walks through a full worked scenario — a support-ticket triage system with an escalation threshold — of exactly the kind the exam favours.</li>
+  <li><strong>Days 6–7 — Practice and consolidation:</strong> Run 30–40 Domain 1 practice questions back to back, in exam-like conditions (no notes, no pausing). Then read our <a href="/blog/agentic-architecture-orchestration-cca-domain-1/">deep dive on Agentic Architecture &amp; Orchestration</a>, which walks through a full worked scenario — a support-ticket triage system with an escalation threshold — of exactly the kind the exam favours.</li>
 </ul>
 
 <h2>Week 2 (Days 8–14): Claude Code Configuration, Then Into Prompt Engineering</h2>
 <p>Domain 2 (Claude Code Configuration &amp; Workflows, 20%) comes next. Candidates routinely underrate this domain because it feels like "settings," but the questions test whether you understand how CLAUDE.md files, settings hierarchies, and permission allowlists actually interact at runtime — not whether you can recite where a file lives.</p>
 <ul>
-  <li><strong>Days 8–9 — The configuration hierarchy:</strong> Study the inheritance chain between global and project-level settings, when to use <code>settings.json</code> versus <code>settings.local.json</code>, Bash and file-tool permission allowlists, and how MCP servers are connected and scoped inside Claude Code. Our <a href="/blog/how-to-write-effective-claude-md-file">guide to writing an effective CLAUDE.md file</a> is a useful companion here.</li>
-  <li><strong>Days 10–11 — Practice and the worked scenario:</strong> Work through 25–30 Domain 2 questions, then read our <a href="/blog/claude-code-config-workflows-cca-domain-2">Domain 2 deep dive</a>, which walks through configuring Claude Code for a six-person team — exactly the kind of "where does this setting belong" scenario the exam likes to test.</li>
+  <li><strong>Days 8–9 — The configuration hierarchy:</strong> Study the inheritance chain between global and project-level settings, when to use <code>settings.json</code> versus <code>settings.local.json</code>, Bash and file-tool permission allowlists, and how MCP servers are connected and scoped inside Claude Code. Our <a href="/blog/how-to-write-effective-claude-md-file/">guide to writing an effective CLAUDE.md file</a> is a useful companion here.</li>
+  <li><strong>Days 10–11 — Practice and the worked scenario:</strong> Work through 25–30 Domain 2 questions, then read our <a href="/blog/claude-code-config-workflows-cca-domain-2/">Domain 2 deep dive</a>, which walks through configuring Claude Code for a six-person team — exactly the kind of "where does this setting belong" scenario the exam likes to test.</li>
   <li><strong>Days 12–14 — Begin Prompt Engineering &amp; Structured Output (20%):</strong> Start the next domain early rather than waiting for week three. Cover the PRECISE framework (Persona, Role, Explicit instructions, Context, Instructions, Steps, Examples), few-shot example selection and ordering, and chain-of-thought usage. Run 20 practice questions focused on diagnosing why a prompt underperforms — that's the skill this domain actually tests, not prompt-writing in the abstract.</li>
 </ul>
 
 <h2>Week 3 (Days 15–21): Finish Prompt Engineering, Then Tool Design &amp; MCP</h2>
 <p>This week closes out Domain 3 and opens Domain 4 (Tool Design &amp; MCP, 18%) — together they make up 38% of the exam, more than a third of your score.</p>
 <ul>
-  <li><strong>Days 15–17 — Structured output and injection defence:</strong> Study schema-enforced JSON output versus prompt-only formatting instructions, Constitutional AI principles, and prompt injection prevention in production systems. Then read our <a href="/blog/prompt-engineering-structured-output-cca-domain-3">Domain 3 deep dive</a>, built around a worked scenario comparing prompt-based and schema-enforced approaches to a resume-extraction pipeline. Run 20–25 practice questions and pay close attention to any you get wrong — Domain 3 questions often hinge on a single overlooked constraint.</li>
-  <li><strong>Days 18–21 — Tool Design &amp; MCP:</strong> Cover MCP server architecture (the resources, tools, and prompts primitives), JSON Schema for tool input definitions, stdio vs. SSE transport trade-offs, and authentication patterns for production MCP deployments. Read our <a href="/blog/tool-design-mcp-cca-domain-4">Domain 4 deep dive</a>, which walks through a calendar-agent scenario weighing one consolidated <code>manage_event</code> tool against four narrower tools — precisely the granularity trade-off the exam tests. Close the week with 30 practice questions, focusing especially on "what's wrong with this tool schema" formats.</li>
+  <li><strong>Days 15–17 — Structured output and injection defence:</strong> Study schema-enforced JSON output versus prompt-only formatting instructions, Constitutional AI principles, and prompt injection prevention in production systems. Then read our <a href="/blog/prompt-engineering-structured-output-cca-domain-3/">Domain 3 deep dive</a>, built around a worked scenario comparing prompt-based and schema-enforced approaches to a resume-extraction pipeline. Run 20–25 practice questions and pay close attention to any you get wrong — Domain 3 questions often hinge on a single overlooked constraint.</li>
+  <li><strong>Days 18–21 — Tool Design &amp; MCP:</strong> Cover MCP server architecture (the resources, tools, and prompts primitives), JSON Schema for tool input definitions, stdio vs. SSE transport trade-offs, and authentication patterns for production MCP deployments. Read our <a href="/blog/tool-design-mcp-cca-domain-4/">Domain 4 deep dive</a>, which walks through a calendar-agent scenario weighing one consolidated <code>manage_event</code> tool against four narrower tools — precisely the granularity trade-off the exam tests. Close the week with 30 practice questions, focusing especially on "what's wrong with this tool schema" formats.</li>
 </ul>
 
 <h2>Week 4 (Days 22–30): Context Management, Full Practice, and Final Review</h2>
 <p>The final stretch covers the lightest domain by weight — but the one most likely to cost you easy marks if you skip it — and then shifts entirely to full-length practice and targeted revision.</p>
 <ul>
-  <li><strong>Days 22–25 — Context Management &amp; Reliability (15%):</strong> Study the CALM framework, prompt caching with <code>cache_control</code> breakpoints, conversation compaction and summarisation strategies, and token budgeting across long multi-turn conversations. Read our <a href="/blog/context-management-reliability-cca-domain-5">Domain 5 deep dive</a>, which works through a long-running contract-review agent that has to manage context across dozens of turns — the exact failure mode this domain tests for. Run 20 practice questions; this domain is consistently the easiest to pick up quickly once the CALM framework clicks.</li>
-  <li><strong>Days 26–28 — Full timed simulations:</strong> Take a complete <a href="/cca-foundations-exam">60-question timed exam simulation</a> under real conditions — no pausing, no references, the full 120 minutes. Review your domain-by-domain score breakdown in detail, then take a second simulation two days later. The gap between your two scores, and which domains moved, tells you exactly where your remaining hours should go.</li>
+  <li><strong>Days 22–25 — Context Management &amp; Reliability (15%):</strong> Study the CALM framework, prompt caching with <code>cache_control</code> breakpoints, conversation compaction and summarisation strategies, and token budgeting across long multi-turn conversations. Read our <a href="/blog/context-management-reliability-cca-domain-5/">Domain 5 deep dive</a>, which works through a long-running contract-review agent that has to manage context across dozens of turns — the exact failure mode this domain tests for. Run 20 practice questions; this domain is consistently the easiest to pick up quickly once the CALM framework clicks.</li>
+  <li><strong>Days 26–28 — Full timed simulations:</strong> Take a complete <a href="/cca-foundations-exam/">60-question timed exam simulation</a> under real conditions — no pausing, no references, the full 120 minutes. Review your domain-by-domain score breakdown in detail, then take a second simulation two days later. The gap between your two scores, and which domains moved, tells you exactly where your remaining hours should go.</li>
   <li><strong>Days 29–30 — Targeted revision and rest:</strong> Spend day 29 exclusively on your one or two lowest-scoring domains from the simulations — 20–30 focused questions, explanations reviewed in full. Take day 30 mostly off. Skim your own notes if you want, but don't cram new material the day before the exam; at this stage, a clear head outperforms one more hour of reading.</li>
 </ul>
 
@@ -257,7 +257,7 @@ nav .inner{display:flex;align-items:center;justify-content:space-between;padding
 <p>Flip the ratio instead: treat reading as the warm-up and practice questions — with full explanation review — as the main event. Candidates who follow that ordering consistently outperform candidates who spend twice as many hours studying the "right" way but back-load all their practice into the final week.</p>
 
 <hr>
-<p>Ready to put this schedule into action? Start by finding your baseline with the free <a href="/diagnostic/">10-question readiness diagnostic</a>, then build decision-making speed with the <a href="/cca-practice-questions">400-question practice bank</a> spanning all five domains. When day 26 arrives, the <a href="/cca-foundations-exam">full 60-question timed simulation</a> gives you the domain-by-domain score breakdown this entire plan is built to act on.</p>
+<p>Ready to put this schedule into action? Start by finding your baseline with the free <a href="/diagnostic/">10-question readiness diagnostic</a>, then build decision-making speed with the <a href="/cca-practice-questions/">400-question practice bank</a> spanning all five domains. When day 26 arrives, the <a href="/cca-foundations-exam/">full 60-question timed simulation</a> gives you the domain-by-domain score breakdown this entire plan is built to act on.</p>
     </div>
     <section class="related-posts" aria-label="Related articles">
       <h2>Related Articles</h2>
@@ -271,7 +271,7 @@ nav .inner{display:flex;align-items:center;justify-content:space-between;padding
 </main>
 <footer class="site-footer">
   <p style="margin:0 0 6px">&copy; 2026 Claude Certified Architects</p>
-  <p style="margin:0 0 10px;font-size:.82rem"><a href="/">Home</a> &nbsp;&middot;&nbsp; <a href="/cca-practice-questions">Practice Questions</a> &nbsp;&middot;&nbsp; <a href="/cca-foundations-exam">Foundations Exam Simulator</a> &nbsp;&middot;&nbsp; <a href="/cca-exam-guide">Exam Guide</a> &nbsp;&middot;&nbsp; <a href="/diagnostic/">Free Diagnostic Quiz</a> &nbsp;&middot;&nbsp; <a href="/blog">Blog</a> &nbsp;&middot;&nbsp; <a href="/register/">Official Exam Registration</a></p>
+  <p style="margin:0 0 10px;font-size:.82rem"><a href="/">Home</a> &nbsp;&middot;&nbsp; <a href="/cca-practice-questions/">Practice Questions</a> &nbsp;&middot;&nbsp; <a href="/cca-foundations-exam/">Foundations Exam Simulator</a> &nbsp;&middot;&nbsp; <a href="/cca-exam-guide/">Exam Guide</a> &nbsp;&middot;&nbsp; <a href="/diagnostic/">Free Diagnostic Quiz</a> &nbsp;&middot;&nbsp; <a href="/blog/">Blog</a> &nbsp;&middot;&nbsp; <a href="/register/">Official Exam Registration</a></p>
   <p style="max-width:620px;margin:0 auto;font-size:.85rem;line-height:1.65;color:#c8c8be">This is an independent study resource. It is not affiliated with, authorized by, or endorsed by Anthropic. ‘Claude’ and ‘Claude Certified Architect’ are trademarks of their respective owner. We provide unofficial practice materials to help you prepare for the official certification exam.</p>
 </footer>
 </body>

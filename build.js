@@ -446,16 +446,16 @@ function blogNav(activePage) {
   <div class="inner">
     <a href="/" class="nav-logo">CCA <span>Practice Platform</span></a>
     <div class="nav-links" id="blog-nav-links">
-      ${link('/cca-practice-questions', 'Practice')}
-      ${link('/cca-foundations-exam', 'Exam Sim')}
-      ${link('/cca-exam-guide', 'Guide')}
-      ${link('/diagnostic', 'Diagnostic')}
-      ${link('/blog', 'Blog')}
+      ${link('/cca-practice-questions/', 'Practice')}
+      ${link('/cca-foundations-exam/', 'Exam Sim')}
+      ${link('/cca-exam-guide/', 'Guide')}
+      ${link('/diagnostic/', 'Diagnostic')}
+      ${link('/blog/', 'Blog')}
       <!-- Was a plain "Register" nav-link, easily mistaken for "register/sign
            up for this site." It actually opens Anthropic's external exam-
            registration info page, so it now reads as an explicit external
            link with an arrow + accessible label. -->
-      <a href="/register" aria-label="Official Claude Certified Architect exam registration on Anthropic's site">Official Exam <span aria-hidden="true" style="font-size:.85em;line-height:1">&#8599;</span></a>
+      <a href="/register/" aria-label="Official Claude Certified Architect exam registration on Anthropic's site">Official Exam <span aria-hidden="true" style="font-size:.85em;line-height:1">&#8599;</span></a>
     </div>
     <a href="/" class="nav-cta">Start Practicing</a>
     <button class="nav-hamburger" aria-label="Toggle menu"
@@ -474,11 +474,11 @@ function blogFooter() {
   // and keeps every important page within 1–2 clicks of any page on the site).
   const links = [
     ['/', 'Home'],
-    ['/cca-practice-questions', 'Practice Questions'],
-    ['/cca-foundations-exam', 'Foundations Exam Simulator'],
-    ['/cca-exam-guide', 'Exam Guide'],
+    ['/cca-practice-questions/', 'Practice Questions'],
+    ['/cca-foundations-exam/', 'Foundations Exam Simulator'],
+    ['/cca-exam-guide/', 'Exam Guide'],
     ['/diagnostic/', 'Free Diagnostic Quiz'],
-    ['/blog', 'Blog'],
+    ['/blog/', 'Blog'],
     ['/register/', 'Official Exam Registration'],
   ].map(([href, label]) => `<a href="${href}">${label}</a>`).join(' &nbsp;&middot;&nbsp; ');
   return `<footer class="site-footer">
@@ -572,14 +572,14 @@ ${sharedCSS()}
 <!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GT-K8FC4RXW" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- End Google Tag Manager (noscript) -->
-${blogNav('/blog')}
+${blogNav('/blog/')}
 <main class="post-wrap">
   <article>
     <header>
       <div class="bc" role="navigation" aria-label="Breadcrumb">
         <ol>
           <li><a href="/">Home</a></li>
-          <li><a href="/blog">Blog</a></li>
+          <li><a href="/blog/">Blog</a></li>
           <li><span aria-current="page">${escHtml(post.h1 || post.title)}</span></li>
         </ol>
       </div>
@@ -660,7 +660,7 @@ ${sharedCSS()}
 <!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GT-K8FC4RXW" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- End Google Tag Manager (noscript) -->
-${blogNav('/blog')}
+${blogNav('/blog/')}
 <main class="blog-wrap">
   <div class="bc" role="navigation" aria-label="Breadcrumb">
     <ol><li><a href="/">Home</a></li><li><span aria-current="page">Blog</span></li></ol>
