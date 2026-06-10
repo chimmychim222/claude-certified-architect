@@ -12,3 +12,4 @@ _check_*.py
 *.tmp
 homepage_check.html
 node_modules/
+_lighthouse/

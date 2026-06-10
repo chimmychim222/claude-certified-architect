@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GT-K8FC4RXW');</script>
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});function gtmLoad(){var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);}if(d.readyState==='complete'){gtmLoad();}else{w.addEventListener('load',gtmLoad);}})(window,document,'script','dataLayer','GT-K8FC4RXW');</script>
 <!-- End Google Tag Manager -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Claude Certified Architect Practice Test | CCA Prep</title>
@@ -176,7 +176,7 @@ section .section-sub{color:var(--text2);margin-bottom:40px;font-size:1rem}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .secure-note{display:flex;align-items:center;gap:8px;color:var(--text3);font-size:.78rem;margin:16px 0}
 .auth-toggle{text-align:center;margin-top:20px;font-size:.85rem;color:var(--text2)}
-.auth-toggle a{color:var(--accent);cursor:pointer;font-weight:500}
+.auth-toggle a,.auth-toggle button{color:var(--accent);cursor:pointer;font-weight:500;text-decoration:underline;text-underline-offset:3px;font-size:inherit;padding:0}
 .auth-toggle a:hover{text-decoration:underline}
 .auth-error{background:rgba(196,75,63,.06);border:1px solid rgba(196,75,63,.2);color:var(--red);padding:10px 14px;border-radius:var(--radius-sm);font-size:.85rem;margin-bottom:16px;display:none}
 .auth-divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--text3);font-size:.8rem}
@@ -455,7 +455,7 @@ footer{padding-bottom:max(40px,env(safe-area-inset-bottom))}
   .modal .close-btn{min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;top:8px;right:8px}
   .pricing-card select{min-height:44px}
   .logout-btn{min-height:36px}
-  .auth-toggle a{padding:4px 2px}
+  .auth-toggle a,.auth-toggle button{padding:4px 2px}
   .password-reset{padding:8px 0}
 }
 
@@ -738,8 +738,8 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
       </div>
       <a class="password-reset" id="auth-reset-link" onclick="resetPassword()">Forgot password?</a>
       <button class="btn-primary" style="width:100%;padding:14px" id="auth-submit-btn" onclick="submitAuth()">Log In</button>
-      <div class="auth-toggle" id="auth-toggle-login" style="display:none">Already have an account? <a onclick="switchAuthMode('login')">Log In</a></div>
-      <div class="auth-toggle" id="auth-toggle-signup">Don't have an account? <a onclick="switchAuthMode('signup')">Sign Up Free</a></div>
+      <div class="auth-toggle" id="auth-toggle-login" style="display:none">Already have an account? <button type="button" onclick="switchAuthMode('login')">Log In</button></div>
+      <div class="auth-toggle" id="auth-toggle-signup">Don't have an account? <button type="button" onclick="switchAuthMode('signup')">Sign Up Free</button></div>
     </div>
     <div class="auth-loading" id="auth-loading">
       <div style="margin-bottom:8px">Please wait...</div>
@@ -762,6 +762,7 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
   </div>
 </div>
 
+<main id="main-content">
 <!-- ═══════ HOME ═══════ -->
 <section class="hero" id="home-section">
   <!-- Animated background layers -->
@@ -945,7 +946,7 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
       <div class="price-note" id="price-note" style="display:none;color:var(--text3);font-size:.78rem;margin-top:-6px;margin-bottom:6px"></div>
       <div class="price-sub">One-time payment · Lifetime access</div>
       <div class="currency-row">
-        <label style="color:var(--text2);font-size:.85rem">Currency:</label>
+        <label for="currency-select" style="color:var(--text2);font-size:.85rem">Currency:</label>
         <select id="currency-select" onchange="updateCurrency()">
           <option value="USD">🇺🇸 USD — US Dollar</option>
           <option value="EUR">🇪🇺 EUR — Euro</option>
@@ -1219,6 +1220,7 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
     </details>
   </div>
 </section>
+</main>
 <footer><div class="container"><div style="margin-bottom:12px"><a href="/cca-foundations-exam/">CCA Foundations Exam</a> · <a href="/cca-practice-questions/">Practice Questions</a> · <a href="/cca-exam-guide/">Exam Guide</a> · <a href="/diagnostic/">Free Diagnostic Quiz</a> · <a href="/blog/">Blog</a> · <a href="/register/">Official Exam Registration</a></div><p class="footer-disclaimer">This is an independent study resource. It is not affiliated with, authorized by, or endorsed by Anthropic. ‘Claude’ and ‘Claude Certified Architect’ are trademarks of their respective owner. We provide unofficial practice materials to help you prepare for the official certification exam.</p></div></footer>
 
 <!-- Firebase SDK -->

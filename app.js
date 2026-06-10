@@ -136,7 +136,9 @@ let fbAuth = null;
 // for the rest of the app to call alongside it — see each call site for the
 // v9-style usage (note: snapshot.exists is a METHOD in modular — exists() —
 // not a property like in compat).
-document.addEventListener('DOMContentLoaded', async function() {
+document.addEventListener('DOMContentLoaded', function() {
+  function loadFirebase() {
+  (async function() {
   try {
     // IMPORTANT: app + auth + firestore must ALL come from this same
     // dynamically-imported modular bundle graph (NOT compat firebase.app()/
@@ -182,6 +184,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     checkPaymentSuccess();
   } catch(e) {
     console.warn('Firebase not configured yet. Auth features disabled.', e);
+  }
+  })();
+  }
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(loadFirebase, { timeout: 2000 });
+  } else {
+    setTimeout(loadFirebase, 1);
   }
 });
 
