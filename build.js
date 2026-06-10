@@ -37,7 +37,7 @@ const schema = JSON.parse(fs.readFileSync(SCHEMA_FILE, 'utf8'));
 // Build JSON-LD objects
 // ---------------------------------------------------------------------------
 
-/** Course + AggregateRating (for homepage) */
+/** Course (for homepage) */
 const courseSchema = {
   '@context': 'https://schema.org',
   '@type': 'Course',
@@ -117,7 +117,7 @@ const examSchemas = [
     name: 'CCA Foundations Exam Practice Test',
     description: 'Full-length CCA Foundations practice test — 60 timed, domain-weighted questions across all 5 exam domains, with explanations and a scored breakdown.',
     url: BASE + '/cca-foundations-exam/',
-    isPartOf: { '@type': 'WebSite', url: BASE }
+    isPartOf: { '@type': 'WebSite', name: schema.course.provider, url: BASE }
   },
   breadcrumb([
     { name: 'Home',                  url: BASE },
@@ -133,7 +133,7 @@ const questionsSchemas = [
     name: 'Free CCA Practice Questions',
     description: 'Free CCA practice questions across all 5 exam domains — detailed explanations, multiple test modes, and domain-weighted scoring to help you pass.',
     url: BASE + '/cca-practice-questions/',
-    isPartOf: { '@type': 'WebSite', url: BASE }
+    isPartOf: { '@type': 'WebSite', name: schema.course.provider, url: BASE }
   },
   breadcrumb([
     { name: 'Home',                     url: BASE },
@@ -155,7 +155,7 @@ const guideSchemas = [
     name: 'Claude Certified Architect Exam Guide',
     description: 'The Claude Certified Architect exam guide: format, domain weights, passing score, and proven study strategies for all 5 domains.',
     url: BASE + '/cca-exam-guide/',
-    isPartOf: { '@type': 'WebSite', url: BASE }
+    isPartOf: { '@type': 'WebSite', name: schema.course.provider, url: BASE }
   },
   breadcrumb([
     { name: 'Home',          url: BASE },
@@ -171,7 +171,7 @@ const registerSchemas = [
     name: 'Register for the CCA Exam',
     description: "Register for the CCA Foundations exam through Anthropic's Skilljar portal. Review exam details, passing score, format, and cost before requesting access.",
     url: BASE + '/register/',
-    isPartOf: { '@type': 'WebSite', url: BASE }
+    isPartOf: { '@type': 'WebSite', name: schema.course.provider, url: BASE }
   },
   breadcrumb([
     { name: 'Home',     url: BASE },
@@ -187,11 +187,11 @@ const diagnosticSchemas = [
     name: 'CCA Readiness Diagnostic',
     description: 'Free 10-question CCA Foundations diagnostic quiz: get a per-domain score and a readiness estimate against the 720/1,000 passing standard.',
     url: BASE + '/diagnostic/',
-    isPartOf: { '@type': 'WebSite', url: BASE }
+    isPartOf: { '@type': 'WebSite', name: schema.course.provider, url: BASE }
   },
   breadcrumb([
-    { name: 'Home',       url: BASE },
-    { name: 'Diagnostic', url: BASE + '/diagnostic' }
+    { name: 'Home',            url: BASE },
+    { name: 'Diagnostic Quiz', url: BASE + '/diagnostic' }
   ])
 ];
 
@@ -496,7 +496,7 @@ function articleJsonLd(post) {
   return {
     '@context': 'https://schema.org',
     '@type': 'Article',
-    headline: post.title,
+    headline: post.h1 || post.title,
     description: post.description,
     url: `${BASE}/blog/${post.slug}/`,
     datePublished: post.date,
@@ -504,7 +504,7 @@ function articleJsonLd(post) {
     image: img,
     publisher: { '@type': 'Organization', name: 'Claude Certified Architects', url: BASE },
     author:    { '@type': 'Organization', name: 'Claude Certified Architects', url: BASE },
-    isPartOf:  { '@type': 'WebSite', url: BASE }
+    isPartOf:  { '@type': 'WebSite', name: 'Claude Certified Architects', url: BASE }
   };
 }
 
@@ -517,7 +517,7 @@ function generateBlogPost(post, _index, allPosts) {
   const schemaList = [articleJsonLd(post), breadcrumb([
     { name: 'Home', url: BASE },
     { name: 'Blog', url: `${BASE}/blog/` },
-    { name: post.title, url: `${BASE}/blog/${post.slug}/` }
+    { name: post.h1 || post.title, url: `${BASE}/blog/${post.slug}/` }
   ])];
 
   // If the post defines an `faq` array ({q, a} pairs matching its visible
