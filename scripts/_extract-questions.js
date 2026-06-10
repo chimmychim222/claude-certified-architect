@@ -1,11 +1,11 @@
 /**
- * Extracts the QUESTIONS array from index.html using a string-aware parser.
+ * Extracts the QUESTIONS array from app.js using a string-aware parser.
  * Writes questions grouped by domain to stdout as JSON.
  */
 const fs = require('fs');
 const path = require('path');
 
-const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+const html = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
 const marker = 'const QUESTIONS = [';
 const qStart = html.indexOf(marker) + marker.length - 1; // points to '['
 

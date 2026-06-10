@@ -6,8 +6,8 @@
 const fs   = require('fs');
 const path = require('path');
 
-// ── 1. Extract QUESTIONS from index.html ─────────────────────────────────────
-const html   = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+// ── 1. Extract QUESTIONS from app.js ──────────────────────────────────────────
+const html   = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
 const marker = 'const QUESTIONS = [';
 const qStart = html.indexOf(marker) + marker.length - 1;
 
