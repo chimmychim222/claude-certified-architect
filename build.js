@@ -14,6 +14,7 @@
 'use strict';
 const fs   = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 // ---------------------------------------------------------------------------
 // Config
@@ -715,20 +716,75 @@ function injectRecentPosts(posts) {
 }
 
 // ---------------------------------------------------------------------------
+// Custom 404 page — served by GitHub Pages for any unmatched path
+// ---------------------------------------------------------------------------
+
+function generate404() {
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});function gtmLoad(){var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);}if(d.readyState==='complete'){gtmLoad();}else{w.addEventListener('load',gtmLoad);}})(window,document,'script','dataLayer','GT-K8FC4RXW');</script>
+<!-- End Google Tag Manager -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Page Not Found · Claude Certified Architects</title>
+<meta name="robots" content="noindex,follow">
+${sharedCSS()}
+</head>
+<body>
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GT-K8FC4RXW" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+${blogNav('')}
+<main class="post-wrap" style="text-align:center">
+  <h1 class="post-title">404 — Page Not Found</h1>
+  <p style="color:var(--text2);font-size:1.05rem;margin:1em 0 2em">The page you're looking for doesn't exist or may have moved.</p>
+  <p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif">
+    <a href="/">Homepage</a> &nbsp;&middot;&nbsp;
+    <a href="/blog/">Blog</a> &nbsp;&middot;&nbsp;
+    <a href="/cca-practice-questions/">Practice Questions</a> &nbsp;&middot;&nbsp;
+    <a href="/diagnostic/">Free Diagnostic Quiz</a>
+  </p>
+</main>
+${blogFooter()}
+</body>
+</html>`;
+
+  fs.writeFileSync(path.join(__dirname, '404.html'), html, 'utf8');
+  console.log('✓ 404.html');
+}
+
+// ---------------------------------------------------------------------------
 // Sitemap generator
 // ---------------------------------------------------------------------------
+
+// Returns the date (YYYY-MM-DD) a tracked file was actually last changed:
+// today if it has uncommitted changes, otherwise the date of the last
+// commit that touched it. Avoids bumping every page's <lastmod> to "today"
+// on every build regardless of whether that page's content changed.
+function gitLastmod(relPath) {
+  const today = new Date().toISOString().slice(0, 10);
+  try {
+    const status = execSync(`git status --porcelain -- "${relPath}"`, { cwd: __dirname, encoding: 'utf8' }).trim();
+    if (status) return today;
+    const log = execSync(`git log -1 --format=%cd --date=short -- "${relPath}"`, { cwd: __dirname, encoding: 'utf8' }).trim();
+    if (log) return log;
+  } catch (e) { /* fall through */ }
+  return today;
+}
 
 function generateSitemap(posts = []) {
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
   const pages = [
-    { loc: BASE + '/',                         priority: '1.0', changefreq: 'weekly',  lastmod: today },
-    { loc: BASE + '/cca-foundations-exam/',     priority: '0.9', changefreq: 'weekly',  lastmod: today },
-    { loc: BASE + '/cca-practice-questions/',   priority: '0.9', changefreq: 'weekly',  lastmod: today },
-    { loc: BASE + '/cca-exam-guide/',           priority: '0.8', changefreq: 'monthly', lastmod: today },
-    { loc: BASE + '/blog/',                     priority: '0.7', changefreq: 'weekly',  lastmod: today },
-    { loc: BASE + '/register/',               priority: '0.8', changefreq: 'monthly', lastmod: today },
-    { loc: BASE + '/diagnostic/',             priority: '0.8', changefreq: 'monthly', lastmod: today },
+    { loc: BASE + '/',                         priority: '1.0', changefreq: 'weekly',  lastmod: gitLastmod('index.html') },
+    { loc: BASE + '/cca-foundations-exam/',     priority: '0.9', changefreq: 'weekly',  lastmod: gitLastmod('cca-foundations-exam/index.html') },
+    { loc: BASE + '/cca-practice-questions/',   priority: '0.9', changefreq: 'weekly',  lastmod: gitLastmod('cca-practice-questions/index.html') },
+    { loc: BASE + '/cca-exam-guide/',           priority: '0.8', changefreq: 'monthly', lastmod: gitLastmod('cca-exam-guide/index.html') },
+    { loc: BASE + '/blog/',                     priority: '0.7', changefreq: 'weekly',  lastmod: gitLastmod('blog/index.html') },
+    { loc: BASE + '/register/',               priority: '0.8', changefreq: 'monthly', lastmod: gitLastmod('register/index.html') },
+    { loc: BASE + '/diagnostic/',             priority: '0.8', changefreq: 'monthly', lastmod: gitLastmod('diagnostic/index.html') },
     ...posts.map(p => ({
       loc:        `${BASE}/blog/${p.slug}/`,
       priority:   '0.8',
@@ -785,6 +841,9 @@ const posts = loadPosts();
 injectRecentPosts(posts);
 generateBlogIndex(posts);
 posts.forEach(generateBlogPost);
+
+console.log('');
+generate404();
 
 console.log('');
 generateSitemap(posts);
