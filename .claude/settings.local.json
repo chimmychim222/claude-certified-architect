@@ -511,7 +511,9 @@
       "Bash(grep -oE \"AW-[A-Z0-9]{9,11}\" /tmp/gtm.js)",
       "Bash(curl -s -o /dev/null -w \"ns.html status: %{http_code}\\\\n\" \"https://www.googletagmanager.com/ns.html?id=GT-K8FC4RXW\")",
       "Bash(curl -s \"https://www.googletagmanager.com/ns.html?id=GT-K8FC4RXW\")",
-      "Bash(node \"C:\\\\tmp\\\\fix-ga4-snippet.js\")"
+      "Bash(node \"C:\\\\tmp\\\\fix-ga4-snippet.js\")",
+      "Bash(git show *)",
+      "Bash(python -c \"from PIL import Image; im=Image.open\\(r'C:\\\\tmp\\\\old-og-image-v2.png'\\); print\\(im.size, im.mode, im.format\\)\")"
     ]
   }
 }
