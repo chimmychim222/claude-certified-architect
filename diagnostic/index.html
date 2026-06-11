@@ -240,7 +240,7 @@ footer a{color:var(--text3);text-decoration:underline}
            account. Relabeled with explicit external-link semantics. -->
       <a href="/register/" aria-label="Official Claude Certified Architect exam registration on Anthropic's site">Official Exam <span aria-hidden="true" style="font-size:.85em;line-height:1">&#8599;</span></a>
     </div>
-    <a href="https://buy.stripe.com/cNi28k2GE7LngeRcc03ks00" class="nav-cta">Get Access — $49</a>
+    <a href="https://buy.stripe.com/cNi28k2GE7LngeRcc03ks00" class="nav-cta" onclick="return trackCheckoutAndGo(this.href)">Get Access — $49</a>
   </div>
 </nav>
 
@@ -356,7 +356,7 @@ footer a{color:var(--text3);text-decoration:underline}
         <span class="cta-feat">Lifetime access</span>
         <span class="cta-feat">10-day money-back guarantee</span>
       </div>
-      <a href="https://buy.stripe.com/cNi28k2GE7LngeRcc03ks00" class="btn-primary btn-cta-main">Unlock full access — $49</a>
+      <a href="https://buy.stripe.com/cNi28k2GE7LngeRcc03ks00" class="btn-primary btn-cta-main" onclick="return trackCheckoutAndGo(this.href)">Unlock full access — $49</a>
       <p class="cta-retake"><a href="#" onclick="retakeDiagnostic();return false;">Retake with new questions</a></p>
     </div>
 
@@ -397,6 +397,7 @@ const STRIPE_LINK = 'https://buy.stripe.com/cNi28k2GE7LngeRcc03ks00';
 let quiz = [];        // 10 selected questions (shuffled options)
 let answers = [];     // user's selected answer index per question
 let current = 0;
+let leadEventSent = false;
 
 // ── Shuffle ───────────────────────────────────────────────────────────────────
 function shuffle(arr) {
@@ -440,8 +441,32 @@ function showScreen(id) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// ── Analytics: fire a GA4 event before navigating to an external link
+// (e.g. Stripe). gtag() queues into dataLayer even before gtag.js has
+// loaded, but a queued hit can be lost if the page unloads first — so we
+// wait briefly for event_callback (or a 1s timeout) before navigating.
+function trackCheckoutAndGo(url) {
+  let navigated = false;
+  const go = () => {
+    if (navigated) return;
+    navigated = true;
+    window.location.href = url;
+  };
+  if (typeof gtag !== 'undefined') {
+    gtag('event', 'begin_checkout', { value: 49, currency: 'USD', event_callback: go, event_timeout: 1000 });
+    setTimeout(go, 1000);
+  } else {
+    go();
+  }
+  return false;
+}
+
 // ── Start ─────────────────────────────────────────────────────────────────────
 function startDiagnostic() {
+  if (!leadEventSent) {
+    leadEventSent = true;
+    if (typeof gtag !== 'undefined') gtag('event', 'generate_lead');
+  }
   buildQuiz();
   showScreen('quiz-screen');
   renderQuestion();
@@ -555,6 +580,11 @@ function showResults() {
   });
   const ws = domScore[weakest.key];
   const wpct = ws.total > 0 ? Math.round((ws.correct / ws.total) * 100) : 0;
+
+  if (typeof gtag !== 'undefined') {
+    gtag('event', 'diagnostic_complete', { weak_domain: weakest.label });
+    gtag('event', 'view_offer');
+  }
 
   document.getElementById('weak-callout').innerHTML =
     '<div class="weak-callout-icon">🎯</div>' +

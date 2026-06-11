@@ -739,8 +739,9 @@ function logOut() {
 const WEBHOOK_BASE = 'https://claude-certified-architect.onrender.com';
 
 // ─────────────────────────────────────────────────────────────────────────
-// "exam_purchase" conversion event — fire exactly once per user, ever, the
-// moment their enrolled status is first confirmed true, no matter which
+// GA4 "purchase" conversion event (plus legacy "exam_purchase") — fire
+// exactly once per user, ever, the moment their enrolled status is first
+// confirmed true, no matter which
 // code path discovers it (webhook-synced custom claim on sign-in, the
 // Firestore fallback read, a claimed pending enrollment, the post-checkout
 // confirmation poll, the manual "I've verified" recheck, or the lazy
@@ -783,6 +784,7 @@ async function maybeFireExamPurchaseEvent(user) {
   } catch (e) { /* fall through — the transaction below is the source of truth */ }
 
   let shouldFire = false;
+  let stripeSessionId = null;
   try {
     await fs.runTransaction(db, async (tx) => {
       const docSnap = await tx.get(ref);
@@ -794,6 +796,7 @@ async function maybeFireExamPurchaseEvent(user) {
       if (data.examPurchaseEventSent === true) return;
       tx.set(ref, { examPurchaseEventSent: true }, { merge: true });
       shouldFire = true;
+      stripeSessionId = data.stripeSessionId || null;
     });
   } catch (e) {
     console.warn('[Analytics] exam_purchase guard transaction failed:', e.message);
@@ -801,10 +804,22 @@ async function maybeFireExamPurchaseEvent(user) {
   }
 
   if (shouldFire && typeof gtag !== 'undefined') {
+    // Stripe's checkout session ID is a stable, globally-unique identifier
+    // for the real transaction; fall back to the uid if the webhook hasn't
+    // recorded one yet so transaction_id is never empty.
+    const transactionId = stripeSessionId || user.uid;
+    gtag('event', 'purchase', {
+      currency:       'USD',
+      value:          49,
+      transaction_id: transactionId,
+    });
+    // Also fire the legacy "exam_purchase" name alongside the GA4-standard
+    // "purchase" event above — kept until any GA4 Key Event / Ads conversion
+    // configured against "exam_purchase" can be confirmed unused and removed.
     gtag('event', 'exam_purchase', {
       currency:       'USD',
       value:          49,
-      transaction_id: user.uid + '_' + Date.now(),
+      transaction_id: transactionId,
     });
   }
 }
@@ -1056,17 +1071,36 @@ async function confirmPaymentAndUnlock(user) {
   }
 }
 
+// Fire a GA4 begin_checkout event before navigating to Stripe. gtag() queues
+// into dataLayer even before gtag.js has loaded, but a queued hit can be lost
+// if the page unloads first — so we wait briefly for event_callback (or a 1s
+// timeout) before navigating.
+function trackCheckoutAndGo(url) {
+  let navigated = false;
+  const go = () => {
+    if (navigated) return;
+    navigated = true;
+    window.location.href = url;
+  };
+  if (typeof gtag !== 'undefined') {
+    gtag('event', 'begin_checkout', { value: 49, currency: 'USD', event_callback: go, event_timeout: 1000 });
+    setTimeout(go, 1000);
+  } else {
+    go();
+  }
+}
+
 function openPaymentModal() {
   if (!currentUser) {
     // Not logged in — go straight to Stripe without email prefill.
     // After paying, the user can create an account with the same email and
     // the webhook will have already set enrolled:true for them.
-    window.location.href = STRIPE_PAYMENT_LINK;
+    trackCheckoutAndGo(STRIPE_PAYMENT_LINK);
     return;
   }
   const url = new URL(STRIPE_PAYMENT_LINK);
   url.searchParams.set('prefilled_email', currentUser.email);
-  window.location.href = url.toString();
+  trackCheckoutAndGo(url.toString());
 }
 
 // Legacy fallback: check URL params on load (for non-Firebase mode)
