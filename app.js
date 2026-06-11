@@ -261,8 +261,25 @@ function updateNavUI() {
 let sessionId = null;
 let sessionUnsubscribe = null;
 
-function generateSessionId() {
-  return Date.now().toString(36) + Math.random().toString(36).substring(2, 10);
+// Persisted per-BROWSER (localStorage), not per-tab/page-load. Without this,
+// every new tab or page reload minted a fresh ID and overwrote
+// `activeSession` in Firestore — so opening the verification-email link in a
+// second tab (or just navigating back after clicking it) made the *original*
+// tab's listener see a "new" activeSession and immediately force-sign-out
+// with the "another device" alert, even though it's the same person in the
+// same browser. Reusing one ID per browser means same-browser tabs/reloads
+// always agree on it, while a genuinely different browser/device (its own
+// localStorage) still gets its own ID and correctly trips the anti-sharing
+// check below.
+const SESSION_ID_KEY = 'cca_session_id';
+function getOrCreateSessionId() {
+  let id;
+  try { id = localStorage.getItem(SESSION_ID_KEY); } catch(e) {}
+  if (!id) {
+    id = Date.now().toString(36) + Math.random().toString(36).substring(2, 10);
+    try { localStorage.setItem(SESSION_ID_KEY, id); } catch(e) {}
+  }
+  return id;
 }
 
 async function registerSession(uid) {
@@ -272,7 +289,7 @@ async function registerSession(uid) {
   // the write lands), its first server snapshot can still show the OLD
   // activeSession, look like "another device" logged in, and immediately
   // sign this brand-new session back out.
-  const newSessionId = generateSessionId();
+  const newSessionId = getOrCreateSessionId();
   try {
     const fs = window.__fs;
     await fs.setDoc(fs.doc(db, 'users', uid), {
