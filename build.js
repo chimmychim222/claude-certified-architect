@@ -541,9 +541,9 @@ function generateBlogPost(post, _index, allPosts) {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});function gtmLoad(){var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);}if(d.readyState==='complete'){gtmLoad();}else{w.addEventListener('load',gtmLoad);}})(window,document,'script','dataLayer','GT-K8FC4RXW');</script>
-<!-- End Google Tag Manager -->
+<!-- Google tag (gtag.js) -->
+<script>(function(w,d,s,i){w.dataLayer=w.dataLayer||[];function gtag(){w.dataLayer.push(arguments);}w.gtag=w.gtag||gtag;gtag('js',new Date());gtag('config',i);function gtagLoad(){var j=d.createElement(s);j.async=true;j.src='https://www.googletagmanager.com/gtag/js?id='+i;d.head.appendChild(j);}if(d.readyState==='complete'){gtagLoad();}else{w.addEventListener('load',gtagLoad);}})(window,document,'script','GT-K8FC4RXW');</script>
+<!-- End Google tag (gtag.js) -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>${escHtml(pageTitle(post.title))}</title>
 <meta name="description" content="${escAttr(post.description)}">
@@ -632,9 +632,9 @@ function generateBlogIndex(posts) {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});function gtmLoad(){var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);}if(d.readyState==='complete'){gtmLoad();}else{w.addEventListener('load',gtmLoad);}})(window,document,'script','dataLayer','GT-K8FC4RXW');</script>
-<!-- End Google Tag Manager -->
+<!-- Google tag (gtag.js) -->
+<script>(function(w,d,s,i){w.dataLayer=w.dataLayer||[];function gtag(){w.dataLayer.push(arguments);}w.gtag=w.gtag||gtag;gtag('js',new Date());gtag('config',i);function gtagLoad(){var j=d.createElement(s);j.async=true;j.src='https://www.googletagmanager.com/gtag/js?id='+i;d.head.appendChild(j);}if(d.readyState==='complete'){gtagLoad();}else{w.addEventListener('load',gtagLoad);}})(window,document,'script','GT-K8FC4RXW');</script>
+<!-- End Google tag (gtag.js) -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>CCA Blog | Claude Certified Architect Guides &amp; Study Tips</title>
 <meta name="description" content="Guides on Claude architecture, prompt engineering, MCP, agentic systems, and passing the CCA Foundations exam on your first attempt.">
@@ -724,9 +724,9 @@ function generate404() {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});function gtmLoad(){var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);}if(d.readyState==='complete'){gtmLoad();}else{w.addEventListener('load',gtmLoad);}})(window,document,'script','dataLayer','GT-K8FC4RXW');</script>
-<!-- End Google Tag Manager -->
+<!-- Google tag (gtag.js) -->
+<script>(function(w,d,s,i){w.dataLayer=w.dataLayer||[];function gtag(){w.dataLayer.push(arguments);}w.gtag=w.gtag||gtag;gtag('js',new Date());gtag('config',i);function gtagLoad(){var j=d.createElement(s);j.async=true;j.src='https://www.googletagmanager.com/gtag/js?id='+i;d.head.appendChild(j);}if(d.readyState==='complete'){gtagLoad();}else{w.addEventListener('load',gtagLoad);}})(window,document,'script','GT-K8FC4RXW');</script>
+<!-- End Google tag (gtag.js) -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Page Not Found · Claude Certified Architects</title>
 <meta name="robots" content="noindex,follow">
