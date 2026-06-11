@@ -266,13 +266,20 @@ function generateSessionId() {
 }
 
 async function registerSession(uid) {
-  sessionId = generateSessionId();
+  // Only commit the new sessionId to the shared variable AFTER the write
+  // is acknowledged by the backend. listenForSessionChanges() compares
+  // incoming snapshots against `sessionId` — if we set it eagerly (before
+  // the write lands), its first server snapshot can still show the OLD
+  // activeSession, look like "another device" logged in, and immediately
+  // sign this brand-new session back out.
+  const newSessionId = generateSessionId();
   try {
     const fs = window.__fs;
     await fs.setDoc(fs.doc(db, 'users', uid), {
-      activeSession: sessionId,
+      activeSession: newSessionId,
       lastLoginAt: fs.serverTimestamp()
     }, { merge: true });
+    sessionId = newSessionId;
   } catch(e) { console.warn('Session registration failed:', e); }
 }
 
@@ -355,8 +362,14 @@ function initAuthListener() {
         if (!sessionId) {
           await registerSession(user.uid);
         }
-        // Listen for session takeover from other devices
-        listenForSessionChanges(user.uid);
+        // Listen for session takeover from other devices — only if this
+        // session was actually registered. If registerSession's write
+        // failed, sessionId is still null and a listener here would
+        // compare against nothing, treating any existing activeSession as
+        // "another device" and immediately signing the user back out.
+        if (sessionId) {
+          listenForSessionChanges(user.uid);
+        }
       } catch(e) { console.warn('[Auth] Firestore unavailable:', e.message); }
 
       // Returning from Stripe checkout? The redirect carries "?paid=true" as
@@ -617,14 +630,19 @@ async function submitAuth() {
         console.warn('Verification email failed:', e.message);
         window.__verificationSendFailed = true;
       });
-      // Create user document and register session
-      sessionId = generateSessionId();
+      // Create user document (email/createdAt). Session registration
+      // (activeSession/lastLoginAt) is handled by onAuthStateChanged →
+      // registerSession(), which awaits its write before attaching the
+      // session-change listener. Writing our own activeSession here too,
+      // un-awaited, raced with that listener and could make this brand-new
+      // session look like "another device" logged in, signing it right
+      // back out.
+      //
       // Auth already succeeded above (the account exists) — a Firestore
       // hiccup here (lazy bundle failing to load, or the write itself
       // failing) must not fall into the catch below and get reported as
       // an auth error, which would re-show the signup form over a logged-in
-      // session. Just log and move on; registerSession/the auth listener
-      // will retry session bookkeeping on the next state change.
+      // session. Just log and move on.
       try {
         await fsReady;
         // Use merge:true so we never overwrite an existing enrolled:true.
@@ -632,27 +650,16 @@ async function submitAuth() {
         // value is already there (set by admin script or Stripe webhook).
         window.__fs.setDoc(window.__fs.doc(db, 'users', cred.user.uid), {
           email: email,
-          createdAt: window.__fs.serverTimestamp(),
-          activeSession: sessionId,
-          lastLoginAt: window.__fs.serverTimestamp()
+          createdAt: window.__fs.serverTimestamp()
         }, { merge: true }).catch(e => console.warn('Firestore user doc write failed:', e));
-      } catch (e) { console.warn('[Auth] Firestore unavailable, session not registered:', e.message); }
+      } catch (e) { console.warn('[Auth] Firestore unavailable:', e.message); }
     } else {
-      const cred = await Promise.race([
+      await Promise.race([
           fbAuth.signInWithEmailAndPassword(auth, email, password),
           new Promise((_, reject) => setTimeout(() => reject(new Error('auth/timeout')), 15000))
         ]);
-      // Register session (fire-and-forget — don't block modal close).
-      // Same reasoning as the signup branch above: a Firestore failure here
-      // must not be mistaken for a login failure.
-      sessionId = generateSessionId();
-      try {
-        await fsReady;
-        window.__fs.setDoc(window.__fs.doc(db, 'users', cred.user.uid), {
-          activeSession: sessionId,
-          lastLoginAt: window.__fs.serverTimestamp()
-        }, { merge: true }).catch(e => console.warn('Session write failed:', e));
-      } catch (e) { console.warn('[Auth] Firestore unavailable, session not registered:', e.message); }
+      // Session registration (activeSession/lastLoginAt) is handled by
+      // onAuthStateChanged → registerSession() — see signup branch comment.
     }
     if (authMode === 'signup') {
       // Don't silently close the modal on a brand-new, unenrolled account —
