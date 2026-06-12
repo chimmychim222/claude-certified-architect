@@ -237,7 +237,7 @@ const faqPageQA = [
   },
   {
     q: 'What are the five CCA Foundations exam domains and how are they weighted?',
-    a: 'The exam covers five domains, each weighted differently: Agentic Architecture (27%), Claude Code Configuration (20%), Prompt Engineering (20%), Tool Design & MCP (18%), and Context Management (15%). Agentic Architecture carries the most weight, so it deserves a proportionally larger share of your study time. Our CCA exam guide breaks down each domain in detail.'
+    a: 'The exam covers five domains, each weighted differently: Agentic Architecture (27%), Claude Code Configuration (20%), Prompt Engineering (20%), Tool Design & MCP (18%), and Context Management (15%). Agentic Architecture carries the most weight, so it deserves a proportionally larger share of your study time. Our CCA exam guide breaks down each domain in detail, and our blog covers each one individually, from Domain 1: Agentic Architecture & Orchestration (27%) through to Domain 5: Context Management & Reliability (15%).'
   },
   {
     q: 'Is the CCA Foundations certification worth it?',
