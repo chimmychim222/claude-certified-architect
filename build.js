@@ -219,9 +219,12 @@ const faqPageQA = [
     q: 'Is the CCA Foundations exam open-book?',
     a: 'No. The CCA Foundations exam is a proctored, closed-book assessment — you cannot reference documentation, notes, or external resources during the exam. This is why active recall practice, working through questions without looking up the answer first, is the most effective way to prepare.'
   },
+  // TODO(cost-verify): standard fee ($99) and free-for-first-5,000-partner-employees
+  // early-access terms should be periodically re-checked against Anthropic's
+  // registration page — capacity and pricing can change. Last verified 2026-06-12.
   {
     q: 'How much does the CCA Foundations exam cost?',
-    a: "The CCA Foundations exam carries a $99 (USD) registration fee, paid directly to Anthropic when you schedule your session. Because that's real money riding on a single attempt, it's worth taking our free 10-question diagnostic quiz first to see where you stand against the 720/1,000 passing standard before you book a date."
+    a: "The standard registration fee for the CCA Foundations exam is $99 (USD), paid directly to Anthropic when you schedule your session. Anthropic is also offering free registration to the first 5,000 employees at partner companies through an early-access program — verify current eligibility and pricing on Anthropic's official registration page before you book. Either way, it's worth taking our free 10-question diagnostic quiz first to see where you stand against the 720/1,000 passing standard."
   },
   {
     q: 'Where do I register for the official CCA Foundations exam?',
