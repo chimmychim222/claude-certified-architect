@@ -905,7 +905,7 @@ function paymentDismissBtn() {
 
 function unmatchedPaymentMsg() {
   return "We couldn't automatically match this payment to your account. <strong>Please don't pay again</strong> — " +
-    "email <a href=\"mailto:bioforge.research@gmail.com\" style=\"color:var(--green);text-decoration:underline\">bioforge.research@gmail.com</a> " +
+    "email <a href=\"mailto:ccatesting.support@gmail.com\" style=\"color:var(--green);text-decoration:underline\">ccatesting.support@gmail.com</a> " +
     "with your payment receipt and we'll sort it out manually." + paymentDismissBtn();
 }
 

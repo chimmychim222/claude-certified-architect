@@ -526,7 +526,11 @@
       "Bash(node -e \"console.log\\(require\\('firebase-admin/package.json'\\).version\\)\")",
       "Bash(node scripts/audit-last-night.js \"testing keys/claude-certification-testing-firebase-adminsdk-fbsvc-65fdc2cdbd.json\" \"testing keys/stripe-readonly-key.txt\" --hours=36)",
       "Bash(curl -s https://www.claudecertifiedarchitects.com/app.js)",
-      "Bash(node scripts/cleanup-pending-enrollment.js \"testing keys/claude-certification-testing-firebase-adminsdk-fbsvc-65fdc2cdbd.json\" \"ismael.rodriguez@dxc.com\" --apply)"
+      "Bash(node scripts/cleanup-pending-enrollment.js \"testing keys/claude-certification-testing-firebase-adminsdk-fbsvc-65fdc2cdbd.json\" \"ismael.rodriguez@dxc.com\" --apply)",
+      "Bash(grep -n \"\\\\$49\\\\|stripe\\\\|openPaymentModal\" og-image.html og-preview/index.html)",
+      "Bash(curl -s https://www.claudecertifiedarchitects.com/diagnostic/ -o /tmp/live-diagnostic.html)",
+      "Bash(curl -s -i -m 30 https://claude-certified-architect.onrender.com/)",
+      "Bash(grep -rn -oE \"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\\\.[A-Za-z]{2,}\" --include=\"*.html\" --include=\"*.js\" --include=\"*.json\" --include=\"*.txt\" --include=\"*.xml\" .)"
     ]
   }
 }
