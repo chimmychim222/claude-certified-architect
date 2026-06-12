@@ -656,7 +656,7 @@ function generateBlogPost(post, _index, allPosts) {
 <meta property="og:image:height" content="630">
 <meta property="og:image:type" content="image/png">
 <meta property="article:published_time" content="${post.date}">
-<meta property="article:modified_time" content="${post.date}">
+<meta property="article:modified_time" content="${post.updated || post.date}">
 <meta property="article:section" content="CCA Exam Preparation">
 <meta name="author" content="Claude Certified Architects">
 <meta name="twitter:card" content="summary_large_image">
