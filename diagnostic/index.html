@@ -616,6 +616,7 @@ function showResults() {
     '<p>You scored <strong>' + ws.correct + ' out of ' + ws.total + ' (' + wpct + '%)</strong> here. ' +
     'This domain accounts for <strong>' + weakest.pct + '% of the real exam</strong> — ' +
     'strengthening it will have the biggest impact on your final score.</p>' +
+    '<p><a href="/study-plan-generator/?weak=' + (DOMAINS.indexOf(weakest) + 1) + '">Build a free study plan weighted toward this domain →</a></p>' +
     '</div>';
 
   // Personalized one-liner for the primary offer card directly below — ties

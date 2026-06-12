@@ -196,6 +196,26 @@ const diagnosticSchemas = [
   ])
 ];
 
+/** Schemas for /study-plan-generator */
+const studyPlanSchemas = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: 'CCA Study Plan Generator',
+    description: 'Free tool that builds a personalized, exam-weighted CCA Foundations study schedule from your weeks until exam and self-reported weak domains.',
+    url: BASE + '/study-plan-generator/',
+    applicationCategory: 'EducationalApplication',
+    operatingSystem: 'Any',
+    isAccessibleForFree: true,
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    isPartOf: { '@type': 'WebSite', name: schema.course.provider, url: BASE }
+  },
+  breadcrumb([
+    { name: 'Home',                  url: BASE },
+    { name: 'Study Plan Generator',  url: BASE + '/study-plan-generator' }
+  ])
+];
+
 // FAQ content for /faq — mainEntity text must match the visible <summary>/<p>
 // text in faq/index.html exactly (links rendered as plain text).
 const faqPageQA = [
@@ -886,6 +906,7 @@ function generateSitemap(posts = []) {
     { loc: BASE + '/blog/',                     priority: '0.7', changefreq: 'weekly',  lastmod: gitLastmod('blog/index.html') },
     { loc: BASE + '/register/',               priority: '0.8', changefreq: 'monthly', lastmod: gitLastmod('register/index.html') },
     { loc: BASE + '/diagnostic/',             priority: '0.8', changefreq: 'monthly', lastmod: gitLastmod('diagnostic/index.html') },
+    { loc: BASE + '/study-plan-generator/',   priority: '0.8', changefreq: 'monthly', lastmod: gitLastmod('study-plan-generator/index.html') },
     { loc: BASE + '/faq/',                    priority: '0.8', changefreq: 'monthly', lastmod: gitLastmod('faq/index.html') },
     ...posts.map(p => ({
       loc:        `${BASE}/blog/${p.slug}/`,
@@ -935,6 +956,9 @@ processFile(path.join(__dirname, 'register', 'index.html'),
 
 processFile(path.join(__dirname, 'diagnostic', 'index.html'),
   ...diagnosticSchemas);
+
+processFile(path.join(__dirname, 'study-plan-generator', 'index.html'),
+  ...studyPlanSchemas);
 
 processFile(path.join(__dirname, 'faq', 'index.html'),
   ...faqPageSchemas);
