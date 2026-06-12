@@ -51,3 +51,7 @@ jobs:
             && echo "No changes to commit." \
             || git commit -m "feat: auto-publish scheduled blog post"
           git push
+
+      - name: Submit URLs to IndexNow
+        continue-on-error: true
+        run: node scripts/indexnow-submit.js

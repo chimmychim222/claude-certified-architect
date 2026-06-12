@@ -45,3 +45,7 @@ jobs:
             && echo "No changes to commit." \
             || git commit -m "chore: pre-render static HTML [skip ci]"
           git push
+
+      - name: Submit URLs to IndexNow
+        continue-on-error: true
+        run: node scripts/indexnow-submit.js
