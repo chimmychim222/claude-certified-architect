@@ -1,0 +1,15 @@
+{
+  "title": "Is the CCA Exam Multiple Choice?",
+  "description": "Yes — the CCA Foundations exam is 100% multiple choice, with all 60 questions written as realistic, scenario-based situations rather than recall questions.",
+  "date": "2026-06-12T16:00:00.000Z",
+  "slug": "is-cca-exam-multiple-choice",
+  "ogImage": "/og-image-v2.png",
+  "h1": "Is the CCA Foundations Exam Multiple Choice?",
+  "faq": [
+    {
+      "q": "Is the CCA Foundations exam multiple choice?",
+      "a": "Yes. All 60 questions on the CCA Foundations exam are multiple choice and scenario-based — each describes a realistic situation and asks you to choose the best of several plausible-looking options. The exam is closed-book and proctored, with a 120-minute time limit."
+    }
+  ],
+  "body": "<p><strong>Yes — every question on the CCA Foundations exam is multiple choice.</strong> All 60 questions are also <em>scenario-based</em>: rather than asking you to define a term, each one describes a realistic situation — a team's Claude Code setup, an agent-architecture decision, a tool-design trade-off — and asks you to choose the best response from several options that all sound reasonable at first glance.</p>\n\n<p>That distinction matters for how you prepare. A pure recall question rewards memorising definitions; a scenario-based multiple-choice question rewards judgment — recognising <em>why</em> three of the four options are subtly wrong, not just knowing the textbook definition of the right one. Our <a href=\"/blog/cca-exam-anti-patterns/\">exam anti-patterns guide</a> covers the traps these questions set most often, domain by domain.</p>\n\n<p>The exam is also closed-book and proctored, with a 120-minute time limit for all 60 questions — no notes, no documentation, no second screen. That's one more reason scenario practice under exam-like conditions matters more than re-reading material. According to Anthropic's published exam overview, the specific scenarios you see can also vary between candidates; we'd recommend confirming the exact details of question selection on <a href=\"/register/\">Anthropic's registration page</a>, since we're working from their public materials rather than a first-hand exam log.</p>\n\n<p>Our <a href=\"/diagnostic/\">free 10-question diagnostic</a> and <a href=\"/cca-practice-questions/\">400-question practice bank</a> use the same multiple-choice, scenario-based format as the real exam — across all five domains — so you can build that judgment before it counts.</p>"
+}

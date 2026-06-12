@@ -1,0 +1,15 @@
+{
+  "title": "What Is the CCA Exam Passing Score?",
+  "description": "The CCA Foundations exam passing score is 720 out of 1,000 on Anthropic's scaled, domain-weighted scoring system — not a percentage of questions correct.",
+  "date": "2026-06-12T15:30:00.000Z",
+  "slug": "cca-exam-passing-score",
+  "ogImage": "/og-image-v2.png",
+  "h1": "What Is the CCA Foundations Exam Passing Score?",
+  "faq": [
+    {
+      "q": "What is the passing score for the CCA exam?",
+      "a": "The CCA Foundations exam uses a scaled scoring system from 100 to 1,000. The passing score is 720 out of 1,000 — a domain-weighted scaled score, not a raw percentage of the 60 questions answered correctly."
+    }
+  ],
+  "body": "<p><strong>The passing score for the CCA Foundations exam is 720 out of 1,000</strong> on Anthropic's scaled scoring system — it is not a simple percentage of the 60 questions you answer correctly.</p>\n\n<p>Scaled scoring means your raw answers are converted into a weighted score across the exam's five domains, each worth a different share of the total:</p>\n<ul>\n<li>Agentic Architecture &amp; Orchestration — 27%</li>\n<li>Claude Code Configuration &amp; Workflows — 20%</li>\n<li>Prompt Engineering &amp; Structured Output — 20%</li>\n<li>Tool Design &amp; MCP — 18%</li>\n<li>Context Management &amp; Reliability — 15%</li>\n</ul>\n\n<p>The practical effect: a strong result in Agentic Architecture (27% of the total) does more to lift your scaled score toward 720 than the same accuracy in Context Management (15%) would. The reverse is also true — a weak domain that carries heavy weight can sink an otherwise solid attempt even if your overall raw accuracy looks fine. Anthropic's score report breaks results down by domain, which is exactly the information you want <em>before</em> the exam, not after a failed attempt.</p>\n\n<p>That's the gap our <a href=\"/diagnostic/\">free 10-question diagnostic</a> is built to close. It applies the same domain weightings to your answers and estimates how close you are to 720/1,000 right now, across all five domains, in about five minutes. If one domain is dragging your estimate down, our <a href=\"/cca-exam-guide/\">CCA exam guide</a> breaks down what each domain covers and where to focus your remaining study time.</p>\n\n<p>Scoring details above are based on Anthropic's published exam overview. If Anthropic updates the scoring scale or passing threshold, <a href=\"/register/\">their registration page</a> is the authoritative source — we recommend checking it before exam day.</p>"
+}

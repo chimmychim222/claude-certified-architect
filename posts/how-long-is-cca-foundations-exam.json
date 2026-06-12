@@ -1,0 +1,15 @@
+{
+  "title": "How Long Is the CCA Foundations Exam?",
+  "description": "The CCA Foundations exam runs 120 minutes (2 hours) for 60 scenario-based questions — about 2 minutes per question on average.",
+  "date": "2026-06-12T15:45:00.000Z",
+  "slug": "how-long-is-cca-foundations-exam",
+  "ogImage": "/og-image-v2.png",
+  "h1": "How Long Is the CCA Foundations Exam?",
+  "faq": [
+    {
+      "q": "How long is the CCA Foundations exam?",
+      "a": "The CCA Foundations exam has a 120-minute (2-hour) time limit for 60 scenario-based multiple-choice questions — an average of about 2 minutes per question, though longer scenario questions in higher-weighted domains can take more time than shorter ones."
+    }
+  ],
+  "body": "<p><strong>The CCA Foundations exam has a 120-minute (2-hour) time limit for 60 scenario-based multiple-choice questions</strong> — an average of two minutes per question, though that average hides a lot of variation.</p>\n\n<p>Some questions are short and direct; others describe a multi-paragraph architecture, prompting, or tool-design scenario and ask you to pick the best of several plausible-sounding options. Those longer scenario questions tend to cluster in the exam's higher-weighted domains — Agentic Architecture &amp; Orchestration alone makes up 27% of the exam — so it's common to spend noticeably more than two minutes on some questions and well under a minute on others.</p>\n\n<p>That makes pacing a real factor, not just a formality. A rough approach that works for most candidates: triage on the first pass — answer everything you're confident about quickly, flag the longer scenario questions, and come back to them with whatever time you've banked. Our <a href=\"/blog/cca-exam-day-strategy-what-to-expect/\">exam-day strategy guide</a> covers pacing and what the testing session itself looks like in more detail.</p>\n\n<p>To get a feel for your own pace before exam day, our <a href=\"/diagnostic/\">free 10-question diagnostic</a> (about 5 minutes) uses the same scenario-based format, and our <a href=\"/cca-foundations-exam/\">full 60-question, 120-minute simulation</a> replicates the real exam's length so you can practice under realistic time pressure.</p>\n\n<p>Exam length and format above are based on Anthropic's published exam overview — confirm current details on <a href=\"/register/\">Anthropic's official registration page</a> before you schedule.</p>"
+}

@@ -1,0 +1,15 @@
+{
+  "title": "How Much Does the CCA Exam Cost?",
+  "description": "Anthropic's CCA Foundations exam is free for the first 5,000 partner-company employees during early access; the reported standard fee elsewhere is $99 USD.",
+  "date": "2026-06-12T15:15:00.000Z",
+  "slug": "cca-exam-cost",
+  "ogImage": "/og-image-v2.png",
+  "h1": "How Much Does the Claude Certified Architect (CCA) Exam Cost?",
+  "faq": [
+    {
+      "q": "How much does the Claude Certified Architect exam cost?",
+      "a": "Anthropic's CCA Foundations exam is currently free for the first 5,000 employees at partner companies as part of an early-access program. Outside of that program, the reported general registration fee is $99 USD, paid directly to Anthropic when you schedule your exam. Confirm current pricing and eligibility on Anthropic's official registration portal before booking."
+    }
+  ],
+  "body": "<p><strong>As of this writing, Anthropic's CCA Foundations exam is free for the first 5,000 employees at partner companies through an early-access program; for everyone else, the registration fee is reported at $99 USD</strong>, paid directly to Anthropic when you schedule your session through their registration portal.</p>\n\n<p>Those two figures come from different parts of Anthropic's own materials, and it's worth being upfront that we can't fully reconcile them from outside: the free early-access tier is described as being for employees of Anthropic partner companies specifically, while the $99 figure appears as a general registration fee. We genuinely don't know, from public information, exactly where the line falls between the two, or how long the early-access pricing will last. <strong>Treat both numbers as a starting point, not a guarantee</strong> — <a href=\"/register/\">visit Anthropic's official registration page</a> to confirm your eligibility and the current price before you commit to a date.</p>\n\n<p>Either way, $99 (or simply your time, if you're inside the free-access window) is real cost riding on a single attempt, and a mandatory waiting period applies if you need to retake the exam. Before you book, it's worth getting an honest read on where you stand: our <a href=\"/diagnostic/\">free 10-question diagnostic</a> scores you across all five domains against the 720/1,000 passing standard in about five minutes, so you can decide whether to schedule now or spend a few more weeks with our <a href=\"/cca-practice-questions/\">free practice questions</a> first.</p>\n\n<p><em>This is an independent exam-prep resource and is not affiliated with Anthropic. The pricing and access details above are drawn from publicly available information and may not reflect the latest terms — please verify directly with Anthropic before relying on them.</em></p>"
+}
