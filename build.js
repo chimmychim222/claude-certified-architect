@@ -406,15 +406,20 @@ const POST_TOPICS = {
  * links. Falls back to other-topic posts only if a group is smaller than n+1.
  */
 function relatedPosts(post, allPosts, n = 3) {
+  // cca-foundations-exam-guide-2026 overlaps heavily with the /cca-exam-guide/
+  // pillar (same "CCA exam guide" intent), so it's excluded from other posts'
+  // related-reads to avoid reinforcing that duplication. It still resolves its
+  // own ring normally below.
+  const candidates = allPosts.filter(p => p.slug !== 'cca-foundations-exam-guide-2026' || p.slug === post.slug);
   const topic = POST_TOPICS[post.slug];
-  const group = allPosts.filter(p => POST_TOPICS[p.slug] === topic);
+  const group = candidates.filter(p => POST_TOPICS[p.slug] === topic);
   const idx = group.findIndex(p => p.slug === post.slug);
   const picked = [];
   for (let k = 1; k <= group.length - 1 && picked.length < n; k++) {
     picked.push(group[(idx + k) % group.length]);
   }
   if (picked.length < n) {
-    const others = allPosts.filter(p => p.slug !== post.slug && POST_TOPICS[p.slug] !== topic);
+    const others = candidates.filter(p => p.slug !== post.slug && POST_TOPICS[p.slug] !== topic);
     for (const p of others) {
       if (picked.length >= n) break;
       picked.push(p);

@@ -198,6 +198,24 @@ footer a:hover{color:var(--accent-text)}
 
     <div class="tip-box"><strong>Key insight:</strong> The exam rewards understanding tradeoffs, not picking the "best" technology. Many questions ask you to choose the most appropriate approach given specific constraints — budget, latency, reliability, or team size.</div>
 
+    <h2>Try a Sample CCA Exam Question</h2>
+    <p>Every question on the real exam is scenario-based, not definition recall. Here's a worked example from the highest-weighted domain, Agentic Architecture (27%):</p>
+
+    <h3>Sample Question — Agentic Architecture</h3>
+    <p>An orchestrator agent spawns four subagents in parallel to process different sections of a large document. One subagent encounters a permission error on a file system tool and halts. What is the correct response from the orchestrator?</p>
+    <ul>
+      <li>A. Immediately terminate all remaining subagents and return a top-level error to the user</li>
+      <li>B. Ignore the failed subagent and silently return results from the three successful ones</li>
+      <li>C. Surface the partial failure to the user, return results from successful subagents, and request clarification before retrying</li>
+      <li>D. Automatically retry the failed subagent with elevated permissions to resolve the error autonomously</li>
+    </ul>
+    <p><strong>Correct answer: C.</strong> The minimal-footprint and human-in-the-loop principles require permission errors to be surfaced to the user rather than resolved autonomously. Escalating permissions (D) violates minimal-footprint. Silently returning incomplete results (B) is deceptive. Terminating everything (A) is unnecessarily destructive when most of the task already succeeded.</p>
+    <p>That's one of 400 scenario-based questions across all five domains in our <a href="/cca-practice-questions/">CCA practice questions</a> bank — work through the rest to build the pattern recognition the real exam rewards.</p>
+
+    <h2>Study Timeline</h2>
+    <p>How much prep time you need depends on your existing familiarity with Claude's APIs and tooling. A focused, intensive week of daily practice followed by a full timed simulation is realistic if you already work with Claude regularly. If you're newer to the ecosystem, spreading that same work across two to four weeks — covering each domain in weight order before simulating — gives you more room to absorb the material.</p>
+    <p>For a detailed day-by-day plan, see our <a href="/blog/cca-exam-study-schedule-30-day-plan/">CCA exam study schedule</a>.</p>
+
     <h2>Common Mistakes to Avoid</h2>
     <ul>
       <li>Focusing only on Agentic Architecture because it has the highest weight — every domain can make or break your score</li>
