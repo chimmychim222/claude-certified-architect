@@ -344,7 +344,7 @@ footer a{color:var(--text3);text-decoration:underline}
          visible without scrolling past the score, and the optional email
          capture (a softer, lower-commitment next step for people who aren't
          ready to buy) intentionally comes AFTER it, not before. -->
-    <div class="cta-card cta-card-primary animate-in" style="animation-delay:.3s">
+    <div class="cta-card cta-card-primary animate-in" style="animation-delay:.3s" id="offer-card">
       <div class="cta-card-badge">🎯 Built for what you just saw</div>
       <p id="cta-personal-line" class="cta-personal-line"></p>
       <h3>Close the gap with the full 400-question bank — $49</h3>
@@ -439,6 +439,29 @@ function showScreen(id) {
     document.getElementById(s).classList.toggle('active', s === id);
   });
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── Analytics: fire GA4 "view_offer" only once the $49 offer card actually
+// scrolls into the viewport — not just because the results screen rendered.
+// Each call to showResults() (initial completion or a retake) gets its own
+// observer and its own one-time "fired" flag, so a retake's offer can be
+// tracked again while the same scroll-into-view never double-fires.
+let viewOfferObserver = null;
+function observeOfferVisibility() {
+  if (viewOfferObserver) viewOfferObserver.disconnect();
+  const el = document.getElementById('offer-card');
+  if (!el || typeof IntersectionObserver === 'undefined') return;
+  let fired = false;
+  viewOfferObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting && !fired) {
+        fired = true;
+        if (typeof gtag !== 'undefined') gtag('event', 'view_offer');
+        viewOfferObserver.disconnect();
+      }
+    });
+  }, { threshold: 0.5 });
+  viewOfferObserver.observe(el);
 }
 
 // ── Analytics: fire a GA4 event before navigating to an external link
@@ -583,7 +606,6 @@ function showResults() {
 
   if (typeof gtag !== 'undefined') {
     gtag('event', 'diagnostic_complete', { weak_domain: weakest.label });
-    gtag('event', 'view_offer');
   }
 
   document.getElementById('weak-callout').innerHTML =
@@ -641,6 +663,8 @@ function showResults() {
   if (eb) { eb.disabled = false; eb.textContent = 'Send results'; }
   const ei = document.getElementById('email-input');
   if (ei) ei.value = '';
+
+  observeOfferVisibility();
 }
 
 // ── Email capture ─────────────────────────────────────────────────────────────
