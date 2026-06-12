@@ -196,6 +196,96 @@ const diagnosticSchemas = [
   ])
 ];
 
+// FAQ content for /faq — mainEntity text must match the visible <summary>/<p>
+// text in faq/index.html exactly (links rendered as plain text).
+const faqPageQA = [
+  {
+    q: 'What is the Claude Certified Architect (CCA) Foundations exam?',
+    a: "The CCA Foundations exam is Anthropic's official certification for professionals who design and build production-grade applications with Claude. It tests practical, scenario-based decision-making across five domains: Agentic Architecture, Claude Code Configuration, Prompt Engineering, Tool Design & MCP, and Context Management."
+  },
+  {
+    q: 'How many questions are on the CCA Foundations exam, and how long do I have?',
+    a: 'The CCA Foundations exam consists of 60 scenario-based multiple choice questions with a 120-minute time limit, delivered as a proctored online exam.'
+  },
+  {
+    q: 'What types of questions appear on the CCA Foundations exam?',
+    a: "All questions are scenario-based multiple choice — you're placed in a realistic situation and must choose the best architectural decision. There are no simple definition or recall questions, which is why hands-on practice matters more than memorizing terminology."
+  },
+  {
+    q: 'What is the passing score for the CCA Foundations exam?',
+    a: 'The CCA Foundations exam uses a scaled scoring system from 100 to 1,000. The passing score is 720 out of 1,000 — this is a scaled score, not the percentage of questions you answered correctly.'
+  },
+  {
+    q: 'Is the CCA Foundations exam open-book?',
+    a: 'No. The CCA Foundations exam is a proctored, closed-book assessment — you cannot reference documentation, notes, or external resources during the exam. This is why active recall practice, working through questions without looking up the answer first, is the most effective way to prepare.'
+  },
+  {
+    q: 'How much does the CCA Foundations exam cost?',
+    a: "The CCA Foundations exam carries a $99 (USD) registration fee, paid directly to Anthropic when you schedule your session. Because that's real money riding on a single attempt, it's worth taking our free 10-question diagnostic quiz first to see where you stand against the 720/1,000 passing standard before you book a date."
+  },
+  {
+    q: 'Where do I register for the official CCA Foundations exam?',
+    a: "You register for the official CCA Foundations exam directly through Anthropic. Visit our official exam registration page for a summary of the registration details and a link to Anthropic's registration portal."
+  },
+  {
+    q: 'How long is the CCA Foundations certification valid?',
+    a: 'The CCA Foundations certification is valid for 2 years from your passing date.'
+  },
+  {
+    q: 'Can I retake the CCA Foundations exam if I fail?',
+    a: "Yes. A mandatory waiting period applies between attempts — refer to Anthropic's current certification policy for the exact interval. The most effective retake strategy is to use your score breakdown to find your weakest domain, spend most of your retake preparation there, and run one more full timed simulation before attempting again."
+  },
+  {
+    q: 'What are the five CCA Foundations exam domains and how are they weighted?',
+    a: 'The exam covers five domains, each weighted differently: Agentic Architecture (27%), Claude Code Configuration (20%), Prompt Engineering (20%), Tool Design & MCP (18%), and Context Management (15%). Agentic Architecture carries the most weight, so it deserves a proportionally larger share of your study time. Our CCA exam guide breaks down each domain in detail.'
+  },
+  {
+    q: 'Is the CCA Foundations certification worth it?',
+    a: "For engineers and architects who build production applications with Claude, yes. The certification validates practical skills across agent design, configuration, prompt engineering, tool integration, and context management, and it's valid for 2 years. Even if you don't need the credential itself, the preparation builds a working understanding of the architectural tradeoffs that come up constantly when building with Claude."
+  },
+  {
+    q: 'Who should take the CCA Foundations exam?',
+    a: "The exam is aimed at software engineers, solutions architects, AI engineers, and technical leads who design or oversee production applications built with Claude. No prior certification is required, but hands-on experience with Claude's APIs, Claude Code, and agentic workflows will make the material far more familiar."
+  },
+  {
+    q: 'How should I prepare for the CCA Foundations exam?',
+    a: 'Most candidates prepare in 1–2 weeks: work through each of the five domains, take short daily practice sessions to find weak areas, review the explanation for every question (not just the correct answer), use frameworks like SPIDER, CALM, and PRECISE to organize your thinking, and complete at least one full 120-minute timed simulation before exam day. Our CCA practice questions bank and CCA Foundations exam simulator cover all 400 practice questions across the five domains.'
+  },
+  {
+    q: 'What does the CCA Practice Platform include?',
+    a: 'The platform includes 400 scenario-based practice questions across all five exam domains, full-length 120-minute timed exam simulations, a free 10-question diagnostic quiz that estimates your readiness against the 720/1,000 passing standard, and a complete exam guide covering format, domain weights, and study strategy.'
+  },
+  {
+    q: 'Is this site affiliated with Anthropic?',
+    a: "No. This is an independent study resource. It is not affiliated with, authorized by, or endorsed by Anthropic. 'Claude' and 'Claude Certified Architect' are trademarks of their respective owner. We provide unofficial practice materials — including a free diagnostic quiz, practice questions, and full exam simulations — to help you prepare for the official exam."
+  }
+];
+
+/** Schemas for /faq */
+const faqPageSchemas = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: 'CCA Foundations Exam FAQ',
+    description: 'Answers to the most common questions about the Claude Certified Architect (CCA) Foundations exam: cost, format, passing score, the five domains, and how to prepare.',
+    url: BASE + '/faq/',
+    isPartOf: { '@type': 'WebSite', name: schema.course.provider, url: BASE }
+  },
+  breadcrumb([
+    { name: 'Home', url: BASE },
+    { name: 'FAQ',  url: BASE + '/faq' }
+  ]),
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqPageQA.map(item => ({
+      '@type': 'Question',
+      name: item.q,
+      acceptedAnswer: { '@type': 'Answer', text: item.a }
+    }))
+  }
+];
+
 // ---------------------------------------------------------------------------
 // Helpers — existing pages
 // ---------------------------------------------------------------------------
@@ -452,6 +542,7 @@ function blogNav(activePage) {
       ${link('/cca-exam-guide/', 'Guide')}
       ${link('/diagnostic/', 'Diagnostic')}
       ${link('/blog/', 'Blog')}
+      ${link('/faq/', 'FAQ')}
       <!-- Was a plain "Register" nav-link, easily mistaken for "register/sign
            up for this site." It actually opens Anthropic's external exam-
            registration info page, so it now reads as an explicit external
@@ -480,6 +571,7 @@ function blogFooter() {
     ['/cca-exam-guide/', 'Exam Guide'],
     ['/diagnostic/', 'Free Diagnostic Quiz'],
     ['/blog/', 'Blog'],
+    ['/faq/', 'FAQ'],
     ['/register/', 'Official Exam Registration'],
   ].map(([href, label]) => `<a href="${href}">${label}</a>`).join(' &nbsp;&middot;&nbsp; ');
   return `<footer class="site-footer">
@@ -786,6 +878,7 @@ function generateSitemap(posts = []) {
     { loc: BASE + '/blog/',                     priority: '0.7', changefreq: 'weekly',  lastmod: gitLastmod('blog/index.html') },
     { loc: BASE + '/register/',               priority: '0.8', changefreq: 'monthly', lastmod: gitLastmod('register/index.html') },
     { loc: BASE + '/diagnostic/',             priority: '0.8', changefreq: 'monthly', lastmod: gitLastmod('diagnostic/index.html') },
+    { loc: BASE + '/faq/',                    priority: '0.8', changefreq: 'monthly', lastmod: gitLastmod('faq/index.html') },
     ...posts.map(p => ({
       loc:        `${BASE}/blog/${p.slug}/`,
       priority:   '0.8',
@@ -809,7 +902,7 @@ function generateSitemap(posts = []) {
 
   const dest = path.join(__dirname, 'sitemap.xml');
   fs.writeFileSync(dest, xml, 'utf8');
-  console.log('✓ sitemap.xml  (' + today + ', ' + (7 + posts.length) + ' URLs)');
+  console.log('✓ sitemap.xml  (' + today + ', ' + (8 + posts.length) + ' URLs)');
 }
 
 // ---------------------------------------------------------------------------
@@ -834,6 +927,9 @@ processFile(path.join(__dirname, 'register', 'index.html'),
 
 processFile(path.join(__dirname, 'diagnostic', 'index.html'),
   ...diagnosticSchemas);
+
+processFile(path.join(__dirname, 'faq', 'index.html'),
+  ...faqPageSchemas);
 
 
 console.log('\nBuilding blog…\n');
