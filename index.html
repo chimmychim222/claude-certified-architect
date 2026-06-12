@@ -1020,6 +1020,10 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
   <div class="container">
     <div class="section-title">Practice Tests</div>
     <div class="section-sub">Choose a timed session or take the full certification exam.</div>
+    <!-- Always visible regardless of enrollment — unlike the diagnostic hint
+         below, every user (enrolled or not) can benefit from a personalized
+         schedule, so this isn't toggled by updateDashCards(). -->
+    <p class="dash-diagnostic-hint">Want a study schedule? <a href="/study-plan-generator/">Build a free personalized study plan</a> based on your weeks until exam.</p>
     <!-- Routes undecided visitors toward the free diagnostic instead of just
          bouncing off the locked cards below. Hidden for enrolled users —
          toggled in updateDashCards(), see app.js. -->
