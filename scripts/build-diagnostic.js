@@ -77,7 +77,10 @@ const footEnd   = regHtml.indexOf('</footer>') + 9;
 const FOOTER    = regHtml.slice(footStart, footEnd);
 
 // ── 5. Build the page ─────────────────────────────────────────────────────────
-const STRIPE_LINK = 'https://buy.stripe.com/cNi28k2GE7LngeRcc03ks00';
+// Routes through the homepage's login-gated checkout (sets __pendingCheckout,
+// then proceeds to Stripe with client_reference_id=<uid> — see openPaymentModal
+// in app.js) instead of a bare Stripe link with no client_reference_id.
+const CHECKOUT_URL = '/?checkout=true';
 
 const page = `<!DOCTYPE html>
 <html lang="en">
@@ -283,7 +286,7 @@ footer a{color:var(--text3);text-decoration:underline}
       <a href="/blog/">Blog</a>
       <a href="/register/">Register</a>
     </div>
-    <a href="${STRIPE_LINK}" class="nav-cta">Get Access — $49</a>
+    <a href="${CHECKOUT_URL}" class="nav-cta">Get Access — $49</a>
   </div>
 </nav>
 
@@ -399,7 +402,7 @@ footer a{color:var(--text3);text-decoration:underline}
         <span class="cta-feat">Lifetime access</span>
         <span class="cta-feat">10-day money-back guarantee</span>
       </div>
-      <a href="${STRIPE_LINK}" class="btn-primary">Unlock full access — $49</a>
+      <a href="${CHECKOUT_URL}" class="btn-primary">Unlock full access — $49</a>
       <p class="cta-retake"><a href="#" onclick="retakeDiagnostic();return false;">Retake with new questions</a></p>
     </div>
   </section>
@@ -422,7 +425,7 @@ const DOMAINS = [
   { key: 'Context Management & Reliability',      label: 'Context Management & Reliability',       pct: 15 },
 ];
 
-const STRIPE_LINK = '${STRIPE_LINK}';
+const CHECKOUT_URL = '${CHECKOUT_URL}';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let quiz = [];        // 10 selected questions (shuffled options)

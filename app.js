@@ -141,6 +141,39 @@ let fbAuth = null;
 // by an anonymous homepage visitor) is loaded lazily by ensureFirestore()
 // below, separately from the app+auth bundle.
 document.addEventListener('DOMContentLoaded', function() {
+  // Restore the "this browser's payment never got matched" warning across
+  // reloads — see flagPaymentNeedsReview/PAYMENT_NEEDS_REVIEW_KEY. Runs
+  // before Firebase loads; if enrollment turns out to already be confirmed,
+  // markEnrolled() (called from initAuthListener below) clears this and
+  // replaces the banner with the success message.
+  try {
+    if (localStorage.getItem(PAYMENT_NEEDS_REVIEW_KEY) === '1') {
+      window.__paymentNeedsManualReview = true;
+      const banner = document.getElementById('success-banner');
+      if (banner) {
+        banner.innerHTML = unmatchedPaymentMsg();
+        banner.style.display = 'block';
+      }
+    }
+  } catch(e) {}
+
+  // The diagnostic quiz's "Unlock full access" / "Get Access" CTAs link here
+  // with ?checkout=true so that buy flow goes through this same login-gated
+  // checkout (client_reference_id, see openPaymentModal) instead of a bare
+  // Stripe link. Flag __pendingCheckout now, before Firebase has loaded —
+  // onAuthStateChanged below resumes checkout once the auth state is known,
+  // whether that's "already logged in" (straight to Stripe) or "anonymous"
+  // (open the signup modal first).
+  try {
+    const checkoutParams = new URLSearchParams(window.location.search);
+    if (checkoutParams.get('checkout') === 'true') {
+      checkoutParams.delete('checkout');
+      const qs = checkoutParams.toString();
+      window.history.replaceState({}, '', window.location.pathname + (qs ? '?' + qs : '') + window.location.hash);
+      window.__pendingCheckout = true;
+    }
+  } catch(e) {}
+
   function loadFirebase() {
   (async function() {
   try {
@@ -348,6 +381,22 @@ function initAuthListener() {
         }
       } catch(e) { console.warn('[Auth] Token refresh error:', e.message); }
 
+      // "Enroll Now" while signed out opens this auth modal instead of going
+      // straight to Stripe (see openPaymentModal) and sets __pendingCheckout
+      // so sign-in/sign-up resumes checkout automatically — the visitor
+      // shouldn't have to click "Enroll Now" a second time after logging in.
+      // An already-enrolled account (e.g. they logged into an existing,
+      // paid-up account) goes to the dashboard instead of paying again.
+      if (window.__pendingCheckout) {
+        window.__pendingCheckout = false;
+        closeAuthModal();
+        if (enrolled) {
+          showSection('dashboard');
+        } else {
+          openPaymentModal();
+        }
+      }
+
       // Everything below — the Firestore enrollment fallback, the pending-
       // purchase claim's analytics write, session registration/anti-sharing,
       // attempt history, etc. — needs Firestore. Load it now: this only runs
@@ -405,6 +454,17 @@ function initAuthListener() {
       enrolled = false;
       sessionId = null;
       if (sessionUnsubscribe) { sessionUnsubscribe(); sessionUnsubscribe = null; }
+
+      // Picked up ?checkout=true (see DOMContentLoaded) — this visitor isn't
+      // logged in, so open the login/signup modal now. openPaymentModal()
+      // re-sets __pendingCheckout and shows the checkout subtitle; once they
+      // authenticate, onAuthStateChanged fires again with a user and the
+      // __pendingCheckout handler in the `if (user)` branch above sends them
+      // on to Stripe with client_reference_id.
+      if (window.__pendingCheckout) {
+        openPaymentModal();
+      }
+
       // Anonymous visitor returning from Stripe checkout — they paid BEFORE
       // creating a site account (the webhook stashed their purchase as a
       // "pending enrollment" keyed by checkout email; see claimPendingEnrollment).
@@ -538,6 +598,10 @@ function openAuthModal(mode) {
   switchAuthMode(authMode);
   document.getElementById('auth-modal').classList.add('show');
   document.getElementById('auth-error').style.display = 'none';
+  // Hide the "continue to checkout" subtitle by default — openPaymentModal()
+  // shows it when this modal is opened because checkout requires login.
+  var subtitle = document.getElementById('auth-modal-subtitle');
+  if (subtitle) subtitle.style.display = 'none';
   // Always reset to clean form state — a previous hung submission may have
   // left the loading spinner visible and the form hidden
   document.getElementById('auth-form-area').style.display = 'block';
@@ -560,6 +624,10 @@ function openAuthModal(mode) {
 function closeAuthModal() {
   document.getElementById('auth-modal').classList.remove('show');
   document.body.style.overflow = '';
+  // The user dismissed the modal without completing sign-in/sign-up — drop
+  // any "resume checkout after auth" intent set by openPaymentModal(), so a
+  // later, unrelated login doesn't unexpectedly redirect to Stripe.
+  window.__pendingCheckout = false;
 }
 
 function switchAuthMode(mode) {
@@ -824,6 +892,23 @@ async function maybeFireExamPurchaseEvent(user) {
   }
 }
 
+// localStorage key set by confirmPaymentAndUnlock when a post-checkout poll
+// never confirms enrollment — persisted (not just in-memory) so a page
+// reload doesn't silently drop the "don't pay again" warning and re-enable
+// the checkout CTA. Cleared again the moment enrollment is ever confirmed,
+// by markEnrolled below.
+const PAYMENT_NEEDS_REVIEW_KEY = 'cca_payment_needs_review';
+
+function paymentDismissBtn() {
+  return "<button onclick=\"document.getElementById('success-banner').style.display='none'\" style=\"margin-left:16px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px\">Dismiss</button>";
+}
+
+function unmatchedPaymentMsg() {
+  return "We couldn't automatically match this payment to your account. <strong>Please don't pay again</strong> — " +
+    "email <a href=\"mailto:bioforge.research@gmail.com\" style=\"color:var(--green);text-decoration:underline\">bioforge.research@gmail.com</a> " +
+    "with your payment receipt and we'll sort it out manually." + paymentDismissBtn();
+}
+
 // Local-state setter for `enrolled` that funnels through the guarded,
 // fire-once analytics check above. Every place that discovers enrollment
 // calls this instead of assigning `enrolled = true` directly, so the
@@ -831,6 +916,15 @@ async function maybeFireExamPurchaseEvent(user) {
 // (and duplicated, or missed) across each detection path.
 function markEnrolled(user) {
   enrolled = true;
+  if (window.__paymentNeedsManualReview) {
+    window.__paymentNeedsManualReview = false;
+    try { localStorage.removeItem(PAYMENT_NEEDS_REVIEW_KEY); } catch(e) {}
+    const banner = document.getElementById('success-banner');
+    if (banner) {
+      banner.innerHTML = 'Payment successful! Welcome to the Claude Certified Architect course.' + paymentDismissBtn();
+      banner.style.display = 'block';
+    }
+  }
   maybeFireExamPurchaseEvent(user);
 }
 
@@ -992,14 +1086,22 @@ function showPendingVerificationBanner(user) {
 // by the webhook's Admin SDK, which only runs after Stripe confirms payment.
 // This just closes the gap between "Stripe redirected me back" and "the
 // webhook (possibly cold-starting on Render's free tier) has finished."
+//
+// Now that checkout requires login and carries client_reference_id (see
+// openPaymentModal / the webhook), this poll should basically always
+// succeed within the window — a timeout here means something went wrong
+// server-side (e.g. the webhook never fired), not a typo'd email. If the
+// window still expires without confirmation, don't tell the user to "refresh
+// shortly" (which just invites a second $49 charge); flag the payment for
+// manual support follow-up instead — see unmatchedPaymentMsg /
+// PAYMENT_NEEDS_REVIEW_KEY and the gate in openPaymentModal.
 let _confirmingPayment = false;
 async function confirmPaymentAndUnlock(user) {
   if (_confirmingPayment || !user) return;
   _confirmingPayment = true;
 
   const banner = document.getElementById('success-banner');
-  const dismissBtn = "<button onclick=\"document.getElementById('success-banner').style.display='none'\" style=\"margin-left:16px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px\">Dismiss</button>";
-  const stillConfirmingMsg = "We're still confirming your payment with Stripe — this can occasionally take a few minutes. Please refresh this page shortly; your access will appear automatically once it's confirmed." + dismissBtn;
+  const dismissBtn = paymentDismissBtn();
 
   try {
     await ensureFirestore();
@@ -1053,22 +1155,31 @@ async function confirmPaymentAndUnlock(user) {
       updateDashCards();
       showSection('dashboard');
     } else {
-      banner.innerHTML = stillConfirmingMsg;
+      flagPaymentNeedsReview(banner);
     }
   } catch (e) {
     // Covers ensureFirestore() failing to load (e.g. a CDN blip right when
     // the user lands back from Stripe) as well as any other unexpected
-    // error from the block above. Either way, fall back to the same
-    // "refresh shortly" messaging — the finally below resets the guard so
-    // a later trigger (e.g. the next onAuthStateChanged, or a page reload)
-    // can retry, instead of leaving the banner stuck on "Confirming..." or
-    // silently no-oping for the rest of the session.
+    // error from the block above. The finally below resets the guard so a
+    // later trigger (e.g. the next onAuthStateChanged, or a page reload)
+    // can retry — if that retry succeeds, markEnrolled() clears the flag set
+    // here and replaces this banner with the success message.
     console.warn('[Payment] confirmPaymentAndUnlock failed:', e.message);
-    banner.innerHTML = stillConfirmingMsg;
-    banner.style.display = 'block';
+    flagPaymentNeedsReview(banner);
   } finally {
     _confirmingPayment = false;
   }
+}
+
+// Persist "this browser's post-checkout payment never got matched to an
+// account" so a reload doesn't drop the warning (see PAYMENT_NEEDS_REVIEW_KEY)
+// and route any future checkout-CTA click back to this banner instead of
+// Stripe (see openPaymentModal).
+function flagPaymentNeedsReview(banner) {
+  window.__paymentNeedsManualReview = true;
+  try { localStorage.setItem(PAYMENT_NEEDS_REVIEW_KEY, '1'); } catch(e) {}
+  banner.innerHTML = unmatchedPaymentMsg();
+  banner.style.display = 'block';
 }
 
 // Fire a GA4 begin_checkout event before navigating to Stripe. gtag() queues
@@ -1091,14 +1202,37 @@ function trackCheckoutAndGo(url) {
 }
 
 function openPaymentModal() {
+  // A previous checkout's post-payment confirmation never matched this
+  // browser to an account (see confirmPaymentAndUnlock) — don't let the
+  // visitor pay a second time while that's unresolved. Point them back at
+  // the "don't pay again, contact support" banner instead of Stripe.
+  if (window.__paymentNeedsManualReview) {
+    const banner = document.getElementById('success-banner');
+    // #success-banner is position:fixed at the top of the viewport, so
+    // making it visible is enough — no scrolling needed. If the visitor is
+    // scrolled down, bring them to the top so they actually see it.
+    if (banner) banner.style.display = 'block';
+    if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+
   if (!currentUser) {
-    // Not logged in — go straight to Stripe without email prefill.
-    // After paying, the user can create an account with the same email and
-    // the webhook will have already set enrolled:true for them.
-    trackCheckoutAndGo(STRIPE_PAYMENT_LINK);
+    // Require login before checkout — this guarantees a stable Firebase UID
+    // to send Stripe as client_reference_id (below), so the webhook can
+    // enroll the right account even if a different/typo'd email is entered
+    // at Stripe. __pendingCheckout tells onAuthStateChanged to resume
+    // checkout automatically once sign-in/sign-up completes.
+    window.__pendingCheckout = true;
+    openAuthModal('signup');
+    const subtitle = document.getElementById('auth-modal-subtitle');
+    if (subtitle) {
+      subtitle.textContent = "Create a free account (or log in) to continue — we'll link your $49 purchase to it automatically.";
+      subtitle.style.display = 'block';
+    }
     return;
   }
   const url = new URL(STRIPE_PAYMENT_LINK);
+  url.searchParams.set('client_reference_id', currentUser.uid);
   url.searchParams.set('prefilled_email', currentUser.email);
   trackCheckoutAndGo(url.toString());
 }

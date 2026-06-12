@@ -129,8 +129,50 @@ app.post(
       return res.json({ skipped: true, type: event.type });
     }
 
-    const session       = event.data.object;
-    const customerEmail = session.customer_details?.email || session.customer_email;
+    const session           = event.data.object;
+    const customerEmail     = session.customer_details?.email || session.customer_email;
+    const clientReferenceId = session.client_reference_id || null;
+
+    // ── Logged-in checkout: client_reference_id carries the Firebase UID of
+    // the account that started checkout (set by openPaymentModal in app.js).
+    // Enroll THAT account directly, regardless of what email was typed at
+    // Stripe — this is the fix for the email-mismatch/double-payment bug
+    // class, where a typo'd or different checkout email orphaned the
+    // purchase in pending_enrollments and left the paying account locked out.
+    // Only fall through to the email-based lookup below for genuinely
+    // logged-out checkouts (no client_reference_id) or if this uid is
+    // somehow stale (e.g. the account was deleted between checkout and now).
+    if (clientReferenceId) {
+      try {
+        const userRecord     = await auth.getUser(clientReferenceId);
+        const uid            = userRecord.uid;
+        const existingClaims = userRecord.customClaims || {};
+
+        await auth.setCustomUserClaims(uid, { ...existingClaims, enrolled: true });
+
+        await db.collection('users').doc(uid).set(
+          {
+            enrolled:        true,
+            enrolledAt:      admin.firestore.FieldValue.serverTimestamp(),
+            email:           customerEmail || userRecord.email,
+            stripeSessionId: session.id,
+          },
+          { merge: true }
+        );
+
+        // Clean up any pending record left over from an earlier checkout
+        // attempt under a different (typo'd/mismatched) email.
+        if (customerEmail) {
+          db.collection('pending_enrollments').doc(customerEmail.toLowerCase()).delete().catch(() => {});
+        }
+
+        console.log(`Enrolled via client_reference_id: ${customerEmail || userRecord.email} (${uid})`);
+        return res.json({ ok: true, enrolled: uid });
+      } catch (err) {
+        console.warn(`client_reference_id lookup failed (${clientReferenceId}):`, err.message);
+        // fall through to email-based lookup below
+      }
+    }
 
     if (!customerEmail) {
       console.error('No customer email in event');

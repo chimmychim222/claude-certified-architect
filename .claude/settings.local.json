@@ -513,7 +513,20 @@
       "Bash(curl -s \"https://www.googletagmanager.com/ns.html?id=GT-K8FC4RXW\")",
       "Bash(node \"C:\\\\tmp\\\\fix-ga4-snippet.js\")",
       "Bash(git show *)",
-      "Bash(python -c \"from PIL import Image; im=Image.open\\(r'C:\\\\tmp\\\\old-og-image-v2.png'\\); print\\(im.size, im.mode, im.format\\)\")"
+      "Bash(python -c \"from PIL import Image; im=Image.open\\(r'C:\\\\tmp\\\\old-og-image-v2.png'\\); print\\(im.size, im.mode, im.format\\)\")",
+      "Bash(curl -sI \"https://www.claudecertifiedarchitects.com/diagnostic/\")",
+      "Bash(curl -sI \"https://www.claudecertifiedarchitects.com/register/\")",
+      "Bash(awk 'NR==384{print length\\($0\\)}' diagnostic/index.html)",
+      "Bash(awk 'NR>384 && NR<=671' diagnostic/index.html)",
+      "Bash(sed -n '383,699p' diagnostic/index.html)",
+      "Bash(node --check /tmp/diag_script.js)",
+      "Bash(node --check \"scripts/backfill-exam-purchase-event-sent.js\")",
+      "Bash(curl -s \"https://www.googletagmanager.com/gtag/js?id=GT-K8FC4RXW\" -o /tmp/gt-config.js)",
+      "Bash(node -e \"console.log\\(require\\('stripe/package.json'\\).version\\)\")",
+      "Bash(node -e \"console.log\\(require\\('firebase-admin/package.json'\\).version\\)\")",
+      "Bash(node scripts/audit-last-night.js \"testing keys/claude-certification-testing-firebase-adminsdk-fbsvc-65fdc2cdbd.json\" \"testing keys/stripe-readonly-key.txt\" --hours=36)",
+      "Bash(curl -s https://www.claudecertifiedarchitects.com/app.js)",
+      "Bash(node scripts/cleanup-pending-enrollment.js \"testing keys/claude-certification-testing-firebase-adminsdk-fbsvc-65fdc2cdbd.json\" \"ismael.rodriguez@dxc.com\" --apply)"
     ]
   }
 }
