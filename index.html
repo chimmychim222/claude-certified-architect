@@ -184,6 +184,10 @@ section .section-sub{color:var(--text2);margin-bottom:40px;font-size:1rem}
 .password-reset{font-size:.8rem;color:var(--accent-text);cursor:pointer;margin-top:-10px;margin-bottom:16px;display:inline-block}
 .password-reset:hover{text-decoration:underline}
 .auth-loading{display:none;text-align:center;padding:20px;color:var(--text2);font-size:.9rem}
+.btn-google{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:13px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-size:.95rem;font-weight:500;font-family:inherit;cursor:pointer;transition:all .2s ease}
+.btn-google:hover{border-color:var(--text3);background:rgba(0,0,0,.02)}
+.auth-spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;margin:0 auto 14px;animation:auth-spin .7s linear infinite}
+@keyframes auth-spin{to{transform:rotate(360deg)}}
 
 /* ── DASHBOARD ── */
 .dashboard{display:none}
@@ -725,6 +729,16 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
     <p id="auth-modal-subtitle" style="display:none;margin:-12px 0 20px;font-size:.85rem;color:var(--text2);line-height:1.5"></p>
     <div class="auth-error" id="auth-error"></div>
     <div id="auth-form-area">
+      <button type="button" class="btn-google" id="auth-google-btn" onclick="signInWithGoogle()">
+        <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
+          <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+          <path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/>
+          <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.167 6.656 3.58 9 3.58z"/>
+        </svg>
+        Continue with Google
+      </button>
+      <div class="auth-divider">or</div>
       <div class="form-group">
         <label>Email Address</label>
         <input type="email" id="auth-email" placeholder="you@example.com">
@@ -733,17 +747,14 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
         <label>Password</label>
         <input type="password" id="auth-password" placeholder="Enter your password" onkeydown="if(event.key==='Enter')submitAuth()">
       </div>
-      <div id="auth-confirm-group" class="form-group" style="display:none">
-        <label>Confirm Password</label>
-        <input type="password" id="auth-confirm" placeholder="Confirm your password" onkeydown="if(event.key==='Enter')submitAuth()">
-      </div>
       <a class="password-reset" id="auth-reset-link" onclick="resetPassword()">Forgot password?</a>
       <button class="btn-primary" style="width:100%;padding:14px" id="auth-submit-btn" onclick="submitAuth()">Log In</button>
       <div class="auth-toggle" id="auth-toggle-login" style="display:none">Already have an account? <button type="button" onclick="switchAuthMode('login')">Log In</button></div>
       <div class="auth-toggle" id="auth-toggle-signup">Don't have an account? <button type="button" onclick="switchAuthMode('signup')">Sign Up Free</button></div>
     </div>
     <div class="auth-loading" id="auth-loading">
-      <div style="margin-bottom:8px">Please wait...</div>
+      <div class="auth-spinner" aria-hidden="true"></div>
+      <div id="auth-loading-text">Please wait…</div>
     </div>
     <!-- Shown in place of the form after a successful "Sign Up Free" — see
          the signup branch of submitAuth(). A brand-new account is free and

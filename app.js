@@ -157,23 +157,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   } catch(e) {}
 
-  // The diagnostic quiz's "Unlock full access" / "Get Access" CTAs link here
-  // with ?checkout=true so that buy flow goes through this same login-gated
-  // checkout (client_reference_id, see openPaymentModal) instead of a bare
-  // Stripe link. Flag __pendingCheckout now, before Firebase has loaded —
-  // onAuthStateChanged below resumes checkout once the auth state is known,
-  // whether that's "already logged in" (straight to Stripe) or "anonymous"
-  // (open the signup modal first).
-  try {
-    const checkoutParams = new URLSearchParams(window.location.search);
-    if (checkoutParams.get('checkout') === 'true') {
-      checkoutParams.delete('checkout');
-      const qs = checkoutParams.toString();
-      window.history.replaceState({}, '', window.location.pathname + (qs ? '?' + qs : '') + window.location.hash);
-      window.__pendingCheckout = true;
-    }
-  } catch(e) {}
-
   function loadFirebase() {
   (async function() {
   try {
@@ -268,6 +251,10 @@ let enrolled = false;
 function updateNavUI() {
   const loggedOut = document.getElementById('nav-logged-out');
   const loggedIn = document.getElementById('nav-logged-in');
+  // Pages without the full site nav (e.g. /diagnostic/, which only loads
+  // app.js for its checkout/auth modal) don't have these elements — nothing
+  // to update there.
+  if (!loggedOut || !loggedIn) return;
   if (currentUser) {
     loggedOut.style.display = 'none';
     loggedIn.style.display = 'flex';
@@ -385,16 +372,11 @@ function initAuthListener() {
       // straight to Stripe (see openPaymentModal) and sets __pendingCheckout
       // so sign-in/sign-up resumes checkout automatically — the visitor
       // shouldn't have to click "Enroll Now" a second time after logging in.
-      // An already-enrolled account (e.g. they logged into an existing,
-      // paid-up account) goes to the dashboard instead of paying again.
+      // openPaymentModal() itself handles the "already enrolled" case (goes
+      // to the dashboard instead of paying again) — see there.
       if (window.__pendingCheckout) {
         window.__pendingCheckout = false;
-        closeAuthModal();
-        if (enrolled) {
-          showSection('dashboard');
-        } else {
-          openPaymentModal();
-        }
+        openPaymentModal();
       }
 
       // Everything below — the Firestore enrollment fallback, the pending-
@@ -616,7 +598,6 @@ function openAuthModal(mode) {
   // Clear fields
   document.getElementById('auth-email').value = '';
   document.getElementById('auth-password').value = '';
-  document.getElementById('auth-confirm') && (document.getElementById('auth-confirm').value = '');
   document.body.style.overflow = 'hidden';
   setTimeout(() => document.getElementById('auth-email').focus(), 100);
 }
@@ -630,11 +611,30 @@ function closeAuthModal() {
   window.__pendingCheckout = false;
 }
 
+// Puts the auth modal into a loading state with a custom message — covers
+// every async wait between a click and the next visible step (Firebase
+// still loading, the post-auth checkout handoff, the Stripe redirect's
+// begin_checkout wait) so it never looks like "my click did nothing."
+// Opens the modal itself, so it's also safe to call as the very first
+// response to a click (see buyNow() on /diagnostic/).
+function openAuthModalLoading(message) {
+  document.getElementById('auth-modal').classList.add('show');
+  document.getElementById('auth-error').style.display = 'none';
+  const subtitle = document.getElementById('auth-modal-subtitle');
+  if (subtitle) subtitle.style.display = 'none';
+  document.getElementById('auth-form-area').style.display = 'none';
+  const welcomePanel = document.getElementById('auth-welcome');
+  if (welcomePanel) welcomePanel.style.display = 'none';
+  document.getElementById('auth-loading').style.display = 'block';
+  const loadingText = document.getElementById('auth-loading-text');
+  if (loadingText) loadingText.textContent = message;
+  document.body.style.overflow = 'hidden';
+}
+
 function switchAuthMode(mode) {
   authMode = mode;
   const title = document.getElementById('auth-modal-title');
   const submitBtn = document.getElementById('auth-submit-btn');
-  const confirmGroup = document.getElementById('auth-confirm-group');
   const toggleLogin = document.getElementById('auth-toggle-login');
   const toggleSignup = document.getElementById('auth-toggle-signup');
   const resetLink = document.getElementById('auth-reset-link');
@@ -643,14 +643,12 @@ function switchAuthMode(mode) {
   if (mode === 'signup') {
     title.textContent = 'Create Account';
     submitBtn.textContent = 'Create Account';
-    confirmGroup.style.display = 'block';
     toggleLogin.style.display = 'block';
     toggleSignup.style.display = 'none';
     resetLink.style.display = 'none';
   } else {
     title.textContent = 'Log In';
     submitBtn.textContent = 'Log In';
-    confirmGroup.style.display = 'none';
     toggleLogin.style.display = 'none';
     toggleSignup.style.display = 'block';
     resetLink.style.display = 'inline-block';
@@ -661,6 +659,71 @@ function showAuthError(msg) {
   const el = document.getElementById('auth-error');
   el.textContent = msg;
   el.style.display = 'block';
+}
+
+// Shared user/{uid} doc write for a brand-new account — both email/password
+// signup and a first-time Google sign-in call this. merge:true so we never
+// overwrite an existing enrolled:true; enrolled:false is never written, so
+// Firestore keeps whatever value is already there (set by an admin script or
+// the Stripe webhook). Auth has already succeeded by the time this is
+// called, so a Firestore hiccup here (lazy bundle failing to load, or the
+// write itself failing) just logs and moves on — it must not be treated as
+// an auth failure.
+async function writeUserDoc(user, email) {
+  try {
+    await ensureFirestore();
+    window.__fs.setDoc(window.__fs.doc(db, 'users', user.uid), {
+      email: email,
+      createdAt: window.__fs.serverTimestamp()
+    }, { merge: true }).catch(e => console.warn('Firestore user doc write failed:', e));
+  } catch (e) { console.warn('[Auth] Firestore unavailable:', e.message); }
+}
+
+// One-tap alternative to submitAuth() for a $49 impulse buy — Google handles
+// identity, so there's no email/password/confirm to type. Still produces the
+// same Firebase UID that openPaymentModal() sends to Stripe as
+// client_reference_id.
+async function signInWithGoogle() {
+  if (!firebaseReady) {
+    showAuthError('Authentication is not configured yet. Please set up Firebase.');
+    return;
+  }
+
+  // Capture before any await — see submitAuth for why this must happen
+  // before onAuthStateChanged can clear it.
+  const wasPendingCheckout = !!window.__pendingCheckout;
+
+  document.getElementById('auth-error').style.display = 'none';
+  openAuthModalLoading('Signing you in…');
+
+  try {
+    const provider = new fbAuth.GoogleAuthProvider();
+    const result = await fbAuth.signInWithPopup(auth, provider);
+    const info = fbAuth.getAdditionalUserInfo(result);
+    if (info && info.isNewUser) {
+      await writeUserDoc(result.user, result.user.email);
+    }
+
+    if (wasPendingCheckout) {
+      // See submitAuth — avoids racing onAuthStateChanged's
+      // pendingCheckout-resume, which calls openPaymentModal().
+      openAuthModalLoading('Setting up your purchase…');
+    } else if (info && info.isNewUser) {
+      document.getElementById('auth-loading').style.display = 'none';
+      document.getElementById('auth-welcome').style.display = 'block';
+    } else {
+      closeAuthModal();
+    }
+  } catch(e) {
+    document.getElementById('auth-form-area').style.display = 'block';
+    document.getElementById('auth-loading').style.display = 'none';
+    const msg = {
+      'auth/popup-closed-by-user': 'Sign-in was cancelled.',
+      'auth/cancelled-popup-request': 'Sign-in was cancelled.',
+      'auth/popup-blocked': 'Your browser blocked the sign-in popup. Please allow popups for this site and try again.'
+    }[e.code] || e.message;
+    showAuthError(msg);
+  }
 }
 
 async function submitAuth() {
@@ -675,22 +738,26 @@ async function submitAuth() {
   if (!email || !password) { showAuthError('Please enter your email and password.'); return; }
   if (password.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
 
-  if (authMode === 'signup') {
-    const confirm = document.getElementById('auth-confirm').value;
-    if (password !== confirm) { showAuthError('Passwords do not match.'); return; }
-  }
+  // Capture before any await — onAuthStateChanged (triggered by the auth
+  // calls below) reads and clears window.__pendingCheckout to resume
+  // checkout, and its timing relative to this function's continuation isn't
+  // guaranteed. Reading it now makes the "resume checkout" branch below
+  // deterministic regardless of which one runs first.
+  const wasPendingCheckout = !!window.__pendingCheckout;
 
   // Kick off the Firestore bundle load now, in parallel with the auth
   // round-trip below — both signup and login immediately write a
-  // user/session doc to Firestore once auth succeeds.
-  const fsReady = ensureFirestore();
+  // user/session doc to Firestore once auth succeeds (see writeUserDoc).
+  ensureFirestore();
 
   const btn = document.getElementById('auth-submit-btn');
   const formArea = document.getElementById('auth-form-area');
   const loading = document.getElementById('auth-loading');
+  const loadingText = document.getElementById('auth-loading-text');
   btn.disabled = true;
   formArea.style.display = 'none';
   loading.style.display = 'block';
+  if (loadingText) loadingText.textContent = authMode === 'signup' ? 'Creating your account…' : 'Signing you in…';
 
   try {
     if (authMode === 'signup') {
@@ -715,29 +782,13 @@ async function submitAuth() {
         console.warn('Verification email failed:', e.message);
         window.__verificationSendFailed = true;
       });
-      // Create user document (email/createdAt). Session registration
-      // (activeSession/lastLoginAt) is handled by onAuthStateChanged →
-      // registerSession(), which awaits its write before attaching the
-      // session-change listener. Writing our own activeSession here too,
-      // un-awaited, raced with that listener and could make this brand-new
-      // session look like "another device" logged in, signing it right
-      // back out.
-      //
-      // Auth already succeeded above (the account exists) — a Firestore
-      // hiccup here (lazy bundle failing to load, or the write itself
-      // failing) must not fall into the catch below and get reported as
-      // an auth error, which would re-show the signup form over a logged-in
-      // session. Just log and move on.
-      try {
-        await fsReady;
-        // Use merge:true so we never overwrite an existing enrolled:true.
-        // Never write enrolled:false — omit it so Firestore keeps whatever
-        // value is already there (set by admin script or Stripe webhook).
-        window.__fs.setDoc(window.__fs.doc(db, 'users', cred.user.uid), {
-          email: email,
-          createdAt: window.__fs.serverTimestamp()
-        }, { merge: true }).catch(e => console.warn('Firestore user doc write failed:', e));
-      } catch (e) { console.warn('[Auth] Firestore unavailable:', e.message); }
+      // Session registration (activeSession/lastLoginAt) is handled by
+      // onAuthStateChanged → registerSession(), which awaits its write
+      // before attaching the session-change listener. Writing our own
+      // activeSession here too, un-awaited, raced with that listener and
+      // could make this brand-new session look like "another device" logged
+      // in, signing it right back out.
+      await writeUserDoc(cred.user, email);
     } else {
       await Promise.race([
           fbAuth.signInWithEmailAndPassword(auth, email, password),
@@ -746,13 +797,21 @@ async function submitAuth() {
       // Session registration (activeSession/lastLoginAt) is handled by
       // onAuthStateChanged → registerSession() — see signup branch comment.
     }
-    if (authMode === 'signup') {
+
+    if (wasPendingCheckout) {
+      // Don't show the welcome panel (signup) or close the modal (login) —
+      // either would race onAuthStateChanged's pendingCheckout-resume (see
+      // initAuthListener), which calls openPaymentModal() to send this
+      // visitor on to Stripe. A loading state converges cleanly whether that
+      // resume fires before or after this point.
+      openAuthModalLoading('Setting up your purchase…');
+    } else if (authMode === 'signup') {
       // Don't silently close the modal on a brand-new, unenrolled account —
-      // the visitor just handed us an email/password and has no idea what
-      // happens next. Swap the spinner for a short welcome state that names
-      // the two real next steps (enroll now, or try the free diagnostic
-      // first) so "Sign Up Free" visibly leads somewhere. Either button in
-      // that panel calls closeAuthModal() itself once the user picks one.
+      // the visitor just handed us an email and has no idea what happens
+      // next. Swap the spinner for a short welcome state that names the two
+      // real next steps (enroll now, or try the free diagnostic first) so
+      // "Sign Up Free" visibly leads somewhere. Either button in that panel
+      // calls closeAuthModal() itself once the user picks one.
       loading.style.display = 'none';
       document.getElementById('auth-welcome').style.display = 'block';
     } else {
@@ -1186,6 +1245,13 @@ function flagPaymentNeedsReview(banner) {
 // into dataLayer even before gtag.js has loaded, but a queued hit can be lost
 // if the page unloads first — so we wait briefly for event_callback (or a 1s
 // timeout) before navigating.
+//
+// checkoutEventSent guards against firing this twice for one checkout intent
+// (e.g. openPaymentModal() runs again via onAuthStateChanged's
+// pendingCheckout-resume right after a logged-out buyer authenticates) —
+// without it, GA4 would log two begin_checkout events for a single click,
+// making the funnel's drop-off numbers look better than reality.
+let checkoutEventSent = false;
 function trackCheckoutAndGo(url) {
   let navigated = false;
   const go = () => {
@@ -1193,6 +1259,8 @@ function trackCheckoutAndGo(url) {
     navigated = true;
     window.location.href = url;
   };
+  if (checkoutEventSent) { go(); return; }
+  checkoutEventSent = true;
   if (typeof gtag !== 'undefined') {
     gtag('event', 'begin_checkout', { value: 49, currency: 'USD', event_callback: go, event_timeout: 1000 });
     setTimeout(go, 1000);
@@ -1231,6 +1299,25 @@ function openPaymentModal() {
     }
     return;
   }
+
+  // Already enrolled — don't send a paying customer back to Stripe. Land on
+  // the dashboard if this page has one (homepage); otherwise (e.g.
+  // /diagnostic/, which has no dashboard section) go to the homepage, which
+  // will show it.
+  if (enrolled) {
+    if (document.getElementById('dashboard-section')) {
+      closeAuthModal();
+      showSection('dashboard');
+    } else {
+      openAuthModalLoading('Taking you to your dashboard…');
+      window.location.href = '/';
+    }
+    return;
+  }
+
+  // Brief feedback for the begin_checkout/gtag wait below (up to ~1s) so the
+  // click doesn't look like it did nothing while we redirect to Stripe.
+  openAuthModalLoading('Redirecting to secure checkout…');
   const url = new URL(STRIPE_PAYMENT_LINK);
   url.searchParams.set('client_reference_id', currentUser.uid);
   url.searchParams.set('prefilled_email', currentUser.email);
@@ -1266,6 +1353,9 @@ function checkPaymentSuccess() {
 // NAVIGATION
 // ═══════════════════════════════════════
 function showSection(id) {
+  // Pages without the dashboard/SPA sections (e.g. /diagnostic/, which only
+  // loads app.js for its checkout/auth modal) have nothing for this to do.
+  if (!document.getElementById('home-section')) return;
   ['home','pricing','testimonials','dashboard','test','results','lessons','progress'].forEach(s => {
     const el = document.getElementById(s + '-section');
     if (el) el.style.display = 'none';

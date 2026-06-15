@@ -215,6 +215,33 @@ footer a{color:var(--text3);text-decoration:underline}
 #site-banner{position:relative;background:var(--surface3);color:var(--text2);font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.72rem;line-height:1.4;text-align:center;padding:7px 44px 7px 16px;border-bottom:1px solid var(--border2)}
 #site-banner-close{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);font-size:1.1rem;line-height:1;cursor:pointer;padding:4px 7px;border-radius:4px;transition:color .15s;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center}
 #site-banner-close:hover{color:var(--text)}
+
+/* ── AUTH / PAYMENT MODAL (ported from index.html — see app.js) ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(25,25,24,.4);backdrop-filter:blur(8px);z-index:200;display:none;align-items:center;justify-content:center;overscroll-behavior:contain}
+.modal-overlay.show{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;max-width:500px;width:90%;position:relative;box-shadow:0 16px 48px rgba(0,0,0,.1)}
+.modal h2,.modal .modal-title{font-size:1.4rem;font-weight:700;margin-bottom:24px;color:var(--text)}
+.modal .close-btn{position:absolute;top:16px;right:20px;font-size:1.4rem;color:var(--text3);cursor:pointer;transition:all .2s;background:none;border:none}
+.modal .close-btn:hover{color:var(--text);transform:rotate(90deg)}
+.form-group{margin-bottom:18px}
+.form-group label{display:block;font-size:.82rem;color:var(--text2);margin-bottom:6px;font-weight:500;font-family:-apple-system,system-ui,'Segoe UI',sans-serif}
+.form-group input{width:100%;padding:12px 14px;border-radius:var(--radius-sm);background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:.95rem;transition:all .25s ease}
+.form-group input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(217,119,87,.1)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.secure-note{display:flex;align-items:center;gap:8px;color:var(--text3);font-size:.78rem;margin:16px 0}
+.auth-toggle{text-align:center;margin-top:20px;font-size:.85rem;color:var(--text2)}
+.auth-toggle a,.auth-toggle button{color:var(--accent-text);cursor:pointer;font-weight:500;text-decoration:underline;text-underline-offset:3px;font-size:inherit;padding:0;background:none;border:none;font-family:inherit}
+.auth-toggle a:hover{text-decoration:underline}
+.auth-error{background:rgba(196,75,63,.06);border:1px solid rgba(196,75,63,.2);color:var(--red);padding:10px 14px;border-radius:var(--radius-sm);font-size:.85rem;margin-bottom:16px;display:none}
+.auth-divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--text3);font-size:.8rem}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.password-reset{font-size:.8rem;color:var(--accent-text);cursor:pointer;margin-top:-10px;margin-bottom:16px;display:inline-block}
+.password-reset:hover{text-decoration:underline}
+.auth-loading{display:none;text-align:center;padding:20px;color:var(--text2);font-size:.9rem}
+.btn-google{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:13px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-size:.95rem;font-weight:500;font-family:inherit;cursor:pointer;transition:all .2s ease}
+.btn-google:hover{border-color:var(--text3);background:rgba(0,0,0,.02)}
+.auth-spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;margin:0 auto 14px;animation:auth-spin .7s linear infinite}
+@keyframes auth-spin{to{transform:rotate(360deg)}}
 </style>
 <!-- cca:schema:start -->
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"CCA Readiness Diagnostic","description":"Free 10-question CCA Foundations diagnostic quiz: get a per-domain score and a readiness estimate against the 720/1,000 passing standard.","url":"https://www.claudecertifiedarchitects.com/diagnostic/","isPartOf":{"@type":"WebSite","name":"Claude Certified Architects","url":"https://www.claudecertifiedarchitects.com"}}</script>
@@ -240,9 +267,54 @@ footer a{color:var(--text3);text-decoration:underline}
            account. Relabeled with explicit external-link semantics. -->
       <a href="/register/" aria-label="Official Claude Certified Architect exam registration on Anthropic's site">Official Exam <span aria-hidden="true" style="font-size:.85em;line-height:1">&#8599;</span></a>
     </div>
-    <a href="/?checkout=true" class="nav-cta" onclick="return trackCheckoutAndGo(this.href)">Get Access — $49</a>
+    <button type="button" class="nav-cta" onclick="buyNow()">Get Access — $49</button>
   </div>
 </nav>
+
+<!-- ═══════ AUTH / PAYMENT MODAL (ported from index.html — see app.js) ═══════ -->
+<div class="modal-overlay" id="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
+  <div class="modal">
+    <button class="close-btn" onclick="closeAuthModal()" aria-label="Close dialog">&times;</button>
+    <p id="auth-modal-title" class="modal-title" role="heading" aria-level="2">Log In</p>
+    <p id="auth-modal-subtitle" style="display:none;margin:-12px 0 20px;font-size:.85rem;color:var(--text2);line-height:1.5"></p>
+    <div class="auth-error" id="auth-error"></div>
+    <div id="auth-form-area">
+      <button type="button" class="btn-google" id="auth-google-btn" onclick="signInWithGoogle()">
+        <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
+          <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+          <path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/>
+          <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.167 6.656 3.58 9 3.58z"/>
+        </svg>
+        Continue with Google
+      </button>
+      <div class="auth-divider">or</div>
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="auth-email" placeholder="you@example.com">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="auth-password" placeholder="Enter your password" onkeydown="if(event.key==='Enter')submitAuth()">
+      </div>
+      <a class="password-reset" id="auth-reset-link" onclick="resetPassword()">Forgot password?</a>
+      <button class="btn-primary" style="width:100%;padding:14px" id="auth-submit-btn" onclick="submitAuth()">Log In</button>
+      <div class="auth-toggle" id="auth-toggle-login" style="display:none">Already have an account? <button type="button" onclick="switchAuthMode('login')">Log In</button></div>
+      <div class="auth-toggle" id="auth-toggle-signup">Don't have an account? <button type="button" onclick="switchAuthMode('signup')">Sign Up Free</button></div>
+    </div>
+    <div class="auth-loading" id="auth-loading">
+      <div class="auth-spinner" aria-hidden="true"></div>
+      <div id="auth-loading-text">Please wait…</div>
+    </div>
+    <div class="auth-welcome" id="auth-welcome" style="display:none;text-align:center">
+      <div style="font-size:2.4rem;line-height:1;margin-bottom:10px" aria-hidden="true">🎉</div>
+      <p style="margin:0 0 8px;font-size:1.15rem;font-weight:700" role="heading" aria-level="3">Welcome to Claude Certified Architects!</p>
+      <p style="color:var(--text2);font-size:.9rem;margin:0 0 22px;line-height:1.5">Your free account is ready. Here's where most people start:</p>
+      <button class="btn-primary" style="width:100%;padding:14px;margin-bottom:10px" onclick="closeAuthModal();buyNow()">See pricing &amp; enroll — $49</button>
+      <a class="btn-secondary" style="display:block;width:100%;padding:14px;text-align:center;text-decoration:none;box-sizing:border-box" href="/" onclick="closeAuthModal()">Back to homepage</a>
+    </div>
+  </div>
+</div>
 
 <main class="container">
 
@@ -356,7 +428,7 @@ footer a{color:var(--text3);text-decoration:underline}
         <span class="cta-feat">Lifetime access</span>
         <span class="cta-feat">10-day money-back guarantee</span>
       </div>
-      <a href="/?checkout=true" class="btn-primary btn-cta-main" onclick="return trackCheckoutAndGo(this.href)">Unlock full access — $49</a>
+      <button type="button" class="btn-primary btn-cta-main" onclick="buyNow()">Unlock full access — $49</button>
       <p class="cta-retake"><a href="#" onclick="retakeDiagnostic();return false;">Retake with new questions</a></p>
     </div>
 
@@ -391,8 +463,6 @@ const DOMAINS = [
   { key: 'Tool Design & MCP Integration',         label: 'Tool Design & MCP Integration',          pct: 18 },
   { key: 'Context Management & Reliability',      label: 'Context Management & Reliability',       pct: 15 },
 ];
-
-const STRIPE_LINK = 'https://buy.stripe.com/cNi28k2GE7LngeRcc03ks00';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let quiz = [];        // 10 selected questions (shuffled options)
@@ -465,24 +535,19 @@ function observeOfferVisibility() {
   viewOfferObserver.observe(el);
 }
 
-// ── Analytics: fire a GA4 event before navigating to an external link
-// (e.g. Stripe). gtag() queues into dataLayer even before gtag.js has
-// loaded, but a queued hit can be lost if the page unloads first — so we
-// wait briefly for event_callback (or a 1s timeout) before navigating.
-function trackCheckoutAndGo(url) {
-  let navigated = false;
-  const go = () => {
-    if (navigated) return;
-    navigated = true;
-    window.location.href = url;
-  };
-  if (typeof gtag !== 'undefined') {
-    gtag('event', 'begin_checkout', { value: 49, currency: 'USD', event_callback: go, event_timeout: 1000 });
-    setTimeout(go, 1000);
+// ── Checkout entry point — opens the auth/checkout modal (app.js) in place,
+// without leaving this page or its results behind. app.js is loaded with
+// `defer` (see end of file) so it may not have run yet when this is first
+// clicked — retry briefly until openPaymentModal() is available, showing a
+// loading state on the modal itself so the click never looks like it did
+// nothing.
+function buyNow() {
+  if (typeof window.openPaymentModal === 'function') {
+    window.openPaymentModal();
   } else {
-    go();
+    if (typeof window.openAuthModalLoading === 'function') window.openAuthModalLoading('Loading…');
+    setTimeout(buyNow, 50);
   }
-  return false;
 }
 
 // ── Start ─────────────────────────────────────────────────────────────────────
@@ -724,5 +789,6 @@ function retakeDiagnostic() {
   renderQuestion();
 }
 </script>
+<script src="/app.js" defer></script>
 </body>
 </html>
