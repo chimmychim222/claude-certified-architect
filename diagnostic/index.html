@@ -372,7 +372,7 @@ footer a{color:var(--text3);text-decoration:underline}
     <div id="question-area"></div>
 
     <div class="quiz-nav">
-      <button class="btn-next" id="btn-next" onclick="nextQuestion()">Next →</button>
+      <button class="btn-next" id="btn-next" onclick="nextDiagQuestion()">Next →</button>
     </div>
   </section>
 
@@ -558,11 +558,11 @@ function startDiagnostic() {
   }
   buildQuiz();
   showScreen('quiz-screen');
-  renderQuestion();
+  renderDiagQuestion();
 }
 
 // ── Render current question ───────────────────────────────────────────────────
-function renderQuestion() {
+function renderDiagQuestion() {
   const q = quiz[current];
   const total = quiz.length;
   const pct   = ((current + 1) / total) * 100;
@@ -577,7 +577,7 @@ function renderQuestion() {
 
   const optHtml = q.o.map((opt, oi) => {
     const sel = answers[current] === oi ? ' selected' : '';
-    return '<button class="q-opt' + sel + '" onclick="selectAnswer(' + oi + ')" aria-pressed="' + (answers[current]===oi) + '">' +
+    return '<button class="q-opt' + sel + '" onclick="selectDiagAnswer(' + oi + ')" aria-pressed="' + (answers[current]===oi) + '">' +
       '<span class="opt-letter">' + LABELS[oi] + '.</span> ' + opt +
     '</button>';
   }).join('');
@@ -591,17 +591,17 @@ function renderQuestion() {
 }
 
 // ── Select answer ─────────────────────────────────────────────────────────────
-function selectAnswer(idx) {
+function selectDiagAnswer(idx) {
   answers[current] = idx;
-  renderQuestion();
+  renderDiagQuestion();
 }
 
 // ── Next question ─────────────────────────────────────────────────────────────
-function nextQuestion() {
+function nextDiagQuestion() {
   if (answers[current] === -1) return;
   if (current < quiz.length - 1) {
     current++;
-    renderQuestion();
+    renderDiagQuestion();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } else {
     showResults();
@@ -786,7 +786,7 @@ async function submitResultsEmail(e) {
 function retakeDiagnostic() {
   buildQuiz();
   showScreen('quiz-screen');
-  renderQuestion();
+  renderDiagQuestion();
 }
 </script>
 <script src="/app.js" defer></script>
