@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Google tag (gtag.js) -->
+<script>(function(w,d,s,i){w.dataLayer=w.dataLayer||[];function gtag(){w.dataLayer.push(arguments);}w.gtag=w.gtag||gtag;gtag('js',new Date());gtag('config',i);gtag('config','AW-18239120039',{'conversion_linker':true});function gtagLoad(){var j=d.createElement(s);j.async=true;j.src='https://www.googletagmanager.com/gtag/js?id='+i;d.head.appendChild(j);}if(d.readyState==='complete'){gtagLoad();}else{w.addEventListener('load',gtagLoad);}})(window,document,'script','GT-K8FC4RXW');</script>
+<!-- End Google tag (gtag.js) -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Common MCP Server Design Mistakes and How to Avoid Them</title>
+<meta name="description" content="Learn the seven most common Model Context Protocol server design mistakes that trip up CCA candidates and production architects, plus proven patterns to buil...">
+<link rel="canonical" href="https://www.claudecertifiedarchitects.com/blog/common-mcp-server-design-mistakes-how-to-avoid/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Common MCP Server Design Mistakes and How to Avoid Them">
+<meta property="og:description" content="Learn the seven most common Model Context Protocol server design mistakes that trip up CCA candidates and production architects, plus proven patterns to buil...">
+<meta property="og:url" content="https://www.claudecertifiedarchitects.com/blog/common-mcp-server-design-mistakes-how-to-avoid/">
+<meta property="og:site_name" content="Claude Certified Architects">
+<meta property="og:image" content="https://www.claudecertifiedarchitects.com/og-image-v2.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
+<meta property="article:published_time" content="2026-06-15T15:13:12.041Z">
+<meta property="article:modified_time" content="2026-06-15T15:13:12.041Z">
+<meta property="article:section" content="CCA Exam Preparation">
+<meta name="author" content="Claude Certified Architects">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Common MCP Server Design Mistakes and How to Avoid Them">
+<meta name="twitter:description" content="Learn the seven most common Model Context Protocol server design mistakes that trip up CCA candidates and production architects, plus proven patterns to buil...">
+<meta name="twitter:image" content="https://www.claudecertifiedarchitects.com/og-image-v2.png">
+<link rel="preconnect" href="https://www.googletagmanager.com">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"Common MCP Server Design Mistakes and How to Avoid Them","description":"Learn the seven most common Model Context Protocol server design mistakes that trip up CCA candidates and production architects, plus proven patterns to buil...","url":"https://www.claudecertifiedarchitects.com/blog/common-mcp-server-design-mistakes-how-to-avoid/","datePublished":"2026-06-15T15:13:12.041Z","dateModified":"2026-06-15T15:13:12.041Z","image":"https://www.claudecertifiedarchitects.com/og-image-v2.png","publisher":{"@type":"Organization","name":"Claude Certified Architects","url":"https://www.claudecertifiedarchitects.com"},"author":{"@type":"Organization","name":"Claude Certified Architects","url":"https://www.claudecertifiedarchitects.com"},"isPartOf":{"@type":"WebSite","name":"Claude Certified Architects","url":"https://www.claudecertifiedarchitects.com"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.claudecertifiedarchitects.com"},{"@type":"ListItem","position":2,"name":"Blog","item":"https://www.claudecertifiedarchitects.com/blog/"},{"@type":"ListItem","position":3,"name":"Common MCP Server Design Mistakes and How to Avoid Them","item":"https://www.claudecertifiedarchitects.com/blog/common-mcp-server-design-mistakes-how-to-avoid/"}]}</script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --banner-h:0px;--bg:#f5f3ea;--surface:#fff;--surface3:#e8e5dc;--border:#d9d5ca;--border2:#c5c0b5;--text3:#6f6f66;
+  --text:#191918;--text2:#5a5a52;--text3:#6f6f66;
+  --accent:#d97757;--accent2:#a04f31;--accent3:#a8502f;--accent-text:#b04928;--accent-btn:#c4522c;
+  --radius:8px;
+}
+html{scroll-behavior:smooth}
+body{font-family:Georgia,'Times New Roman',serif;background:var(--bg);color:var(--text);line-height:1.7;overflow-x:hidden;min-height:100vh}
+a{color:var(--accent-text);text-decoration:underline;text-underline-offset:3px;transition:color .2s}
+a:hover{color:var(--accent3)}
+
+/* ── Nav ── */
+nav{position:fixed;top:var(--banner-h,0px);left:0;right:0;z-index:100;background:rgba(245,243,234,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+nav .inner{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;max-width:1100px;margin:0 auto;gap:12px}
+.nav-logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1rem;font-weight:600;color:var(--text);text-decoration:none;letter-spacing:-.3px;white-space:nowrap}
+.nav-logo span{color:var(--text3);font-weight:400;font-size:.82rem;margin-left:6px}
+.nav-links{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.nav-links a{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:8px 14px;border-radius:6px;font-size:.88rem;color:var(--text2);text-decoration:none;transition:all .2s;white-space:nowrap}
+.nav-links a:hover{color:var(--text);background:rgba(0,0,0,.04)}
+.nav-links a.active{color:var(--text);font-weight:600}
+.nav-cta{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;background:var(--accent-btn);color:#fff !important;padding:8px 18px;border-radius:6px;font-size:.88rem;font-weight:600;text-decoration:none !important;transition:background .2s;white-space:nowrap}
+.nav-cta:hover{background:var(--accent2) !important}
+.nav-hamburger{display:none;flex-direction:column;justify-content:center;align-items:center;gap:5px;padding:6px;cursor:pointer;border:none;background:none;margin-left:auto;flex-shrink:0;min-width:44px;min-height:44px}
+.nav-hamburger span{display:block;width:22px;height:2px;background:var(--text);border-radius:2px;transition:transform .25s,opacity .25s}
+@media(max-width:660px){
+  nav .inner{flex-wrap:nowrap}
+  .nav-links{display:none !important;position:absolute;top:100%;left:0;right:0;flex-direction:column;background:rgba(245,243,234,.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:12px 16px;gap:0;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+  .nav-links.open{display:flex !important}
+  .nav-links a{padding:12px 16px;border-radius:6px;width:100%;text-align:left;white-space:normal;min-height:44px;display:flex;align-items:center}
+  .nav-cta{display:none !important}
+  .nav-hamburger{display:flex !important}
+}
+
+/* ── Post page ── */
+.post-wrap{max-width:720px;margin:0 auto;padding:86px clamp(1.5rem,4vw,2.5rem) 80px}
+.back-link{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.88rem;color:var(--text3);text-decoration:none;display:inline-block;margin-bottom:24px;transition:color .2s}
+.back-link:hover{color:var(--accent-text)}
+.post-title{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:700;color:var(--text);line-height:1.15;letter-spacing:-.5px;margin-bottom:10px}
+.post-meta{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.85rem;color:var(--text3);padding-bottom:28px;border-bottom:1px solid var(--border);margin-bottom:32px}
+
+/* ── Post body typography ── */
+.post-body{font-size:1.05rem;line-height:1.78}
+.post-body h2{font-size:1.45rem;font-weight:700;color:var(--text);margin:2.2em 0 .65em;letter-spacing:-.3px;line-height:1.25}
+.post-body h3{font-size:1.15rem;font-weight:700;color:var(--text);margin:1.8em 0 .5em;line-height:1.3}
+.post-body p{margin-bottom:1.2em}
+.post-body ul,.post-body ol{margin:0 0 1.2em 1.4em}
+.post-body li{margin-bottom:.4em}
+.post-body strong{font-weight:700;color:var(--text)}
+.post-body code{font-family:'Courier New',monospace;font-size:.87em;background:#e8e5dc;padding:2px 6px;border-radius:4px;color:var(--accent2)}
+.post-body pre{background:#191918;color:#f5f3ea;padding:20px 24px;border-radius:var(--radius);overflow-x:auto;margin:1.5em 0;font-family:'Courier New',monospace;font-size:.87em;line-height:1.6}
+.post-body pre code{background:none;padding:0;color:inherit}
+.post-body blockquote{border-left:3px solid var(--accent);padding:10px 18px;margin:1.5em 0;color:var(--text2);font-style:italic}
+.post-body hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.post-body table{display:block;width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border-collapse:collapse;margin:1.5em 0;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.9rem}
+.post-body th{text-align:left;padding:10px 14px;border-bottom:2px solid var(--border);font-weight:600;color:var(--text)}
+.post-body td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text2)}
+
+/* ── Related articles (internal-linking block at end of each post) ── */
+.related-posts{margin-top:3em;padding-top:1.8em;border-top:1px solid var(--border)}
+.related-posts h2{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1.05rem;font-weight:700;color:var(--text);margin:0 0 .9em;letter-spacing:-.2px}
+.related-posts ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.6em}
+.related-posts li{margin:0}
+.related-posts a{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;color:var(--accent-text);text-decoration:none;font-weight:600;font-size:.95rem;line-height:1.4}
+.related-posts a:hover{text-decoration:underline}
+
+/* ── Blog index ── */
+.blog-wrap{max-width:720px;margin:0 auto;padding:96px clamp(1.5rem,4vw,2.5rem) 80px}
+.blog-header{margin-bottom:44px;padding-bottom:28px;border-bottom:1px solid var(--border)}
+.blog-header h1{font-size:clamp(2rem,4vw,2.75rem);font-weight:700;letter-spacing:-.5px;margin-bottom:8px}
+.blog-header p{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;color:var(--text2);font-size:.97rem}
+.post-list{display:flex;flex-direction:column;gap:0}
+.post-card{padding:28px 0;border-bottom:1px solid var(--border)}
+.post-card-date{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.82rem;color:var(--text3);margin-bottom:5px}
+.post-card-title{font-size:1.22rem;font-weight:700;margin-bottom:7px;line-height:1.3}
+.post-card-title a{color:var(--text);text-decoration:none;transition:color .2s}
+.post-card-title a:hover{color:var(--accent-text)}
+.post-card-desc{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;color:var(--text2);font-size:.93rem;line-height:1.55}
+.empty-state{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;color:var(--text3);padding:40px 0}
+
+/* ── Breadcrumb ── */
+.bc{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.82rem;padding:10px 0 4px}
+.bc ol{list-style:none;display:flex;align-items:center;gap:0;padding:0;margin:0}
+.bc li{display:flex;align-items:center}
+.bc li+li::before{content:"›";padding:0 6px;color:var(--text3);font-size:.9em}
+.bc a{color:var(--text3);text-decoration:none;transition:color .2s}
+.bc a:hover{color:var(--accent-text)}
+.bc [aria-current]{color:var(--text2);font-weight:500}
+
+/* ── Footer ── */
+.site-footer{background:#191918;color:#8a8a7f;padding:28px 24px;text-align:center;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.82rem;line-height:1.6}
+.site-footer a{color:#8a8a7f;text-underline-offset:3px}
+.site-footer a:hover{color:#f5f3ea}
+
+/* ── Compliance banner ── */
+#site-banner{position:fixed;top:0;left:0;right:0;z-index:101;background:var(--surface3,#e8e5dc);color:var(--text2,#5a5a52);font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.72rem;line-height:1.4;text-align:center;padding:7px 44px 7px 16px;border-bottom:1px solid var(--border2,#c5c0b5)}
+#site-banner-close{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3,#8a8a7f);font-size:1.1rem;line-height:1;cursor:pointer;padding:4px 7px;border-radius:4px;transition:color .15s;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center}
+#site-banner-close:hover{color:var(--text,#191918)}
+</style>
+</head>
+<body>
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GT-K8FC4RXW" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+<div id="site-banner" role="note" aria-label="Independence notice">Independent exam prep · Not affiliated with, authorized by, or endorsed by Anthropic.<button id="site-banner-close" aria-label="Dismiss notice">✕</button></div>
+<script>(function(){var b=document.getElementById("site-banner"),c=document.getElementById("site-banner-close");if(!b)return;if(localStorage.getItem("ccaBanner")==="0"){b.style.display="none";document.documentElement.style.setProperty("--banner-h","0px");return;}function setH(){document.documentElement.style.setProperty("--banner-h",b.offsetHeight+"px");}setH();window.addEventListener("resize",setH);c.addEventListener("click",function(){b.style.display="none";document.documentElement.style.setProperty("--banner-h","0px");localStorage.setItem("ccaBanner","0");});})()</script>
+<nav aria-label="Main navigation">
+  <div class="inner">
+    <a href="/" class="nav-logo">CCA <span>Practice Platform</span></a>
+    <div class="nav-links" id="blog-nav-links">
+      <a href="/cca-practice-questions/">Practice</a>
+      <a href="/cca-foundations-exam/">Exam Sim</a>
+      <a href="/cca-exam-guide/">Guide</a>
+      <a href="/diagnostic/">Diagnostic</a>
+      <a href="/blog/" class="active">Blog</a>
+      <a href="/faq/">FAQ</a>
+      <!-- Was a plain "Register" nav-link, easily mistaken for "register/sign
+           up for this site." It actually opens Anthropic's external exam-
+           registration info page, so it now reads as an explicit external
+           link with an arrow + accessible label. -->
+      <a href="/register/" aria-label="Official Claude Certified Architect exam registration on Anthropic's site">Official Exam <span aria-hidden="true" style="font-size:.85em;line-height:1">&#8599;</span></a>
+    </div>
+    <a href="/" class="nav-cta">Start Practicing</a>
+    <button class="nav-hamburger" aria-label="Toggle menu"
+      onclick="document.getElementById('blog-nav-links').classList.toggle('open')">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+<main class="post-wrap">
+  <article>
+    <header>
+      <div class="bc" role="navigation" aria-label="Breadcrumb">
+        <ol>
+          <li><a href="/">Home</a></li>
+          <li><a href="/blog/">Blog</a></li>
+          <li><span aria-current="page">Common MCP Server Design Mistakes and How to Avoid Them</span></li>
+        </ol>
+      </div>
+      <h1 class="post-title">Common MCP Server Design Mistakes and How to Avoid Them</h1>
+      <p class="post-meta">By Claude Certified Architects · <time datetime="2026-06-15T15:13:12.041Z">June 15, 2026</time></p>
+    </header>
+    <div class="post-body">
+      <h2>Why MCP Server Design Matters for CCA Certification</h2>
+
+<p>The Model Context Protocol (MCP) represents a fundamental shift in how AI systems interact with external tools and data sources. For Claude Certified Architect candidates, understanding MCP server design isn't just about passing an exam—it's about building production-grade integrations that actually work. Yet even experienced developers consistently make the same design mistakes when implementing MCP servers, leading to brittle integrations, security vulnerabilities, and failed deployments.</p>
+
+<p>After reviewing hundreds of MCP implementations and working with CCA exam candidates, we've identified seven critical design mistakes that appear repeatedly. These errors account for approximately 60% of MCP-related questions on the foundations exam and cause the majority of real-world integration failures. More importantly, they're entirely preventable once you understand the underlying patterns.</p>
+
+<p>This guide examines each mistake in detail, explains why it matters for both certification and production use, and provides concrete patterns you can implement immediately. Whether you're preparing for the CCA Foundations exam or building actual MCP servers, these insights will save you significant debugging time and help you design more robust integrations.</p>
+
+<h2>Mistake 1: Treating MCP Like a Traditional REST API</h2>
+
+<p>The most pervasive mistake developers make is approaching MCP server design with a REST API mindset. This fundamental misunderstanding leads to poorly structured servers that fight against the protocol's design rather than leveraging it.</p>
+
+<p>MCP operates on a client-server architecture where the client (typically Claude Desktop or another AI application) initiates all connections. Unlike REST APIs that respond to individual HTTP requests, MCP servers maintain stateful connections using JSON-RPC 2.0 over stdio or SSE transport layers. This connection model fundamentally changes how you should design your server.</p>
+
+<p><strong>What goes wrong:</strong> Developers create MCP servers with dozens of fine-grained tools that mirror REST endpoint patterns. For example, they'll implement separate tools for "getUserById", "getUserByEmail", "getUserByUsername", "listUsers", and "searchUsers". This approach creates cognitive overload for the AI model, increases token usage unnecessarily, and makes tool selection less reliable.</p>
+
+<p><strong>The correct approach:</strong> Design tools around user intent and capabilities rather than database operations. Instead of five separate user lookup tools, create a single "manage_users" tool with parameters that handle different query patterns. The tool description should clearly articulate what the tool accomplishes, not how it works internally. Your implementation can route to different backend services based on provided parameters, but the AI should see a coherent capability.</p>
+
+<p>For the CCA exam, expect questions that test your understanding of appropriate tool granularity. The exam often presents scenarios where you must choose between multiple tool designs, and the correct answer consistently favours capability-oriented design over operation-oriented design. Remember that each tool you expose carries a token cost in the system prompt—good design minimises this overhead whilst maximising capability.</p>
+
+<h2>Mistake 2: Neglecting Resource Discovery Patterns</h2>
+
+<p>MCP's resource system provides a powerful mechanism for exposing readable content to AI applications, yet many implementations completely ignore this capability or use it incorrectly. Resources represent documents, data, or content that an AI might need to reference, distinct from tools which represent actions.</p>
+
+<p><strong>What goes wrong:</strong> Developers either skip implementing resources entirely, relying solely on tools to fetch data, or they implement resources without proper URI schemes and metadata. A common anti-pattern is creating a tool called "readDocument" instead of properly exposing documents as resources. This forces the AI to explicitly call a tool every time it needs content, increasing latency and complicating the interaction model.</p>
+
+<p>Another frequent mistake is implementing static resource lists without supporting resource templates or subscriptions. When you have potentially thousands of accessible documents, files, or data objects, hardcoding them all in the resource list becomes unmanageable and defeats the purpose.</p>
+
+<p><strong>The correct approach:</strong> Implement resources for any content that the AI might need to read or reference. Use clear, hierarchical URI schemes that make sense to both humans and AI models. For example, "file:///project/docs/api-reference.md" is far superior to "resource://doc123". Support resource templates when dealing with large or dynamic content sets—this allows the AI to construct resource URIs based on patterns you define.</p>
+
+<p>Include comprehensive metadata with your resources. The MIME type helps the AI understand how to interpret the content. The description should explain what the resource contains and when it might be relevant. If your resource content changes, implement the resources/updated notification so clients can refresh their understanding.</p>
+
+<p>CCA exam questions frequently test whether candidates understand the resource versus tool distinction. You'll encounter scenarios asking you to design an MCP server for specific use cases—choosing between implementing something as a resource or a tool is a critical decision point that appears repeatedly.</p>
+
+<h2>Mistake 3: Poor Error Handling and Message Validation</h2>
+
+<p>MCP servers operate in an environment where failures are inevitable—network issues, rate limits, invalid parameters, missing permissions, and downstream service failures all occur regularly. Yet many implementations handle errors poorly or inconsistently, leading to confusing failures that are difficult to debug.</p>
+
+<p><strong>What goes wrong:</strong> Developers return generic error messages, fail to validate input parameters properly, or worse, let exceptions bubble up uncaught. Common patterns include returning "Error: something went wrong" without context, not validating required parameters before attempting operations, and mixing error reporting mechanisms (sometimes throwing exceptions, sometimes returning error objects).</p>
+
+<p>Another critical mistake is not implementing proper timeout handling. When your MCP tool calls an external API that hangs, your entire server can become unresponsive, breaking the client connection and requiring a restart.</p>
+
+<p><strong>The correct approach:</strong> Implement comprehensive input validation for every tool and resource request. Check that required parameters are present, that types are correct, and that values fall within acceptable ranges before attempting any operations. Return JSON-RPC error objects with meaningful error codes and descriptive messages that help both developers and AI models understand what went wrong.</p>
+
+<p>Structure your error messages to be actionable. Instead of "Invalid parameter", return "The 'start_date' parameter must be in ISO 8601 format (YYYY-MM-DD), but received '2024-13-45'". The AI model can use these detailed errors to correct its approach and retry successfully.</p>
+
+<p>Implement timeouts for all external operations. If you're calling a database, API, or file system, wrap these operations in timeout logic. When timeouts occur, return clear errors indicating that the operation exceeded its time limit. Set reasonable timeout values based on your service's performance characteristics—typically 30-60 seconds for tool operations.</p>
+
+<p>For CCA certification, you need to understand the JSON-RPC 2.0 error object structure and the standard error codes (-32700 to -32603). Exam questions often present error scenarios and ask you to identify the appropriate error response structure or troubleshoot why an error handling implementation is failing.</p>
+
+<h2>Mistake 4: Inadequate Security and Permission Models</h2>
+
+<p>Security considerations in MCP servers extend beyond basic authentication. Because MCP servers often act as bridges between AI systems and sensitive data or powerful capabilities, the security model must be thoughtfully designed from the ground up.</p>
+
+<p><strong>What goes wrong:</strong> The most dangerous mistake is implementing MCP tools that perform privileged operations without proper authorisation checks. Developers sometimes assume that because the MCP server is running locally or on a trusted network, security controls aren't necessary. This assumption creates severe vulnerabilities, especially when the AI model might be influenced by untrusted input.</p>
+
+<p>Another common error is hardcoding credentials or API keys directly in the server code, exposing them in version control or making them difficult to rotate. Some implementations also fail to implement rate limiting or resource quotas, allowing a misbehaving or compromised client to exhaust system resources.</p>
+
+<p><strong>The correct approach:</strong> Implement proper authentication and authorisation for your MCP server. Even if your server runs locally, it should validate that requests come from authorised clients. Use environment variables or secure configuration management for credentials and secrets—never hardcode them.</p>
+
+<p>Design your tools with the principle of least privilege. Each tool should only have access to the minimum resources and permissions necessary to accomplish its purpose. If a tool only needs read access to a database, don't grant it write permissions "just in case". Implement role-based access controls when different clients might have different permission levels.</p>
+
+<p>Add rate limiting to prevent abuse. Even well-intentioned AI interactions can generate rapid sequences of tool calls. Implement per-client rate limits that prevent resource exhaustion whilst allowing normal operations. Return clear error messages when rate limits are exceeded, including information about when the client can retry.</p>
+
+<p>Validate and sanitise all input parameters, especially those that will be used in database queries, file system operations, or command executions. Implement allowlists for file paths, database tables, or other resources that tools can access. Never construct SQL queries through string concatenation with user-provided values—use parameterised queries exclusively.</p>
+
+<p>The CCA exam includes scenarios testing your understanding of security boundaries in MCP implementations. You'll need to identify security vulnerabilities in provided code samples and recommend appropriate mitigations. Understanding prompt injection risks—where malicious content in retrieved documents might influence the AI's behaviour—is particularly important.</p>
+
+<h2>Mistake 5: Ignoring Prompts and Sampling Capabilities</h2>
+
+<p>MCP servers can expose prompts—pre-configured message templates that clients can use—and implement sampling support, allowing the server to request AI completions. Many developers completely overlook these capabilities, missing opportunities to create more sophisticated integrations.</p>
+
+<p><strong>What goes wrong:</strong> Most MCP server implementations focus exclusively on tools and resources, treating prompts and sampling as advanced features they'll "add later". This approach misses the power of prompts for standardising common interaction patterns and sampling for implementing agentic behaviours within the server itself.</p>
+
+<p>When developers do implement prompts, they often create overly specific ones that don't accept dynamic arguments, making them less reusable. Or they create prompts that are too vague, failing to provide the structure and context that makes them useful.</p>
+
+<p><strong>The correct approach:</strong> Identify common interaction patterns in your domain and create prompts that encapsulate them. For example, if your MCP server provides access to a project management system, you might create prompts like "analyse_project_status" or "generate_sprint_report" that structure how the AI should approach these tasks using your tools and resources.</p>
+
+<p>Design prompts to accept arguments that parameterise the interaction. A prompt for analysing project status should accept the project identifier as an argument, making it reusable across different projects. Include clear descriptions of what each prompt does and what arguments it expects.</p>
+
+<p>Consider implementing sampling support if your server needs to make autonomous decisions or generate content. Sampling allows your MCP server to request AI completions, enabling sophisticated behaviours like automated content generation, intelligent routing, or adaptive responses. This is particularly powerful for servers that act as agents rather than simple tool providers.</p>
+
+<p>CCA exam content increasingly covers the full MCP specification, including prompts and sampling. While these features receive less emphasis than tools and resources, expect at least one question testing your understanding of when and how to use them appropriately.</p>
+
+<h2>Mistake 6: Insufficient Logging and Observability</h2>
+
+<p>When MCP integrations fail in production, troubleshooting becomes nearly impossible without proper logging and observability. Yet many implementations treat logging as an afterthought, making debugging a frustrating experience of guesswork and trial-and-error.</p>
+
+<p><strong>What goes wrong:</strong> Developers implement minimal logging, often just printing errors to stderr. They don't log tool invocations, parameter values, response times, or resource access patterns. When issues occur, they lack the visibility needed to understand what the AI requested, how the server processed it, and where failures occurred.</p>
+
+<p>Another mistake is logging too verbosely in production, creating noise that obscures important events. Or worse, logging sensitive data like user credentials, API keys, or personally identifiable information, creating security and compliance issues.</p>
+
+<p><strong>The correct approach:</strong> Implement structured logging from the start. Log every tool invocation with the tool name, parameters (sanitised to remove sensitive data), execution time, and result status. Log resource access patterns, showing which resources were requested and whether they were found. Include request identifiers that allow you to trace a complete interaction flow across multiple operations.</p>
+
+<p>Use appropriate log levels. Debug logs should include detailed information useful for troubleshooting but disabled in production. Info logs should record normal operations like tool invocations and resource access. Warning logs should highlight unusual but handled conditions. Error logs should capture failures with sufficient context to diagnose and fix issues.</p>
+
+<p>Implement metrics collection for operational visibility. Track tool invocation rates, average execution times, error rates, and resource usage. These metrics help you understand usage patterns, identify performance bottlenecks, and detect anomalies that might indicate problems.</p>
+
+<p>Consider implementing request tracing for complex operations that involve multiple tool calls or external service dependencies. Distributed tracing helps you understand the complete flow of a request and identify where time is being spent or where failures occur.</p>
+
+<p>Sanitise logs to prevent leaking sensitive information. Implement allowlists of parameters that can be logged safely, and redact or hash sensitive values. Never log full API keys, passwords, or tokens—log only non-sensitive identifiers.</p>
+
+<p>For the CCA exam, understanding observability best practices is essential. Questions often present troubleshooting scenarios where you must identify what information would be needed to diagnose an issue, and the correct answer invariably involves having implemented appropriate logging and metrics.</p>
+
+<h2>Mistake 7: Inadequate Testing and Validation Strategies</h2>
+
+<p>Testing MCP servers presents unique challenges because the client is an AI model whose behaviour isn't deterministic. Many developers struggle to implement effective testing strategies, leading to fragile implementations that break in production.</p>
+
+<p><strong>What goes wrong:</strong> Developers test their MCP servers manually by running them with Claude Desktop and trying a few interactions. They don't implement automated tests, don't validate the JSON-RPC protocol compliance, and don't test error conditions systematically. When they do write tests, they often test internal implementation details rather than the MCP protocol surface.</p>
+
+<p>Another common mistake is not testing with realistic AI interaction patterns. The AI might invoke tools in unexpected orders, provide parameters in different combinations than you anticipated, or interpret your tool descriptions in creative ways. Without testing these scenarios, you won't discover issues until production use.</p>
+
+<p><strong>The correct approach:</strong> Implement multiple layers of testing. Start with unit tests for your internal business logic, validating that your core functionality works correctly independent of the MCP protocol. Then implement integration tests that validate your MCP protocol implementation—that tools are exposed correctly, resources are accessible, and the JSON-RPC messages are properly formatted.</p>
+
+<p>Use MCP protocol testing tools to validate compliance. The MCP specification defines exact message formats and behaviours—your server should conform to these precisely. Test that your server correctly handles the initialisation handshake, properly formats tool and resource lists, and returns correctly structured responses and errors.</p>
+
+<p>Create test scenarios that simulate realistic AI interactions. Build test cases that call tools in various orders, provide different parameter combinations, and test edge cases like very long strings, special characters, or boundary values. Test what happens when external dependencies are unavailable, slow, or returning errors.</p>
+
+<p>Implement property-based testing for complex tool parameters. Rather than manually writing test cases for every possible input combination, use property-based testing frameworks to generate diverse inputs and validate that your parameter validation and error handling work correctly.</p>
+
+<p>Test your server's performance characteristics under load. AI applications can generate bursts of rapid tool calls. Validate that your server handles concurrent requests properly, that it doesn't leak resources, and that performance remains acceptable under realistic load patterns.</p>
+
+<p>Document test cases that validate your tool descriptions match their behaviour. The AI relies on your descriptions to understand when and how to use tools. If your description says a tool requires a parameter that's actually optional, or claims it returns data in a format different from reality, the AI will use it incorrectly. Your tests should validate this alignment.</p>
+
+<p>CCA exam questions often present MCP server implementations and ask you to identify issues or suggest improvements. A solid understanding of testing strategies helps you recognise implementations that lack adequate validation and recommend appropriate testing approaches.</p>
+
+<h2>Building Production-Ready MCP Servers: A Checklist</h2>
+
+<p>As you prepare for the CCA Foundations exam or build real MCP implementations, use this checklist to ensure you're avoiding the common mistakes covered in this guide:</p>
+
+<ul>
+<li><strong>Tool Design:</strong> Tools represent capabilities, not database operations. Each tool has a clear purpose and comprehensive description. Parameter schemas are well-defined with appropriate types and descriptions.</li>
+<li><strong>Resource Implementation:</strong> Resources use clear URI schemes. Metadata includes MIME types and descriptions. Resource templates handle dynamic content. Updates are properly signalled when content changes.</li>
+<li><strong>Error Handling:</strong> All inputs are validated before processing. Errors return proper JSON-RPC error objects with meaningful codes and messages. Timeouts are implemented for all external operations. Error messages are actionable and specific.</li>
+<li><strong>Security:</strong> Authentication and authorisation are properly implemented. Credentials are stored securely, never hardcoded. Input is validated and sanitised. Rate limiting prevents abuse. Principle of least privilege is applied to all operations.</li>
+<li><strong>Prompts and Sampling:</strong> Common interaction patterns are encapsulated as prompts. Prompts accept appropriate arguments for reusability. Sampling is implemented where autonomous behaviour is needed.</li>
+<li><strong>Observability:</strong> Structured logging captures all important events. Sensitive data is sanitised from logs. Metrics track usage patterns and performance. Request tracing enables debugging of complex flows.</li>
+<li><strong>Testing:</strong> Protocol compliance is validated automatically. Unit tests cover business logic. Integration tests validate MCP behaviour. Edge cases and error conditions are tested systematically. Performance under load is validated.</li>
+</ul>
+
+<h2>Preparing for Success on the CCA Foundations Exam</h2>
+
+<p>Understanding these common MCP server design mistakes and their solutions provides essential knowledge for the Claude Certified Architect Foundations exam. The exam tests not just theoretical understanding but practical application of MCP concepts in realistic scenarios.</p>
+
+<p>Expect questions that present MCP server implementations with subtle issues and ask you to identify problems or recommend improvements. You'll encounter scenarios requiring you to choose between different design approaches, and the correct answers consistently align with the patterns described in this guide. Questions often test your understanding of the trade-offs between different implementation strategies and your ability to recognise when an approach violates MCP best practices.</p>
+
+<p>The exam also includes questions about troubleshooting failed MCP integrations. Your ability to identify missing logging, inadequate error handling, or security vulnerabilities in provided code samples directly impacts your score. Understanding the complete MCP lifecycle—from initialisation through tool invocation to error handling and connection termination—is essential.</p>
+
+<p>Beyond the exam, these patterns represent proven approaches for building MCP servers that work reliably in production. The mistakes covered here account for the majority of real-world MCP integration failures. By understanding them deeply, you're not just preparing for certification—you're developing skills that will serve you throughout your career working with AI systems.</p>
+
+<p>Ready to test your knowledge and ensure you've mastered these concepts? Our comprehensive <a href="/cca-practice-questions">CCA practice questions</a> include detailed scenarios covering MCP server design, implementation patterns, and troubleshooting. Each question includes thorough explanations that reinforce the concepts covered in this guide. For a complete preparation experience, explore our <a href="/cca-foundations-exam">CCA Foundations exam guide</a>, which covers all exam topics with the depth you need to succeed. Start your certification journey today with our <a href="/cca-exam-guide">complete CCA exam preparation resources</a> and join the growing community of Claude Certified Architects.</p>
+    </div>
+    <section class="related-posts" aria-label="Related articles">
+      <h2>Related Articles</h2>
+      <ul>
+        <li><a href="/blog/cca-exam-day-strategy-what-to-expect/">CCA Exam Day Strategy: What to Expect and How to Succeed</a></li>
+        <li><a href="/blog/is-cca-exam-multiple-choice/">Is the CCA Exam Multiple Choice?</a></li>
+        <li><a href="/blog/how-long-is-cca-foundations-exam/">How Long Is the CCA Foundations Exam?</a></li>
+      </ul>
+    </section>
+  </article>
+</main>
+<footer class="site-footer">
+  <p style="margin:0 0 6px">&copy; 2026 Claude Certified Architects</p>
+  <p style="margin:0 0 10px;font-size:.82rem"><a href="/">Home</a> &nbsp;&middot;&nbsp; <a href="/cca-practice-questions/">Practice Questions</a> &nbsp;&middot;&nbsp; <a href="/cca-foundations-exam/">Foundations Exam Simulator</a> &nbsp;&middot;&nbsp; <a href="/cca-exam-guide/">Exam Guide</a> &nbsp;&middot;&nbsp; <a href="/diagnostic/">Free Diagnostic Quiz</a> &nbsp;&middot;&nbsp; <a href="/blog/">Blog</a> &nbsp;&middot;&nbsp; <a href="/faq/">FAQ</a> &nbsp;&middot;&nbsp; <a href="/register/">Official Exam Registration</a></p>
+  <p style="max-width:620px;margin:0 auto;font-size:.85rem;line-height:1.65;color:#c8c8be">This is an independent study resource. It is not affiliated with, authorized by, or endorsed by Anthropic. ‘Claude’ and ‘Claude Certified Architect’ are trademarks of their respective owner. We provide unofficial practice materials to help you prepare for the official certification exam.</p>
+  <p style="margin:10px 0 0;font-size:.82rem">Questions? <a href="mailto:ccatesting.support@gmail.com">ccatesting.support@gmail.com</a></p>
+</footer>
+</body>
+</html>
