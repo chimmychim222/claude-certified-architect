@@ -876,20 +876,30 @@ const WEBHOOK_BASE = 'https://claude-certified-architect.onrender.com';
 // flip false → true).
 //
 // Guarded by a DURABLE, SERVER-SIDE flag — users/{uid}.examPurchaseEventSent
-// — instead of an in-memory variable, because:
-//   • in-memory state resets on every reload, new tab, or new device, which
-//     would re-fire the event each time an already-converted user returns
-//   • a Firestore transaction makes "have I already claimed the right to
-//     fire?" atomic, so two near-simultaneous callers (two tabs open at
-//     once, or two of the six code paths both noticing in the same
-//     session) cannot both win and double-report the same purchase
+// — instead of an in-memory variable, because in-memory state resets on
+// every reload/new tab/new device, which would re-fire the event each time
+// an already-converted user returns.
+//
+// IMPORTANT: the flag is written ONLY after gtag confirms the "purchase" hit
+// was dispatched (event_callback, with an event_timeout + setTimeout
+// fallback in case the callback itself never runs) — NOT eagerly alongside
+// the eligibility check. It used to be set atomically in the same Firestore
+// transaction that decided to fire, before gtag('event','purchase',...) was
+// even called, so a tab closed in the gap between that write and gtag.js
+// flushing the dataLayer permanently lost the conversion (flag says "sent",
+// GA4 never received it, nothing ever retries). Deferring the write means
+// the flag and the actual GA4 hit can't diverge in that direction — worst
+// case is an occasional duplicate fire from two near-simultaneous callers
+// (two tabs, or two of the six paths racing) before either has written the
+// flag yet, which is a minor over-count and far cheaper than a silent,
+// permanent under-count.
 async function maybeFireExamPurchaseEvent(user) {
   if (!user) return;
   // markEnrolled() calls this fire-and-forget (no .catch), so a rejection
-  // here would be an unhandled promise rejection. Fail closed like the
-  // transaction below: if Firestore can't load, skip this check — the
-  // durable examPurchaseEventSent flag means the next markEnrolled() call
-  // (next page load/session) retries it, nothing is lost.
+  // here would be an unhandled promise rejection. Fail closed: if Firestore
+  // can't load, skip this check — the durable examPurchaseEventSent flag
+  // means the next markEnrolled() call (next page load/session) retries it,
+  // nothing is lost.
   try {
     await ensureFirestore();
   } catch (e) {
@@ -899,56 +909,61 @@ async function maybeFireExamPurchaseEvent(user) {
   const fs  = window.__fs;
   const ref = fs.doc(db, 'users', user.uid);
 
-  // Cheap pre-check so the overwhelming majority of calls — every page
-  // load by a user who converted in a *previous* session and already has
-  // the flag set — skip the transaction (an extra read+write). A false
-  // "not yet sent" reading here just falls through to the authoritative,
-  // atomic path below; a false "already sent" reading is impossible,
-  // because the flag is only ever set by that same atomic path.
-  try {
-    const snap = await fs.getDoc(ref);
-    if (snap.exists() && snap.data().examPurchaseEventSent === true) return;
-  } catch (e) { /* fall through — the transaction below is the source of truth */ }
-
-  let shouldFire = false;
   let stripeSessionId = null;
   try {
-    await fs.runTransaction(db, async (tx) => {
-      const docSnap = await tx.get(ref);
-      const data = docSnap.data() || {};
-      // Only the server-written `enrolled` flag counts as a real purchase
-      // (it's set exclusively by the webhook / claim-enrollment via the
-      // Admin SDK) — never report a conversion off local/optimistic state.
-      if (data.enrolled !== true) return;
-      if (data.examPurchaseEventSent === true) return;
-      tx.set(ref, { examPurchaseEventSent: true }, { merge: true });
-      shouldFire = true;
-      stripeSessionId = data.stripeSessionId || null;
-    });
+    const snap = await fs.getDoc(ref);
+    if (!snap.exists()) return;
+    const data = snap.data();
+    // Only the server-written `enrolled` flag counts as a real purchase
+    // (it's set exclusively by the webhook / claim-enrollment via the
+    // Admin SDK) — never report a conversion off local/optimistic state.
+    if (data.enrolled !== true) return;
+    if (data.examPurchaseEventSent === true) return;
+    stripeSessionId = data.stripeSessionId || null;
   } catch (e) {
-    console.warn('[Analytics] exam_purchase guard transaction failed:', e.message);
-    return; // fail closed: better to retry next session than risk a double count
+    console.warn('[Analytics] exam_purchase check failed:', e.message);
+    return; // fail closed: better to retry next session than risk firing on stale data
   }
 
-  if (shouldFire && typeof gtag !== 'undefined') {
-    // Stripe's checkout session ID is a stable, globally-unique identifier
-    // for the real transaction; fall back to the uid if the webhook hasn't
-    // recorded one yet so transaction_id is never empty.
-    const transactionId = stripeSessionId || user.uid;
-    gtag('event', 'purchase', {
-      currency:       'USD',
-      value:          49,
-      transaction_id: transactionId,
-    });
-    // Also fire the legacy "exam_purchase" name alongside the GA4-standard
-    // "purchase" event above — kept until any GA4 Key Event / Ads conversion
-    // configured against "exam_purchase" can be confirmed unused and removed.
-    gtag('event', 'exam_purchase', {
-      currency:       'USD',
-      value:          49,
-      transaction_id: transactionId,
-    });
-  }
+  if (typeof gtag === 'undefined') return;
+
+  // Stripe's checkout session ID is a stable, globally-unique identifier for
+  // the real transaction; fall back to the uid if the webhook hasn't
+  // recorded one yet so transaction_id is never empty.
+  const transactionId = stripeSessionId || user.uid;
+
+  // Record the durable flag only once the "purchase" hit has actually been
+  // handed off: transport_type:'beacon' lets it survive an immediate tab
+  // close, event_callback fires once gtag.js dispatches it, and the
+  // event_timeout/setTimeout pair (mirroring trackCheckoutAndGo's
+  // begin_checkout pattern below) guarantees recordSent still runs even if
+  // gtag.js itself never finishes loading.
+  let recorded = false;
+  const recordSent = () => {
+    if (recorded) return;
+    recorded = true;
+    fs.setDoc(ref, { examPurchaseEventSent: true }, { merge: true })
+      .catch(e => console.warn('[Analytics] failed to record examPurchaseEventSent:', e.message));
+  };
+
+  gtag('event', 'purchase', {
+    currency:       'USD',
+    value:          49,
+    transaction_id: transactionId,
+    transport_type: 'beacon',
+    event_callback: recordSent,
+    event_timeout:  1000,
+  });
+  // Also fire the legacy "exam_purchase" name alongside the GA4-standard
+  // "purchase" event above — kept until any GA4 Key Event / Ads conversion
+  // configured against "exam_purchase" can be confirmed unused and removed.
+  gtag('event', 'exam_purchase', {
+    currency:       'USD',
+    value:          49,
+    transaction_id: transactionId,
+    transport_type: 'beacon',
+  });
+  setTimeout(recordSent, 1000);
 }
 
 // localStorage key set by confirmPaymentAndUnlock when a post-checkout poll
@@ -1257,7 +1272,17 @@ function trackCheckoutAndGo(url) {
   const go = () => {
     if (navigated) return;
     navigated = true;
-    window.location.href = url;
+    // Navigate via a real <a> click rather than location.href= so GA4's
+    // cross-domain linker (configured for buy.stripe.com/checkout.stripe.com
+    // in <head>) can decorate this navigation with its session-stitching
+    // _gl param — gtag.js wires up linker decoration via a delegated click
+    // listener on document, which a plain location assignment bypasses.
+    const a = document.createElement('a');
+    a.href = url;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   };
   if (checkoutEventSent) { go(); return; }
   checkoutEventSent = true;
