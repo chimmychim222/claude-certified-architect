@@ -606,7 +606,7 @@ function blogFooter() {
   <p style="margin:0 0 6px">&copy; ${year} Claude Certified Architects</p>
   <p style="margin:0 0 10px;font-size:.82rem">${links}</p>
   <p style="max-width:620px;margin:0 auto;font-size:.85rem;line-height:1.65;color:#c8c8be">This is an independent study resource. It is not affiliated with, authorized by, or endorsed by Anthropic. ‘Claude’ and ‘Claude Certified Architect’ are trademarks of their respective owner. We provide unofficial practice materials to help you prepare for the official certification exam.</p>
-  <p style="margin:10px 0 0;font-size:.82rem">Questions? <a href="mailto:ccatesting.support@gmail.com">ccatesting.support@gmail.com</a></p>
+  <p style="margin:10px 0 0;font-size:.82rem">Questions? <a href="mailto:support@claudecertifiedarchitects.com">support@claudecertifiedarchitects.com</a></p>
 </footer>`;
 }
 

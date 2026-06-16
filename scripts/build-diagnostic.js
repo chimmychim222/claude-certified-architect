@@ -411,7 +411,7 @@ footer a{color:var(--text3);text-decoration:underline}
 
 <footer>
   <p>&copy; ${new Date().getFullYear()} Claude Certified Architects &mdash; Independent study resource &mdash; Not affiliated with Anthropic &middot; <a href="/">Home</a></p>
-  <p>Questions? <a href="mailto:ccatesting.support@gmail.com">ccatesting.support@gmail.com</a></p>
+  <p>Questions? <a href="mailto:support@claudecertifiedarchitects.com">support@claudecertifiedarchitects.com</a></p>
 </footer>
 
 <script>
