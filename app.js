@@ -996,6 +996,17 @@ function paymentActivationTimeoutMsg() {
     "with your receipt and we’ll activate manually." + paymentDismissBtn();
 }
 
+// Shown by openPaymentModal when /pre-checkout returns recent_session —
+// the user already started a checkout in the last 10 minutes. Softer tone:
+// reassure that no second charge will happen, and point to support.
+function recentSessionMsg() {
+  return "<strong>Your checkout is already in progress.</strong> " +
+    "Wait a moment and <button onclick=\"window.location.reload()\" style=\"color:var(--green);text-decoration:underline;background:none;border:none;cursor:pointer;font-size:inherit;padding:0;min-height:44px\">reload this page</button> " +
+    "— if you completed payment, your account should activate automatically. " +
+    "Email <a href=\"mailto:support@claudecertifiedarchitects.com\" style=\"color:var(--green);text-decoration:underline\">support@claudecertifiedarchitects.com</a> " +
+    "if you need help." + paymentDismissBtn();
+}
+
 // Local-state setter for `enrolled` that funnels through the guarded,
 // fire-once analytics check above. Every place that discovers enrollment
 // calls this instead of assigning `enrolled = true` directly, so the
@@ -1400,7 +1411,36 @@ function openPaymentModal() {
     }
   } catch (e) { /* best-effort, never block checkout */ }
 
-  trackCheckoutAndGo(url.toString());
+  // Server-side pre-checkout guard: confirm the account isn't already enrolled
+  // and no duplicate checkout is already in flight. Hard 4 s timeout so a cold
+  // Render dyno can't freeze a legitimate buyer at the loading screen.
+  // Fails open on any error — never block a first-time purchase.
+  const _preUrl = url.toString();
+  const _preCtrl = new AbortController();
+  const _preTimer = setTimeout(() => _preCtrl.abort(), 4000);
+  currentUser.getIdToken()
+    .then(tok => fetch(WEBHOOK_BASE + '/pre-checkout', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + tok },
+      signal: _preCtrl.signal,
+    }))
+    .then(r => r.json())
+    .then(result => {
+      clearTimeout(_preTimer);
+      if (result.reason === 'already_enrolled') {
+        closeAuthModal();
+        if (document.getElementById('dashboard-section')) showSection('dashboard');
+        else window.location.href = '/';
+      } else if (result.reason === 'recent_session') {
+        closeAuthModal();
+        const banner = document.getElementById('success-banner');
+        if (banner) { banner.innerHTML = recentSessionMsg(); banner.style.display = 'block'; }
+        if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        trackCheckoutAndGo(_preUrl);
+      }
+    })
+    .catch(() => { clearTimeout(_preTimer); trackCheckoutAndGo(_preUrl); });
 }
 
 // Legacy fallback: check URL params on load (for non-Firebase mode)

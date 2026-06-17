@@ -408,6 +408,77 @@ app.post('/claim-enrollment', async (req, res) => {
   }
 });
 
+// ── Pre-checkout enrollment guard ────────────────────────────────────────────
+// POST /pre-checkout
+// Header: Authorization: Bearer <Firebase ID token>
+//
+// Called by openPaymentModal() before the browser navigates to the Stripe
+// Payment Link. Prevents an already-enrolled account from accidentally paying
+// again, and catches a duplicate in-flight checkout (same UID, started in the
+// last 10 minutes). Returns one of:
+//   { ok: false, reason: 'already_enrolled' }   — account has access; redirect to dashboard
+//   { ok: false, reason: 'recent_session', ageSeconds }  — checkout in progress; wait and reload
+//   { ok: true }                                 — clear to proceed to Stripe
+//
+// Fails open on any error so that a network hiccup or Render cold start never
+// blocks a legitimate first purchase. checkout_intents/{uid} is used as a
+// lightweight in-flight tracker; records are overwritten on each cleared check
+// so stale entries from abandoned carts don't accumulate.
+app.post('/pre-checkout', express.json(), async (req, res) => {
+  const authHeader = req.headers.authorization || '';
+  const m = authHeader.match(/^Bearer (.+)$/);
+  if (!m) return res.status(401).json({ error: 'Missing bearer token' });
+
+  let decoded;
+  try {
+    decoded = await auth.verifyIdToken(m[1]);
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+
+  const uid = decoded.uid;
+
+  try {
+    // Belt: custom claims — fastest; no extra Firestore read when claims are fresh.
+    const userRecord = await auth.getUser(uid);
+    if ((userRecord.customClaims || {}).enrolled === true) {
+      console.log(`[pre-checkout] Blocked (claims): uid=${uid} already enrolled`);
+      return res.json({ ok: false, reason: 'already_enrolled' });
+    }
+
+    // Suspenders: Firestore — catches the window between enrollment write and
+    // claim propagation (claims can lag a few seconds after setCustomUserClaims).
+    const userSnap = await db.collection('users').doc(uid).get();
+    if (userSnap.exists && userSnap.data().enrolled === true) {
+      console.log(`[pre-checkout] Blocked (FS): uid=${uid} already enrolled`);
+      return res.json({ ok: false, reason: 'already_enrolled' });
+    }
+
+    // Detect a duplicate in-flight checkout (same UID started < 10 min ago).
+    const intentRef  = db.collection('checkout_intents').doc(uid);
+    const intentSnap = await intentRef.get();
+    if (intentSnap.exists) {
+      const ts    = intentSnap.data().initiatedAt;
+      const ageMs = ts ? Date.now() - ts.toMillis() : Infinity;
+      if (ageMs < 10 * 60 * 1000) {
+        const ageSeconds = Math.round(ageMs / 1000);
+        console.log(`[pre-checkout] Recent session: uid=${uid} age=${ageSeconds}s`);
+        return res.json({ ok: false, reason: 'recent_session', ageSeconds });
+      }
+    }
+
+    // All clear — record intent and allow through.
+    await intentRef.set({ uid, initiatedAt: admin.firestore.FieldValue.serverTimestamp() });
+    console.log(`[pre-checkout] Cleared: uid=${uid}`);
+    return res.json({ ok: true });
+
+  } catch (err) {
+    // Fail open — server error must not block a legitimate first checkout.
+    console.warn(`[pre-checkout] Error for uid=${uid}, failing open:`, err.message);
+    return res.json({ ok: true });
+  }
+});
+
 // ── Stale pending-enrollment monitoring ───────────────────────────────────────
 // pending_enrollments records are created when the webhook can't find a
 // matching Firebase account (the customer paid before signing up — see the
