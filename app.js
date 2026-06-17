@@ -983,6 +983,19 @@ function unmatchedPaymentMsg() {
     "with your payment receipt and we'll sort it out manually." + paymentDismissBtn();
 }
 
+// Shown when the post-checkout poll times out before enrollment confirms —
+// distinct from unmatchedPaymentMsg because here we KNOW the payment was
+// received; activation is just slower than the poll window (Render cold start).
+// Softer tone: reassure, don't alarm. The localStorage flag set by
+// flagPaymentNeedsReview still prevents a second checkout attempt.
+function paymentActivationTimeoutMsg() {
+  return "<strong>Your payment was received ✓</strong> — account activation is taking a little longer than usual. " +
+    "Please <button onclick=\"window.location.reload()\" style=\"color:var(--green);text-decoration:underline;background:none;border:none;cursor:pointer;font-size:inherit;padding:0;min-height:44px\">reload this page</button> " +
+    "in a minute or two. If you still don’t have access after 5 minutes, email " +
+    "<a href=\"mailto:support@claudecertifiedarchitects.com\" style=\"color:var(--green);text-decoration:underline\">support@claudecertifiedarchitects.com</a> " +
+    "with your receipt and we’ll activate manually." + paymentDismissBtn();
+}
+
 // Local-state setter for `enrolled` that funnels through the guarded,
 // fire-once analytics check above. Every place that discovers enrollment
 // calls this instead of assigning `enrolled = true` directly, so the
@@ -1174,17 +1187,31 @@ async function confirmPaymentAndUnlock(user) {
   if (_confirmingPayment || !user) return;
   _confirmingPayment = true;
 
-  const banner = document.getElementById('success-banner');
+  const banner     = document.getElementById('success-banner');
   const dismissBtn = paymentDismissBtn();
+  // Cleared in finally whether the poll succeeds, times out, or throws.
+  let midwayUpdate = null;
 
   try {
     await ensureFirestore();
 
-    banner.innerHTML = 'Confirming your payment with Stripe&hellip; this can take up to a minute.' + dismissBtn;
+    banner.innerHTML = 'Payment received — activating your account&hellip; this can take up to 3 minutes on first access.' + dismissBtn;
     banner.style.display = 'block';
 
-    const deadline = Date.now() + 75000; // generous — covers Render free-tier cold starts
-    let confirmed = false;
+    // 180 s covers a Render cold start (~30–60 s boot) plus full webhook
+    // processing time. Median observed delay is ~72 s; worst case ~300 s on
+    // a very cold dyno. With an always-on instance this window will almost
+    // never be needed — the poll will confirm in the first 1–2 iterations.
+    const deadline = Date.now() + 180000;
+    let confirmed  = false;
+
+    // At the old 75 s threshold, swap to a reassuring mid-wait message so
+    // users who see the spinner past one minute don't think something failed.
+    midwayUpdate = setTimeout(() => {
+      if (!confirmed && banner.style.display !== 'none') {
+        banner.innerHTML = 'Still activating — almost there&hellip; (server may be warming up)' + dismissBtn;
+      }
+    }, 80000);
 
     while (!confirmed && Date.now() < deadline) {
       try {
@@ -1208,7 +1235,7 @@ async function confirmPaymentAndUnlock(user) {
           // No amount of polling fixes this — the account must verify its
           // email before the server will release the pending enrollment.
           // Stop spinning and hand the user something actionable instead of
-          // a 75-second "still confirming…" message that will never resolve.
+          // a three-minute "still confirming…" message that will never resolve.
           showPendingVerificationBanner(user);
           return;
         }
@@ -1219,28 +1246,28 @@ async function confirmPaymentAndUnlock(user) {
     if (confirmed) {
       // markEnrolled() also (idempotently, durably-guarded) fires the
       // one-time "exam_purchase" conversion event — see maybeFireExamPurchaseEvent.
-      // It used to fire unconditionally right here, which both (a) miscounted
-      // returning users whose enrollment was merely *re-confirmed* by this
-      // poll rather than newly granted, and (b) missed conversions detected
-      // through any of the other five paths that can flip `enrolled` true.
       markEnrolled(user);
       banner.innerHTML = 'Payment successful! Welcome to the Claude Certified Architect course.' + dismissBtn;
       updateNavUI();
       updateDashCards();
       showSection('dashboard');
     } else {
-      flagPaymentNeedsReview(banner);
+      // Payment is confirmed in Stripe — enrollment is just taking longer
+      // than the poll window. Use a soft message (payment received, reload
+      // soon) rather than the alarming "couldn't match" copy. The localStorage
+      // flag still prevents the user from accidentally double-purchasing.
+      flagPaymentNeedsReview(banner, paymentActivationTimeoutMsg());
     }
   } catch (e) {
     // Covers ensureFirestore() failing to load (e.g. a CDN blip right when
-    // the user lands back from Stripe) as well as any other unexpected
-    // error from the block above. The finally below resets the guard so a
-    // later trigger (e.g. the next onAuthStateChanged, or a page reload)
-    // can retry — if that retry succeeds, markEnrolled() clears the flag set
-    // here and replaces this banner with the success message.
+    // the user lands back from Stripe) as well as any other unexpected error.
+    // Use the full unmatchedPaymentMsg here — we genuinely don't know what
+    // happened, so telling them to contact support is the right call.
+    // The finally block resets the guard so onAuthStateChanged can retry.
     console.warn('[Payment] confirmPaymentAndUnlock failed:', e.message);
     flagPaymentNeedsReview(banner);
   } finally {
+    if (midwayUpdate !== null) clearTimeout(midwayUpdate);
     _confirmingPayment = false;
   }
 }
@@ -1249,10 +1276,10 @@ async function confirmPaymentAndUnlock(user) {
 // account" so a reload doesn't drop the warning (see PAYMENT_NEEDS_REVIEW_KEY)
 // and route any future checkout-CTA click back to this banner instead of
 // Stripe (see openPaymentModal).
-function flagPaymentNeedsReview(banner) {
+function flagPaymentNeedsReview(banner, msg) {
   window.__paymentNeedsManualReview = true;
   try { localStorage.setItem(PAYMENT_NEEDS_REVIEW_KEY, '1'); } catch(e) {}
-  banner.innerHTML = unmatchedPaymentMsg();
+  banner.innerHTML = msg !== undefined ? msg : unmatchedPaymentMsg();
   banner.style.display = 'block';
 }
 
@@ -1346,6 +1373,33 @@ function openPaymentModal() {
   const url = new URL(STRIPE_PAYMENT_LINK);
   url.searchParams.set('client_reference_id', currentUser.uid);
   url.searchParams.set('prefilled_email', currentUser.email);
+
+  // Best-effort: save GA4 attribution data to Firestore so the server-side
+  // Measurement Protocol purchase event (fired from stripe-webhook.js after
+  // enrollment) can use the correct client_id for ad-click attribution.
+  // Runs fire-and-forget alongside the begin_checkout event's ~1s window —
+  // a Firestore setDoc completes in <200ms on a warm connection so this
+  // almost always lands before the page navigates. Never blocks checkout.
+  try {
+    if (window.__fs) {
+      const _gaMatch = document.cookie.match(/(?:^|;)\s*_ga=GA\d+\.\d+\.(\d+\.\d+)/);
+      const _gaClientId = _gaMatch ? _gaMatch[1] : null;
+      // _gcl_aw stores the gclid from a Google Ads click even after the user
+      // navigates away from the landing URL; fall back to the current URL param.
+      const _gclidMatch = document.cookie.match(/(?:^|;)\s*_gcl_aw=GCL\.\d+\.([^;]+)/);
+      const _gclid =
+        new URLSearchParams(window.location.search).get('gclid') ||
+        (_gclidMatch ? _gclidMatch[1] : null);
+      if (_gaClientId || _gclid) {
+        const fs   = window.__fs;
+        const data = {};
+        if (_gaClientId) data.ga4ClientId = _gaClientId;
+        if (_gclid)      data.gclid       = _gclid;
+        fs.setDoc(fs.doc(db, 'users', currentUser.uid), data, { merge: true }).catch(() => {});
+      }
+    }
+  } catch (e) { /* best-effort, never block checkout */ }
+
   trackCheckoutAndGo(url.toString());
 }
 

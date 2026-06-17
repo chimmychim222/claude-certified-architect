@@ -72,6 +72,68 @@ async function sendViaResend({ to, subject, text }) {
   }
 }
 
+// ── GA4 Measurement Protocol purchase event ───────────────────────────────────
+// Fires a server-side 'purchase' event to GA4 after every successful enrollment.
+// This is additive to the client-side event in app.js — GA4 deduplicates on
+// transaction_id, so if both arrive only one conversion is counted.
+//
+// Using the Stripe session ID as transaction_id is intentional: it's the same
+// value the client-side maybeFireExamPurchaseEvent uses (via stripeSessionId in
+// the users/{uid} Firestore doc), which is exactly what enables deduplication.
+//
+// If GA4_MEASUREMENT_ID or GA4_MP_API_SECRET are not set, this skips silently —
+// a missing analytics config must never prevent a real enrollment from landing.
+async function fireGA4PurchaseEvent(sessionId, ga4ClientId, uid) {
+  const measurementId = process.env.GA4_MEASUREMENT_ID;
+  const apiSecret     = process.env.GA4_MP_API_SECRET;
+
+  if (!measurementId || !apiSecret) {
+    console.warn('[GA4] GA4_MEASUREMENT_ID or GA4_MP_API_SECRET not set — purchase event skipped.');
+    return;
+  }
+
+  // GA4 requires a client_id. The _ga-cookie-derived value gives proper
+  // attribution back to ad clicks; the firebase_ prefix fallback is weaker
+  // (no session history in GA4 to tie to) but still records the conversion.
+  const clientId = ga4ClientId || ('firebase_' + uid);
+  if (!ga4ClientId) {
+    console.log(`[GA4] No ga4ClientId for uid=${uid} — using fallback client_id; ad-click attribution may be absent.`);
+  }
+
+  const url =
+    'https://www.google-analytics.com/mp/collect' +
+    `?measurement_id=${encodeURIComponent(measurementId)}` +
+    `&api_secret=${encodeURIComponent(apiSecret)}`;
+
+  try {
+    const resp = await fetch(url, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_id: clientId,
+        events: [{
+          name:   'purchase',
+          params: {
+            currency:       'USD',
+            value:          49,
+            transaction_id: sessionId,
+            items: [{ item_id: 'cca_exam_prep', item_name: 'CCA Exam Prep', price: 49, quantity: 1 }],
+          },
+        }],
+      }),
+    });
+    // GA4 MP returns 204 No Content on success
+    if (resp.ok) {
+      console.log(`[GA4] purchase event sent: session=${sessionId} client_id=${clientId}`);
+    } else {
+      const body = await resp.text().catch(() => '');
+      console.warn(`[GA4] purchase event failed: HTTP ${resp.status} ${body}`);
+    }
+  } catch (err) {
+    console.warn('[GA4] purchase event error:', err.message);
+  }
+}
+
 // ── Firebase init ─────────────────────────────────────────────────────────────
 if (!admin.apps.length) {
   const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
@@ -148,6 +210,14 @@ app.post(
         const uid            = userRecord.uid;
         const existingClaims = userRecord.customClaims || {};
 
+        // Read GA4 attribution data the client wrote to Firestore before
+        // redirecting to checkout — used for the MP purchase event below.
+        let ga4ClientId = null;
+        try {
+          const attrSnap = await db.collection('users').doc(uid).get();
+          if (attrSnap.exists) ga4ClientId = attrSnap.data().ga4ClientId || null;
+        } catch (e) { /* best-effort, never block enrollment */ }
+
         await auth.setCustomUserClaims(uid, { ...existingClaims, enrolled: true });
 
         await db.collection('users').doc(uid).set(
@@ -167,6 +237,8 @@ app.post(
         }
 
         console.log(`Enrolled via client_reference_id: ${customerEmail || userRecord.email} (${uid})`);
+        // Fire server-side GA4 purchase event — additive, deduped by transaction_id.
+        fireGA4PurchaseEvent(session.id, ga4ClientId, uid).catch(() => {});
         return res.json({ ok: true, enrolled: uid });
       } catch (err) {
         console.warn(`client_reference_id lookup failed (${clientReferenceId}):`, err.message);
@@ -215,6 +287,13 @@ app.post(
       const uid            = userRecord.uid;
       const existingClaims = userRecord.customClaims || {};
 
+      // Read GA4 attribution data — present if user was logged in at checkout.
+      let ga4ClientId = null;
+      try {
+        const attrSnap = await db.collection('users').doc(uid).get();
+        if (attrSnap.exists) ga4ClientId = attrSnap.data().ga4ClientId || null;
+      } catch (e) { /* best-effort */ }
+
       await auth.setCustomUserClaims(uid, { ...existingClaims, enrolled: true });
 
       await db.collection('users').doc(uid).set(
@@ -232,6 +311,7 @@ app.post(
       db.collection('pending_enrollments').doc(customerEmail.toLowerCase()).delete().catch(() => {});
 
       console.log(`Enrolled: ${customerEmail} (${uid})`);
+      fireGA4PurchaseEvent(session.id, ga4ClientId, uid).catch(() => {});
       return res.json({ ok: true, enrolled: uid });
 
     } catch (err) {
@@ -302,6 +382,22 @@ app.post('/claim-enrollment', async (req, res) => {
       { merge: true }
     );
     await pendingRef.delete();
+
+    // Fire GA4 server-side purchase event for claimed pending enrollments.
+    // Read ga4ClientId from the users doc (written by the client before checkout
+    // or on a subsequent login); fall back to uid if not present.
+    {
+      let ga4ClientId = null;
+      try {
+        const attrSnap = await db.collection('users').doc(uid).get();
+        if (attrSnap.exists) ga4ClientId = attrSnap.data().ga4ClientId || null;
+      } catch (e) { /* best-effort */ }
+      fireGA4PurchaseEvent(
+        pending.stripeSessionId || ('claim_' + uid),
+        ga4ClientId,
+        uid
+      ).catch(() => {});
+    }
 
     console.log(`Claimed pending enrollment: ${email} (${uid})`);
     return res.json({ ok: true, enrolled: true });
