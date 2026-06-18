@@ -22,6 +22,7 @@
 <meta name="twitter:image" content="https://www.claudecertifiedarchitects.com/og-image-v2.png">
 <style>
 :root{
+  --banner-h:0px;
   --bg:#f5f3ea;--surface:#fff;--surface2:#f0ede4;--surface3:#e8e5dc;
   --border:#d9d5ca;--border2:#c5c0b5;
   --text:#191918;--text2:#5a5a52;--text3:#6f6f66;
@@ -37,7 +38,7 @@ a:hover{color:var(--accent2)}
 .container{max-width:860px;margin:0 auto;padding:0 20px}
 
 /* ── NAV ── */
-nav{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px}
+nav{position:sticky;top:var(--banner-h,0px);z-index:100;background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px}
 nav .nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:56px}
 nav .logo{font-size:1rem;font-weight:700;color:var(--text);text-decoration:none;letter-spacing:-.3px}
 nav .nav-links{display:flex;align-items:center;gap:6px}
@@ -212,7 +213,7 @@ footer a{color:var(--text3);text-decoration:underline}
 /* ── SITE BANNER (independence notice — present site-wide; this page was
    missing it, leaving it the one page where a visitor could land without
    ever seeing the disclosure) ── */
-#site-banner{position:relative;background:var(--surface3);color:var(--text2);font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.72rem;line-height:1.4;text-align:center;padding:7px 44px 7px 16px;border-bottom:1px solid var(--border2)}
+#site-banner{position:fixed;top:0;left:0;right:0;z-index:101;background:var(--surface3);color:var(--text2);font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.72rem;line-height:1.4;text-align:center;padding:7px 44px 7px 16px;border-bottom:1px solid var(--border2)}
 #site-banner-close{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);font-size:1.1rem;line-height:1;cursor:pointer;padding:4px 7px;border-radius:4px;transition:color .15s;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center}
 #site-banner-close:hover{color:var(--text)}
 
@@ -250,7 +251,7 @@ footer a{color:var(--text3);text-decoration:underline}
 </head>
 <body>
 <div id="site-banner" role="note" aria-label="Independence notice">Independent exam prep · Not affiliated with or endorsed by Anthropic · Not the official CCA exam or certification<button id="site-banner-close" aria-label="Dismiss notice">&#x2715;</button></div>
-<script>(function(){var b=document.getElementById('site-banner'),c=document.getElementById('site-banner-close');if(!b)return;if(localStorage.getItem('ccaBanner')==='0'){b.style.display='none';return;}c.addEventListener('click',function(){b.style.display='none';localStorage.setItem('ccaBanner','0');});})()</script>
+<script>(function(){var b=document.getElementById('site-banner'),c=document.getElementById('site-banner-close');if(!b)return;if(localStorage.getItem('ccaBanner')==='0'){b.style.display='none';document.documentElement.style.setProperty('--banner-h','0px');return;}function setH(){document.documentElement.style.setProperty('--banner-h',b.offsetHeight+'px');}setH();window.addEventListener('resize',setH);c.addEventListener('click',function(){b.style.display='none';document.documentElement.style.setProperty('--banner-h','0px');localStorage.setItem('ccaBanner','0');});})()</script>
 <!-- GTM noscript -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GT-K8FC4RXW" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
