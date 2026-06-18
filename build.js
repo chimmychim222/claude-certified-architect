@@ -561,7 +561,7 @@ function blogNav(activePage) {
     const cls = activePage === href ? ' class="active"' : '';
     return `<a href="${href}"${cls}>${label}</a>`;
   };
-  return "<div id=\"site-banner\" role=\"note\" aria-label=\"Independence notice\">Independent exam prep · Not affiliated with, authorized by, or endorsed by Anthropic.<button id=\"site-banner-close\" aria-label=\"Dismiss notice\">✕</button></div>\n<script>(function(){var b=document.getElementById(\"site-banner\"),c=document.getElementById(\"site-banner-close\");if(!b)return;if(localStorage.getItem(\"ccaBanner\")===\"0\"){b.style.display=\"none\";document.documentElement.style.setProperty(\"--banner-h\",\"0px\");return;}function setH(){document.documentElement.style.setProperty(\"--banner-h\",b.offsetHeight+\"px\");}setH();window.addEventListener(\"resize\",setH);c.addEventListener(\"click\",function(){b.style.display=\"none\";document.documentElement.style.setProperty(\"--banner-h\",\"0px\");localStorage.setItem(\"ccaBanner\",\"0\");});})()</script>\n" + `<nav aria-label="Main navigation">
+  return "<div id=\"site-banner\" role=\"note\" aria-label=\"Independence notice\">Independent exam prep · Not affiliated with or endorsed by Anthropic · Not the official CCA exam or certification<button id=\"site-banner-close\" aria-label=\"Dismiss notice\">✕</button></div>\n<script>(function(){var b=document.getElementById(\"site-banner\"),c=document.getElementById(\"site-banner-close\");if(!b)return;if(localStorage.getItem(\"ccaBanner\")===\"0\"){b.style.display=\"none\";document.documentElement.style.setProperty(\"--banner-h\",\"0px\");return;}function setH(){document.documentElement.style.setProperty(\"--banner-h\",b.offsetHeight+\"px\");}setH();window.addEventListener(\"resize\",setH);c.addEventListener(\"click\",function(){b.style.display=\"none\";document.documentElement.style.setProperty(\"--banner-h\",\"0px\");localStorage.setItem(\"ccaBanner\",\"0\");});})()</script>\n" + `<nav aria-label="Main navigation">
   <div class="inner">
     <a href="/" class="nav-logo">CCA <span>Practice Platform</span></a>
     <div class="nav-links" id="blog-nav-links">
@@ -605,7 +605,7 @@ function blogFooter() {
   return `<footer class="site-footer">
   <p style="margin:0 0 6px">&copy; ${year} Claude Certified Architects</p>
   <p style="margin:0 0 10px;font-size:.82rem">${links}</p>
-  <p style="max-width:620px;margin:0 auto;font-size:.85rem;line-height:1.65;color:#c8c8be">This is an independent study resource. It is not affiliated with, authorized by, or endorsed by Anthropic. ‘Claude’ and ‘Claude Certified Architect’ are trademarks of their respective owner. We provide unofficial practice materials to help you prepare for the official certification exam.</p>
+  <p style="max-width:620px;margin:0 auto;font-size:.85rem;line-height:1.65;color:#c8c8be">Claude Certified Architects is an independent exam-preparation resource. We are not affiliated with, endorsed by, or sponsored by Anthropic, and this is not the official Claude Certified Architect exam or certification. ‘Claude’ and ‘Claude Certified Architect’ are trademarks of Anthropic. We provide unofficial practice materials to help candidates prepare for the official exam.</p>
   <p style="margin:10px 0 0;font-size:.82rem">Questions? <a href="mailto:support@claudecertifiedarchitects.com">support@claudecertifiedarchitects.com</a></p>
 </footer>`;
 }
