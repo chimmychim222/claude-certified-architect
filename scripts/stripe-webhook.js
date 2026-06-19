@@ -33,29 +33,39 @@ const admin      = require('firebase-admin');
 const stripe     = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const express    = require('express');
 const bodyParser = require('body-parser');
+const crypto     = require('crypto');
 
 // ── Resend helper ─────────────────────────────────────────────────────────────
 // Sends transactional email via Resend.com (https://resend.com).
 // Uses the built-in fetch available in Node 18+.
 // Returns true on success, false on failure (never throws).
-async function sendViaResend({ to, subject, text }) {
+async function sendViaResend({ to, subject, text, html, replyTo, listUnsubscribeUrl }) {
   if (!process.env.RESEND_API_KEY) {
     console.log('[resend] RESEND_API_KEY not set — email skipped.');
     return false;
   }
   try {
+    const payload = {
+      from:    'CCA Practice <noreply@claudecertifiedarchitects.com>',
+      to:      [to],
+      subject,
+      text,
+    };
+    if (html)              payload.html     = html;
+    if (replyTo)           payload.reply_to = replyTo;
+    if (listUnsubscribeUrl) {
+      payload.headers = {
+        'List-Unsubscribe':      `<${listUnsubscribeUrl}>, <mailto:support@claudecertifiedarchitects.com?subject=Unsubscribe>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      };
+    }
     const resp = await fetch('https://api.resend.com/emails', {
       method:  'POST',
       headers: {
         'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
         'Content-Type':  'application/json',
       },
-      body: JSON.stringify({
-        from:    'CCA Practice <noreply@claudecertifiedarchitects.com>',
-        to:      [to],
-        subject,
-        text,
-      }),
+      body: JSON.stringify(payload),
     });
     if (resp.ok) {
       const data = await resp.json();
@@ -742,6 +752,607 @@ Good luck with your studies!
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get('/', (req, res) => res.send('Webhook server running.'));
+
+// ══════════════════════════════════════════════════════════════════════════════
+// NURTURE SEQUENCE — 3 emails (D+1, D+3, D+7) for diagnostic leads who haven't
+// purchased. Triggered once daily by an external cron (cron-job.org). All sends
+// go via the existing sendViaResend() helper above.
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Per-domain question counts (must match DOMAIN_Q_COUNT in diagnostic/index.html)
+const NURTURE_DOMAIN_Q_COUNT = {
+  'Agentic Architecture & Orchestration':  109,
+  'Claude Code Configuration':              80,
+  'Prompt Engineering & Structured Output': 80,
+  'Tool Design & MCP Integration':          72,
+  'Context Management & Reliability':       60,
+};
+
+// One specific, actionable study tip per domain
+const STUDY_TIPS = {
+  'Agentic Architecture & Orchestration':
+    'Focus on where to place human-in-the-loop checkpoints — the exam tests this precisely. ' +
+    'The rule: any action that is hard to reverse (writing data, spending money, scheduling ' +
+    'real-world events) needs human approval before execution. Read-only calls are generally ' +
+    'safe to run automatically. Practice sketching a ReAct loop (Reason → Act → ' +
+    'Observe) and marking every write step with a checkpoint.',
+
+  'Claude Code Configuration':
+    'Know CLAUDE.md inside-out: what goes in it (project scope, allowed commands, ' +
+    'never-touch files, conventions), how it differs from a system prompt, and how sub-agents ' +
+    'inherit or override it. Also know where MCP servers are configured ' +
+    '(.claude/settings.json). Exam questions hinge on the configuration hierarchy: global ' +
+    'settings vs. project settings vs. per-session overrides.',
+
+  'Prompt Engineering & Structured Output':
+    'The most-tested technique is separating reasoning from output. Use a planning step ' +
+    'that asks Claude to think through the problem before producing the final answer, and ' +
+    'capture that thinking in a scratchpad rather than letting it bleed into the response. ' +
+    'For structured output, know when to use JSON schema enforcement (strict contracts with ' +
+    'external systems) vs. plain prose, and always add post-processing validation as a ' +
+    'second layer on top of prompt instructions.',
+
+  'Tool Design & MCP Integration':
+    'Memorize the three-field formula for any tool definition: (1) a verb-phrase name ' +
+    '(get_user_profile, search_docs), (2) a natural-language description that tells Claude ' +
+    'exactly when and why to call it, and (3) typed parameters with explicit required vs. ' +
+    'optional flags and a description for each. Exam questions almost always hinge on ' +
+    'whether a schema is complete enough for Claude to call the tool correctly without ' +
+    'guessing intent.',
+
+  'Context Management & Reliability':
+    'The highest-yield insight: important constraints that must hold throughout a long ' +
+    'conversation should be restated near the end of the context (recency effect), not ' +
+    'just at the top. Understand how to summarize earlier turns while preserving key ' +
+    'decisions, and know the difference between system prompt slots (persistent) and ' +
+    'conversation turns (scrolled away). Model version pinning in production is also ' +
+    'frequently tested.',
+};
+
+// One sample question per domain for Email 2 (index 10 in app.js — well clear of the
+// 2-per-domain diagnostic pool)
+const SAMPLE_QUESTIONS = {
+  'Agentic Architecture & Orchestration': {
+    q: 'A healthcare startup is building an agent that can schedule appointments and access patient records. At what point should the agent require human approval?',
+    options: [
+      'Only when the model confidence score is below 50%',
+      'Before any action that modifies patient data or schedules real appointments',
+      'Only when the patient explicitly asks to talk to a human',
+      'Never, because the agent should be fully autonomous',
+    ],
+    correct: 1,
+    explain: 'Human-in-the-loop checkpoints should be placed before any action with real-world consequences that are difficult or impossible to reverse, especially in sensitive domains like healthcare. Modifying patient data and scheduling real appointments are high-stakes actions that warrant human approval.',
+  },
+  'Claude Code Configuration': {
+    q: 'You need to configure Claude Code to connect to a custom MCP server that provides access to your company\'s internal API documentation. Where do you add this configuration?',
+    options: [
+      'In the system prompt of each conversation',
+      'In .claude/settings.json under the MCP server configuration section',
+      'In a separate mcp-config.json at the project root',
+      'In the CLAUDE.md file as a tool description',
+    ],
+    correct: 1,
+    explain: 'MCP server configurations in Claude Code are defined in .claude/settings.json. This is where you specify the server\'s transport method, connection details, and any authentication needed. The settings file ensures the MCP server is available across all conversations without needing to reconfigure each time.',
+  },
+  'Prompt Engineering & Structured Output': {
+    q: 'You want to prevent Claude from generating harmful content in a customer-facing chatbot. What is the most effective approach for output guardrails?',
+    options: [
+      'Trust that Claude\'s built-in safety is sufficient for all cases',
+      'Implement layered guardrails: system prompt instructions defining boundaries, plus post-processing validation that checks outputs against content policies before showing them to users',
+      'Add a disclaimer to every response',
+      'Use temperature 0 to prevent creative outputs',
+    ],
+    correct: 1,
+    explain: 'Layered guardrails provide defense in depth: system prompt instructions set behavioral boundaries, and post-processing validation acts as a safety net to catch anything that slips through. This two-layer approach is more robust than relying solely on either the model\'s built-in safety or prompt instructions alone.',
+  },
+  'Tool Design & MCP Integration': {
+    q: 'What is MCP (Model Context Protocol) and why does it matter for building AI applications?',
+    options: [
+      'A proprietary Anthropic protocol for internal use only',
+      'An open protocol that standardizes how AI applications connect to external data sources and tools, enabling interoperable integrations across different AI systems',
+      'A messaging format for multi-model communication',
+      'A compression algorithm for context windows',
+    ],
+    correct: 1,
+    explain: 'MCP (Model Context Protocol) is an open protocol that standardizes the connection between AI applications and external tools and data sources. It matters because it creates an interoperable ecosystem where tool integrations can be reused across different AI applications rather than requiring custom integrations for each one.',
+  },
+  'Context Management & Reliability': {
+    q: 'Your team is concerned about a model update changing behavior in production. What deployment strategy minimizes risk?',
+    options: [
+      'Update all production systems at once and roll back if there are issues',
+      'Use model version pinning in production and implement canary deployment: test the new version with a small percentage of traffic before full rollout',
+      'Never update the model version',
+      'Let Anthropic decide when to update',
+    ],
+    correct: 1,
+    explain: 'Model version pinning locks your production to a specific model version, preventing unexpected behavior changes. Canary deployment tests new versions with a small traffic percentage, allowing you to detect issues before they affect all users. This combination provides stability while enabling controlled upgrades.',
+  },
+};
+
+// Leads submitted before this date are NEVER pulled into the sequence.
+// Override with SEQUENCE_START env var (ISO date string) on Render.
+const SEQUENCE_START = new Date(process.env.SEQUENCE_START || '2026-06-19T00:00:00Z');
+
+// Stage order and minimum lead age before each email is eligible
+const STAGE_ORDER       = ['d1', 'd3', 'd7'];
+const STAGE_MIN_AGE_MS  = { d1: 22 * 3600000, d3: 70 * 3600000, d7: 166 * 3600000 };
+
+const SITE_URL    = 'https://www.claudecertifiedarchitects.com';
+const OPT_LETTERS = ['A', 'B', 'C', 'D', 'E'];
+
+function nurtureCtaUrl(stage) {
+  return `${SITE_URL}/?checkout=true&utm_source=email&utm_medium=nurture&utm_campaign=diagnostic_sequence&utm_content=${stage}`;
+}
+
+// ── Shared HTML email wrapper (table-based for email-client compatibility) ────
+function emailWrap(bodyHtml, unsubUrl) {
+  return `<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background:#f5f3ea;font-family:Georgia,'Times New Roman',serif">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f5f3ea;padding:32px 16px">
+<tr><td align="center">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;background:#ffffff;border:1px solid #d9d5ca;border-radius:8px;overflow:hidden">
+  <tr><td style="background:#c4522c;padding:14px 28px">
+    <span style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.78rem;font-weight:700;color:#ffffff;letter-spacing:.5px;text-transform:uppercase">Claude Certified Architects</span>
+  </td></tr>
+  <tr><td style="padding:32px 28px 28px;color:#191918;line-height:1.7">
+${bodyHtml}
+  </td></tr>
+  <tr><td style="border-top:1px solid #d9d5ca;padding:16px 28px;background:#f5f3ea">
+    <p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.68rem;color:#6f6f66;margin:0 0 5px;line-height:1.5">
+      Claude Certified Architects — independent practice prep, not affiliated with or endorsed by Anthropic.<br>
+      Questions? <a href="mailto:support@claudecertifiedarchitects.com" style="color:#6f6f66">support@claudecertifiedarchitects.com</a>
+    </p>
+    <p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.68rem;color:#6f6f66;margin:0">
+      <a href="${unsubUrl}" style="color:#6f6f66;text-decoration:underline">Unsubscribe</a> from CCA study tips.
+    </p>
+  </td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`;
+}
+
+function eP(text, extraStyle) {
+  const s = extraStyle
+    ? `font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.9rem;color:#191918;line-height:1.7;margin:0 0 16px;${extraStyle}`
+    : `font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.9rem;color:#191918;line-height:1.7;margin:0 0 16px`;
+  return `<p style="${s}">${text}</p>`;
+}
+
+function eBtn(label, url) {
+  return `<div style="text-align:center;margin:28px 0">` +
+    `<a href="${url}" style="display:inline-block;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;` +
+    `font-size:.9rem;font-weight:700;color:#ffffff;background:#c4522c;padding:13px 30px;` +
+    `border-radius:7px;text-decoration:none;letter-spacing:.1px">${label}</a></div>`;
+}
+
+// ── Email 1 (D+1): "What your CCA diagnostic actually told you" ───────────────
+function buildEmail1(results, unsubUrl) {
+  const score  = results.estimatedScore      || 0;
+  const pass   = results.passScore           || 720;
+  const gap    = pass - score;
+  const above  = gap <= 0;
+  const domain = results.weakestDomain       || 'Agentic Architecture & Orchestration';
+  const weight = results.weakestDomainWeight || 27;
+  const N      = NURTURE_DOMAIN_Q_COUNT[domain] || 80;
+  const tip    = STUDY_TIPS[domain] || STUDY_TIPS['Agentic Architecture & Orchestration'];
+  const cta    = nurtureCtaUrl('d1');
+
+  const subject = 'What your CCA diagnostic actually told you';
+
+  // ── plain text ──
+  const scoreLine = above
+    ? `Your result: ${score}/1,000 — above the 720 passing standard on a 10-question sample.\nYour weakest domain: ${domain} (${weight}% of the real exam).`
+    : `Your result: ${score}/1,000 — ${gap} points below the 720 passing standard.\nYour weakest domain: ${domain} (${weight}% of the real exam).`;
+  const context = above
+    ? `\nThe real exam is 60 questions drawn from a much larger pool, covering harder scenarios than a short sample can surface. Your weakest area — ${domain} (${weight}% of the exam) — is where the full exam will probe hardest.\n`
+    : `\n${domain} accounts for ${weight}% of your actual exam score. Closing that domain first gives you the biggest return on your study time.\n`;
+  const ctaCopy = above
+    ? `The full bank has ${N} questions in ${domain} alone — run a timed simulation and confirm your readiness before you book.`
+    : `The full bank has ${N} questions in ${domain} alone, every answer fully explained. That’s where the gap closes — not from rereading docs, but from scenario-based practice exactly like the real exam.`;
+
+  const text = [
+    'Hi,',
+    '',
+    'You took the CCA Foundations Diagnostic and asked for your results. Here’s what those numbers mean — plus one study tip worth more than the score alone.',
+    '',
+    scoreLine,
+    context,
+    `── Study tip for ${domain} ──`,
+    '',
+    tip,
+    '',
+    '── What to do next ──',
+    '',
+    ctaCopy,
+    '',
+    `Close the gap — $49:\n${cta}`,
+    '',
+    'Good luck,',
+    '— Claude Certified Architects',
+    '',
+    '─────────────────────────────────────────',
+    'Claude Certified Architects — independent practice prep, not affiliated with or endorsed by Anthropic.',
+    'Reply-To: support@claudecertifiedarchitects.com',
+    `To stop receiving these emails: ${unsubUrl}`,
+  ].join('\n');
+
+  // ── HTML ──
+  const scoreHtml = above
+    ? eP(`Your result: <strong>${score}/1,000</strong> — above the 720 passing standard on a 10-question sample. Your weakest domain: <strong>${domain}</strong> (${weight}% of the real exam).`)
+    : eP(`Your result: <strong>${score}/1,000</strong> — <strong>${gap} points below</strong> the 720 passing standard. Your weakest domain: <strong>${domain}</strong> (${weight}% of the real exam).`);
+  const contextHtml = above
+    ? eP(`The real exam is 60 questions drawn from a much larger pool. Your weakest area — <strong>${domain}</strong> (${weight}% of the exam) — is where the full exam will probe hardest.`)
+    : eP(`${domain} accounts for <strong>${weight}%</strong> of your actual exam score. Closing that domain first gives you the biggest return on your study time.`);
+  const tipBlock =
+    `<div style="background:#f5f3ea;border-left:3px solid #c4522c;padding:14px 18px;margin:20px 0;border-radius:0 6px 6px 0">` +
+    `<p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#b04928;margin:0 0 8px">Study tip — ${domain}</p>` +
+    `<p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.88rem;color:#191918;line-height:1.65;margin:0">${tip}</p>` +
+    `</div>`;
+  const ctaHtml = above
+    ? eP(`The full bank has <strong>${N} questions in ${domain}</strong> alone — run a timed simulation before you book.`)
+    : eP(`The full bank has <strong>${N} questions in ${domain}</strong> alone, every answer fully explained. That’s where this gap closes.`);
+
+  const bodyHtml =
+    eP('Hi,') +
+    eP('You took the CCA Foundations Diagnostic and asked for your results. Here’s what those numbers mean — plus one study tip worth more than the score alone.') +
+    scoreHtml + contextHtml + tipBlock + ctaHtml +
+    eBtn('Close the gap — $49', cta);
+
+  return { subject, text, html: emailWrap(bodyHtml, unsubUrl) };
+}
+
+// ── Email 2 (D+3): "Why $49 beats a $99 retake" ─────────────────────────────
+function buildEmail2(results, unsubUrl) {
+  const score  = results.estimatedScore      || 0;
+  const pass   = results.passScore           || 720;
+  const gap    = pass - score;
+  const above  = gap <= 0;
+  const domain = results.weakestDomain       || 'Agentic Architecture & Orchestration';
+  const sampleQ = SAMPLE_QUESTIONS[domain] || SAMPLE_QUESTIONS['Agentic Architecture & Orchestration'];
+  const correctLetter = OPT_LETTERS[sampleQ.correct];
+  const cta = nurtureCtaUrl('d3');
+
+  const subject = 'Why $49 beats a $99 retake';
+
+  // ── plain text ──
+  const stakesPara = above
+    ? `Your diagnostic showed you at passing level on a 10-question sample. The real exam is 60 questions at a harder difficulty curve — and it costs $99 (USD) to sit. A mandatory waiting period applies between attempts, so an underprepared attempt costs both the registration fee and weeks before you can retry.`
+    : `You’re currently ${gap} points below the 720 passing standard. The real CCA Foundations exam costs $99 (USD) — and a mandatory waiting period applies between attempts. Sitting it underprepared means losing both the fee and weeks before you can retry.`;
+  const optText = sampleQ.options.map((o, i) => `  ${OPT_LETTERS[i]}. ${o}`).join('\n');
+
+  const text = [
+    'Hi,',
+    '',
+    stakesPara,
+    '',
+    '$49 for 400 practice questions is the straightforward hedge against that outcome. Here’s a taste of what those questions look like:',
+    '',
+    `── Sample question (${domain}) ──`,
+    '',
+    sampleQ.q,
+    '',
+    optText,
+    '',
+    `Correct answer: ${correctLetter}. ${sampleQ.options[sampleQ.correct]}`,
+    '',
+    `Why: ${sampleQ.explain}`,
+    '',
+    '── The full bank ──',
+    '',
+    '400 questions exactly like this, across all five exam domains. Every answer includes a full explanation — not just what’s right, but why each wrong option is wrong.',
+    '',
+    '$49. 10-day money-back guarantee. No risk.',
+    '',
+    `Unlock access:\n${cta}`,
+    '',
+    '— Claude Certified Architects',
+    '',
+    '─────────────────────────────────────────',
+    'Independent practice prep, not affiliated with or endorsed by Anthropic.',
+    'Reply-To: support@claudecertifiedarchitects.com',
+    `To stop receiving these emails: ${unsubUrl}`,
+  ].join('\n');
+
+  // ── HTML ──
+  const stakesHtml = above
+    ? eP(`Your diagnostic showed you at passing level on a short sample. The real exam is 60 questions at a harder curve — and it costs <strong>$99 (USD)</strong>. A mandatory waiting period applies between attempts, so one underprepared attempt costs both the fee and weeks of time.`)
+    : eP(`You’re currently <strong>${gap} points below the 720 passing standard</strong>. The real CCA Foundations exam costs <strong>$99 (USD)</strong> — and a mandatory waiting period applies between attempts. Sitting it underprepared means losing both the fee and weeks before you can retry.`);
+
+  const optRows = sampleQ.options.map((o, i) => {
+    const isCorrect = i === sampleQ.correct;
+    const bg  = isCorrect ? 'background:#f0fdf4;' : '';
+    const col = isCorrect ? 'color:#1a4d3a;font-weight:600;' : 'color:#5a5a52;';
+    const lCol = isCorrect ? '#1a4d3a' : '#6f6f66';
+    const tick = isCorrect ? ' <span style="color:#2d7a5f;font-size:.72rem;margin-left:6px">✓ Correct</span>' : '';
+    return `<tr><td style="padding:7px 12px;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.85rem;${bg}${col}border-radius:4px"><strong style="color:${lCol}">${OPT_LETTERS[i]}.</strong> ${o}${tick}</td></tr>`;
+  }).join('');
+
+  const questionBlock =
+    `<div style="background:#f5f3ea;border:1px solid #d9d5ca;border-radius:8px;padding:20px;margin:24px 0">` +
+    `<p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#b04928;margin:0 0 10px">Sample question — ${domain}</p>` +
+    `<p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.88rem;font-weight:600;color:#191918;line-height:1.6;margin:0 0 14px">${sampleQ.q}</p>` +
+    `<table width="100%" cellpadding="0" cellspacing="4" border="0">${optRows}</table>` +
+    `<p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.8rem;color:#5a5a52;line-height:1.55;margin:14px 0 0;border-top:1px solid #d9d5ca;padding-top:12px"><strong>Why:</strong> ${sampleQ.explain}</p>` +
+    `</div>`;
+
+  const bodyHtml =
+    eP('Hi,') + stakesHtml +
+    eP('$49 for 400 practice questions is the straightforward hedge. Here’s a taste:') +
+    questionBlock +
+    eP('400 questions like this, across all five domains. Every answer fully explained — not just what’s right, but why each wrong option is wrong.') +
+    eP('$49. 10-day money-back guarantee. No risk.', 'font-weight:700') +
+    eBtn('Unlock access — $49', cta);
+
+  return { subject, text, html: emailWrap(bodyHtml, unsubUrl) };
+}
+
+// ── Email 3 (D+7): "Your CCA gap is still open" ──────────────────────────────
+function buildEmail3(results, unsubUrl) {
+  const score  = results.estimatedScore      || 0;
+  const pass   = results.passScore           || 720;
+  const gap    = pass - score;
+  const above  = gap <= 0;
+  const domain = results.weakestDomain       || 'Agentic Architecture & Orchestration';
+  const cta    = nurtureCtaUrl('d7');
+
+  const subject = above ? 'One week on — is your CCA prep locked in?' : 'Your CCA gap is still open';
+
+  // ── plain text ──
+  const opening = above
+    ? `A week ago you scored above the 720 passing standard on a short diagnostic sample.\n\nThe real exam is 60 questions — broader, harder, drawn from a much larger pool. A passing sample is a good sign, not a guarantee.`
+    : `A week ago you were ${gap} points below the 720 passing standard, with ${domain} as your weakest area.\n\nThat gap doesn’t close on its own.`;
+
+  const text = [
+    'Hi,',
+    '',
+    opening,
+    '',
+    'If you’ve been studying, great — the full practice bank is the best thing you can add at this point: 400 scenario-based questions, domain-weighted exactly like the real exam, every answer fully explained.',
+    '',
+    `If now isn’t the right time, that’s fine. Come back when you’re ready:\n${cta}`,
+    '',
+    `If you want to close the gap: $49, 10-day money-back guarantee. Try it for a week — if you don’t feel more confident in ${domain}, get a full refund. No risk.`,
+    '',
+    'Good luck with the exam.',
+    '— Claude Certified Architects',
+    '',
+    '─────────────────────────────────────────',
+    'Independent practice prep, not affiliated with or endorsed by Anthropic.',
+    'Reply-To: support@claudecertifiedarchitects.com',
+    `To stop receiving these emails: ${unsubUrl}`,
+  ].join('\n');
+
+  // ── HTML ──
+  const openingHtml = above
+    ? eP('A week ago you scored above the 720 passing standard on a short sample. The real exam is 60 questions — broader, harder, drawn from a much larger pool. A passing sample is a good sign, not a guarantee.')
+    : eP(`A week ago you were <strong>${gap} points below the 720 passing standard</strong>, with <strong>${domain}</strong> as your weakest area.`) +
+      eP('That gap doesn’t close on its own.');
+
+  const riskBlock =
+    `<div style="background:#f0fdf4;border:1.5px solid #a7f3d0;border-radius:8px;padding:18px 20px;margin:20px 0">` +
+    `<p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.88rem;color:#191918;line-height:1.65;margin:0">` +
+    `<strong style="color:#1a4d3a">10-day money-back guarantee.</strong> Try the full 400-question bank for a week. ` +
+    `If you don’t feel more confident in ${domain}, get a full refund — no questions asked.</p>` +
+    `</div>`;
+
+  const bodyHtml =
+    eP('Hi,') + openingHtml +
+    eP('The full practice bank is the best thing you can add at this stage: 400 scenario-based questions, domain-weighted exactly like the real exam, every answer fully explained.') +
+    riskBlock +
+    eP('If now isn’t the right time, come back when you’re ready. Good luck with the exam.') +
+    eBtn('Close the gap — $49, risk-free', cta);
+
+  return { subject, text, html: emailWrap(bodyHtml, unsubUrl) };
+}
+
+// ── GET /unsubscribe ──────────────────────────────────────────────────────────
+// Finds the lead by unsubToken, sets unsubscribed:true, returns a confirmation page.
+app.get('/unsubscribe', async (req, res) => {
+  const token = (req.query.token || '').trim();
+  if (!token) {
+    return res.status(400).send(unsubPage('Missing or invalid unsubscribe link.', false));
+  }
+  try {
+    const snap = await db.collection('diagnostic_leads')
+      .where('unsubToken', '==', token)
+      .limit(1)
+      .get();
+    if (snap.empty) {
+      // Already unsubscribed or invalid token — treat as success to avoid leaking info
+      return res.send(unsubPage('You are unsubscribed. You will not receive further emails from us.', true));
+    }
+    await snap.docs[0].ref.set(
+      { unsubscribed: true, unsubscribedAt: admin.firestore.FieldValue.serverTimestamp() },
+      { merge: true }
+    );
+    console.log('[unsub] Unsubscribed token:', token);
+    return res.send(unsubPage('Done — you\'ve been unsubscribed. You won\'t receive any further CCA study emails from us.', true));
+  } catch (err) {
+    console.error('[unsub] Error:', err.message);
+    return res.status(500).send(unsubPage('Something went wrong. Email support@claudecertifiedarchitects.com to unsubscribe manually.', false));
+  }
+});
+
+function unsubPage(message, success) {
+  const icon = success ? '✓' : '⚠';
+  const title = success ? 'Unsubscribed' : 'Problem';
+  return `<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>${title} — Claude Certified Architects</title>
+<style>
+body{margin:0;padding:40px 20px;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;background:#f5f3ea;color:#191918;text-align:center}
+.card{max-width:440px;margin:0 auto;background:#fff;border:1px solid #d9d5ca;border-radius:10px;padding:36px 32px}
+h1{font-size:1.2rem;font-weight:700;margin:0 0 12px}
+p{font-size:.9rem;color:#5a5a52;line-height:1.65;margin:0 0 16px}
+a{color:#b04928}
+.icon{font-size:2rem;margin-bottom:14px}
+</style></head><body>
+<div class="card">
+  <div class="icon">${icon}</div>
+  <h1>${title}</h1>
+  <p>${message}</p>
+  <p><a href="${SITE_URL}/">← Back to Claude Certified Architects</a></p>
+  <p style="font-size:.72rem;color:#8a8a7f">Independent practice prep — not affiliated with or endorsed by Anthropic.</p>
+</div>
+</body></html>`;
+}
+
+// ── POST /nurture-send ────────────────────────────────────────────────────────
+// Called once daily by cron-job.org. Auth: ?secret= or x-nurture-secret header.
+// Dry-run: add ?dryRun=true to log decisions without sending or writing state.
+//
+// Required env vars: NURTURE_CRON_SECRET
+// Optional env var:  SEQUENCE_START (ISO date — defaults to 2026-06-19)
+app.post('/nurture-send', express.json(), async (req, res) => {
+  // 1. Authenticate
+  const provided = (req.query.secret || req.headers['x-nurture-secret'] || '').trim();
+  if (!process.env.NURTURE_CRON_SECRET || provided !== process.env.NURTURE_CRON_SECRET) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const dryRun = req.query.dryRun === 'true' || req.query.dryRun === '1';
+  console.log(`[nurture] Run started — dryRun=${dryRun} sequenceStart=${SEQUENCE_START.toISOString()}`);
+
+  const result = { ok: true, dryRun, sent: 0, skipped: 0, errors: 0, details: [] };
+
+  let snap;
+  try {
+    snap = await db.collection('diagnostic_leads').get();
+  } catch (err) {
+    console.error('[nurture] Failed to load diagnostic_leads:', err.message);
+    return res.status(500).json({ error: 'DB read failed', message: err.message });
+  }
+
+  const now = Date.now();
+
+  for (const doc of snap.docs) {
+    const lead  = doc.data();
+    const email = (lead.email || '').toLowerCase().trim();
+    const tag   = `[nurture][${email || doc.id}]`;
+
+    try {
+      // 2. SEQUENCE_START cutoff — never touch old leads
+      const submittedAt = lead.submittedAt ? lead.submittedAt.toDate() : null;
+      if (!submittedAt || submittedAt < SEQUENCE_START) {
+        result.skipped++;
+        result.details.push({ email, action: 'skip', stage: null, reason: 'before_cutoff' });
+        continue;
+      }
+
+      // Validate email
+      if (!email || !email.includes('@')) {
+        result.skipped++;
+        result.details.push({ email, action: 'skip', stage: null, reason: 'invalid_email' });
+        continue;
+      }
+
+      // 3. Unsubscribed?
+      if (lead.unsubscribed) {
+        console.log(`${tag} skip: unsubscribed`);
+        result.skipped++;
+        result.details.push({ email, action: 'skip', stage: null, reason: 'unsubscribed' });
+        continue;
+      }
+
+      // 4. Buyer suppression — check pending_enrollments then enrolled users
+      const pendingDoc = await db.collection('pending_enrollments').doc(email).get();
+      if (pendingDoc.exists) {
+        console.log(`${tag} skip: buyer_pending`);
+        result.skipped++;
+        result.details.push({ email, action: 'skip', stage: null, reason: 'buyer_pending' });
+        continue;
+      }
+      const usersSnap = await db.collection('users').where('email', '==', email).limit(1).get();
+      if (!usersSnap.empty && usersSnap.docs[0].data().enrolled === true) {
+        console.log(`${tag} skip: buyer_enrolled`);
+        result.skipped++;
+        result.details.push({ email, action: 'skip', stage: null, reason: 'buyer_enrolled' });
+        continue;
+      }
+
+      // 5. Find the earliest unsent stage that is now due
+      const ageMs      = now - submittedAt.getTime();
+      const sentStages = lead.sequenceSent || [];
+      let stageToSend  = null;
+
+      for (const stage of STAGE_ORDER) {
+        if (ageMs >= STAGE_MIN_AGE_MS[stage] && !sentStages.includes(stage)) {
+          stageToSend = stage;
+          break;
+        }
+      }
+
+      if (!stageToSend) {
+        const ageH = Math.round(ageMs / 3600000);
+        console.log(`${tag} skip: no_due_stage (age=${ageH}h sent=[${sentStages.join(',')}])`);
+        result.skipped++;
+        result.details.push({ email, action: 'skip', stage: null, reason: 'no_due_stage' });
+        continue;
+      }
+
+      // 6. Dry-run: log intent without sending or writing state
+      if (dryRun) {
+        console.log(`${tag} would_send: ${stageToSend}`);
+        result.sent++;
+        result.details.push({ email, action: 'would_send', stage: stageToSend, reason: null });
+        continue;
+      }
+
+      // 7. Ensure unsubscribe token exists
+      let unsubToken = lead.unsubToken;
+      if (!unsubToken) {
+        unsubToken = crypto.randomBytes(20).toString('hex');
+      }
+      const unsubUrl = `https://claude-certified-architect.onrender.com/unsubscribe?token=${unsubToken}`;
+
+      // 8. Build email content
+      const emailContent =
+        stageToSend === 'd1' ? buildEmail1(lead.results || {}, unsubUrl) :
+        stageToSend === 'd3' ? buildEmail2(lead.results || {}, unsubUrl) :
+                               buildEmail3(lead.results || {}, unsubUrl);
+
+      // 9. Send via Resend
+      const ok = await sendViaResend({
+        to:                 lead.email,
+        subject:            emailContent.subject,
+        text:               emailContent.text,
+        html:               emailContent.html,
+        replyTo:            'support@claudecertifiedarchitects.com',
+        listUnsubscribeUrl: unsubUrl,
+      });
+
+      if (ok) {
+        // 10. Write state ONLY after confirmed send
+        await doc.ref.set({
+          sequenceSent:  admin.firestore.FieldValue.arrayUnion(stageToSend),
+          unsubToken,
+          lastNurtureAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+
+        console.log(`${tag} sent: ${stageToSend}`);
+        result.sent++;
+        result.details.push({ email, action: 'sent', stage: stageToSend, reason: null });
+      } else {
+        console.error(`${tag} resend_rejected: ${stageToSend}`);
+        result.errors++;
+        result.details.push({ email, action: 'error', stage: stageToSend, reason: 'resend_rejected' });
+      }
+
+    } catch (err) {
+      // Per-lead isolation: one failure must never abort the run
+      console.error(`${tag} error:`, err.message);
+      result.errors++;
+      result.details.push({ email, action: 'error', stage: null, reason: err.message });
+    }
+  }
+
+  console.log(`[nurture] Run complete — sent=${result.sent} skipped=${result.skipped} errors=${result.errors} dryRun=${dryRun}`);
+  return res.json(result);
+});
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Stripe webhook server listening on port ${PORT}`));
