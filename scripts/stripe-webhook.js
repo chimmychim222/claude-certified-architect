@@ -119,8 +119,7 @@ async function fireGA4PurchaseEvent(sessionId, ga4ClientId, uid, gclidAw, ga4Ses
     const resp = await fetch(url, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(Object.assign(
-        {
+      body: JSON.stringify({
           client_id: clientId,
           events: [{
             name:   'purchase',
@@ -131,15 +130,14 @@ async function fireGA4PurchaseEvent(sessionId, ga4ClientId, uid, gclidAw, ga4Ses
                 transaction_id: sessionId,
                 items: [{ item_id: 'cca_exam_prep', item_name: 'CCA Exam Prep', price: 49.0, quantity: 1 }],
               },
-              // session_id stitches this server-side hit to the browser session
-              // so GA4 reports the correct source/medium instead of "(not set)".
+              // session_id + session_number stitch this server-side hit to the
+              // original browser session so GA4 reports source/medium correctly
+              // instead of "(not set) / (not set)".
               ga4SessionId     ? { session_id:     String(ga4SessionId) }     : {},
               ga4SessionNumber ? { session_number: Number(ga4SessionNumber) } : {}
             ),
           }],
-        },
-        gclidAw ? { user_properties: { _gcl_aw: { value: gclidAw } } } : {}
-      )),
+        }),
     });
     // GA4 MP returns 204 No Content on success
     if (resp.ok) {
