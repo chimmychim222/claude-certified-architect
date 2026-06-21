@@ -141,6 +141,16 @@ let fbAuth = null;
 // by an anonymous homepage visitor) is loaded lazily by ensureFirestore()
 // below, separately from the app+auth bundle.
 document.addEventListener('DOMContentLoaded', function() {
+  // Capture gclid immediately on landing — before Firebase loads — and persist
+  // to sessionStorage so openPaymentModal() can read it even if the user later
+  // navigates to a different page before clicking checkout.
+  (function () {
+    try {
+      var g = new URLSearchParams(window.location.search).get('gclid');
+      if (g) sessionStorage.setItem('cca_gclid', g);
+    } catch (e) {}
+  })();
+
   // Restore the "this browser's payment never got matched" warning across
   // reloads — see flagPaymentNeedsReview/PAYMENT_NEEDS_REVIEW_KEY. Runs
   // before Firebase loads; if enrollment turns out to already be confirmed,
@@ -1385,9 +1395,10 @@ function openPaymentModal() {
   url.searchParams.set('client_reference_id', currentUser.uid);
   url.searchParams.set('prefilled_email', currentUser.email);
 
-  // Best-effort: save GA4 attribution data to Firestore so the server-side
-  // Measurement Protocol purchase event (fired from stripe-webhook.js after
-  // enrollment) can use the correct client_id for ad-click attribution.
+  // Best-effort: save GA4 + Google Ads attribution to Firestore so the
+  // server-side Measurement Protocol purchase event (fired from
+  // stripe-webhook.js after enrollment) can carry the correct client_id
+  // AND gclid for ad-click attribution in Google Ads.
   // Runs fire-and-forget alongside the begin_checkout event's ~1s window —
   // a Firestore setDoc completes in <200ms on a warm connection so this
   // almost always lands before the page navigates. Never blocks checkout.
@@ -1395,17 +1406,23 @@ function openPaymentModal() {
     if (window.__fs) {
       const _gaMatch = document.cookie.match(/(?:^|;)\s*_ga=GA\d+\.\d+\.(\d+\.\d+)/);
       const _gaClientId = _gaMatch ? _gaMatch[1] : null;
-      // _gcl_aw stores the gclid from a Google Ads click even after the user
-      // navigates away from the landing URL; fall back to the current URL param.
-      const _gclidMatch = document.cookie.match(/(?:^|;)\s*_gcl_aw=GCL\.\d+\.([^;]+)/);
-      const _gclid =
-        new URLSearchParams(window.location.search).get('gclid') ||
-        (_gclidMatch ? _gclidMatch[1] : null);
-      if (_gaClientId || _gclid) {
+      // _gcl_aw cookie holds the full attribution string (GCL.timestamp.clickId)
+      // set by Google's tag on the ad-click landing page; persists 90 days and
+      // survives navigation away from the gclid URL.
+      // Save the FULL value so stripe-webhook.js can pass it as a GA4 MP
+      // user_property (_gcl_aw) — this is what Google Ads uses to attribute
+      // server-side hits to the originating ad click.
+      const _gclidAwMatch = document.cookie.match(/(?:^|;)\s*_gcl_aw=(GCL\.[^;]+)/);
+      const _gclidAw  = _gclidAwMatch ? _gclidAwMatch[1] : null;
+      const _gclidRaw = (_gclidAw ? _gclidAw.replace(/^GCL\.\d+\./, '') : null)
+                        || new URLSearchParams(window.location.search).get('gclid')
+                        || (() => { try { return sessionStorage.getItem('cca_gclid'); } catch (e) { return null; } })();
+      if (_gaClientId || _gclidRaw || _gclidAw) {
         const fs   = window.__fs;
         const data = {};
         if (_gaClientId) data.ga4ClientId = _gaClientId;
-        if (_gclid)      data.gclid       = _gclid;
+        if (_gclidRaw)   data.gclid       = _gclidRaw;
+        if (_gclidAw)    data.gclid_aw    = _gclidAw;
         fs.setDoc(fs.doc(db, 'users', currentUser.uid), data, { merge: true }).catch(() => {});
       }
     }

@@ -93,7 +93,7 @@ async function sendViaResend({ to, subject, text, html, replyTo, listUnsubscribe
 //
 // If GA4_MEASUREMENT_ID or GA4_MP_API_SECRET are not set, this skips silently —
 // a missing analytics config must never prevent a real enrollment from landing.
-async function fireGA4PurchaseEvent(sessionId, ga4ClientId, uid) {
+async function fireGA4PurchaseEvent(sessionId, ga4ClientId, uid, gclidAw) {
   const measurementId = process.env.GA4_MEASUREMENT_ID;
   const apiSecret     = process.env.GA4_MP_API_SECRET;
 
@@ -119,18 +119,23 @@ async function fireGA4PurchaseEvent(sessionId, ga4ClientId, uid) {
     const resp = await fetch(url, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        client_id: clientId,
-        events: [{
-          name:   'purchase',
-          params: {
-            currency:       'USD',
-            value:          49,
-            transaction_id: sessionId,
-            items: [{ item_id: 'cca_exam_prep', item_name: 'CCA Exam Prep', price: 49, quantity: 1 }],
-          },
-        }],
-      }),
+      body: JSON.stringify(Object.assign(
+        {
+          client_id: clientId,
+          events: [{
+            name:   'purchase',
+            params: {
+              currency:       'USD',
+              value:          49,
+              transaction_id: sessionId,
+              items: [{ item_id: 'cca_exam_prep', item_name: 'CCA Exam Prep', price: 49, quantity: 1 }],
+            },
+          }],
+        },
+        // Pass the full _gcl_aw value as a user property so Google Ads can
+        // attribute this server-side hit to the originating ad click.
+        gclidAw ? { user_properties: { _gcl_aw: { value: gclidAw } } } : {}
+      )),
     });
     // GA4 MP returns 204 No Content on success
     if (resp.ok) {
@@ -223,9 +228,14 @@ app.post(
         // Read GA4 attribution data the client wrote to Firestore before
         // redirecting to checkout — used for the MP purchase event below.
         let ga4ClientId = null;
+        let gclidAw     = null;
         try {
           const attrSnap = await db.collection('users').doc(uid).get();
-          if (attrSnap.exists) ga4ClientId = attrSnap.data().ga4ClientId || null;
+          if (attrSnap.exists) {
+            const d = attrSnap.data();
+            ga4ClientId = d.ga4ClientId || null;
+            gclidAw     = d.gclid_aw   || null;
+          }
         } catch (e) { /* best-effort, never block enrollment */ }
 
         await auth.setCustomUserClaims(uid, { ...existingClaims, enrolled: true });
@@ -236,6 +246,7 @@ app.post(
             enrolledAt:      admin.firestore.FieldValue.serverTimestamp(),
             email:           customerEmail || userRecord.email,
             stripeSessionId: session.id,
+            ...(gclidAw ? { gclid_aw: gclidAw } : {}),
           },
           { merge: true }
         );
@@ -248,7 +259,7 @@ app.post(
 
         console.log(`Enrolled via client_reference_id: ${customerEmail || userRecord.email} (${uid})`);
         // Fire server-side GA4 purchase event — additive, deduped by transaction_id.
-        fireGA4PurchaseEvent(session.id, ga4ClientId, uid).catch(() => {});
+        fireGA4PurchaseEvent(session.id, ga4ClientId, uid, gclidAw).catch(() => {});
         return res.json({ ok: true, enrolled: uid });
       } catch (err) {
         console.warn(`client_reference_id lookup failed (${clientReferenceId}):`, err.message);
@@ -299,9 +310,14 @@ app.post(
 
       // Read GA4 attribution data — present if user was logged in at checkout.
       let ga4ClientId = null;
+      let gclidAw     = null;
       try {
         const attrSnap = await db.collection('users').doc(uid).get();
-        if (attrSnap.exists) ga4ClientId = attrSnap.data().ga4ClientId || null;
+        if (attrSnap.exists) {
+          const d = attrSnap.data();
+          ga4ClientId = d.ga4ClientId || null;
+          gclidAw     = d.gclid_aw   || null;
+        }
       } catch (e) { /* best-effort */ }
 
       await auth.setCustomUserClaims(uid, { ...existingClaims, enrolled: true });
@@ -312,6 +328,7 @@ app.post(
           enrolledAt:      admin.firestore.FieldValue.serverTimestamp(),
           email:           customerEmail,
           stripeSessionId: session.id,
+          ...(gclidAw ? { gclid_aw: gclidAw } : {}),
         },
         { merge: true }
       );
@@ -321,7 +338,7 @@ app.post(
       db.collection('pending_enrollments').doc(customerEmail.toLowerCase()).delete().catch(() => {});
 
       console.log(`Enrolled: ${customerEmail} (${uid})`);
-      fireGA4PurchaseEvent(session.id, ga4ClientId, uid).catch(() => {});
+      fireGA4PurchaseEvent(session.id, ga4ClientId, uid, gclidAw).catch(() => {});
       return res.json({ ok: true, enrolled: uid });
 
     } catch (err) {
@@ -381,6 +398,19 @@ app.post('/claim-enrollment', async (req, res) => {
     const userRecord     = await auth.getUser(uid);
     const existingClaims = userRecord.customClaims || {};
 
+    // Read attribution data before the enrollment write so gclid_aw can be
+    // included in the Firestore record (for Stripe→ad-click cross-referencing).
+    let ga4ClientId = null;
+    let gclidAw     = null;
+    try {
+      const attrSnap = await db.collection('users').doc(uid).get();
+      if (attrSnap.exists) {
+        const d = attrSnap.data();
+        ga4ClientId = d.ga4ClientId || null;
+        gclidAw     = d.gclid_aw   || null;
+      }
+    } catch (e) { /* best-effort */ }
+
     await auth.setCustomUserClaims(uid, { ...existingClaims, enrolled: true });
     await db.collection('users').doc(uid).set(
       {
@@ -388,26 +418,19 @@ app.post('/claim-enrollment', async (req, res) => {
         enrolledAt:      admin.firestore.FieldValue.serverTimestamp(),
         email:           userRecord.email,
         stripeSessionId: pending.stripeSessionId || null,
+        ...(gclidAw ? { gclid_aw: gclidAw } : {}),
       },
       { merge: true }
     );
     await pendingRef.delete();
 
     // Fire GA4 server-side purchase event for claimed pending enrollments.
-    // Read ga4ClientId from the users doc (written by the client before checkout
-    // or on a subsequent login); fall back to uid if not present.
-    {
-      let ga4ClientId = null;
-      try {
-        const attrSnap = await db.collection('users').doc(uid).get();
-        if (attrSnap.exists) ga4ClientId = attrSnap.data().ga4ClientId || null;
-      } catch (e) { /* best-effort */ }
-      fireGA4PurchaseEvent(
-        pending.stripeSessionId || ('claim_' + uid),
-        ga4ClientId,
-        uid
-      ).catch(() => {});
-    }
+    fireGA4PurchaseEvent(
+      pending.stripeSessionId || ('claim_' + uid),
+      ga4ClientId,
+      uid,
+      gclidAw
+    ).catch(() => {});
 
     console.log(`Claimed pending enrollment: ${email} (${uid})`);
     return res.json({ ok: true, enrolled: true });
