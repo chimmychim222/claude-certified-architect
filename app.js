@@ -577,7 +577,7 @@ function updatePricingCTAs() {
       heroBtn.classList.add('btn-enrolled');
     } else {
       heroBtn.textContent = 'Enroll Now — $49';
-      heroBtn.onclick = () => showSection('pricing');
+      heroBtn.onclick = () => openPaymentModal();
       heroBtn.classList.remove('btn-enrolled');
     }
   }

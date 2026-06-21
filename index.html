@@ -768,7 +768,7 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
       <div style="font-size:2.4rem;line-height:1;margin-bottom:10px" aria-hidden="true">🎉</div>
       <p style="margin:0 0 8px;font-size:1.15rem;font-weight:700" role="heading" aria-level="3">Welcome to Claude Certified Architects!</p>
       <p style="color:var(--text2);font-size:.9rem;margin:0 0 22px;line-height:1.5">Your free account is ready. Here's where most people start:</p>
-      <button class="btn-primary" style="width:100%;padding:14px;margin-bottom:10px" onclick="closeAuthModal();showSection('pricing')">See pricing &amp; enroll — $49</button>
+      <button class="btn-primary" style="width:100%;padding:14px;margin-bottom:10px" onclick="openPaymentModal()">See pricing &amp; enroll — $49</button>
       <a class="btn-secondary" style="display:block;width:100%;padding:14px;text-align:center;text-decoration:none;box-sizing:border-box" href="/diagnostic/" target="_blank" rel="noopener" onclick="closeAuthModal()">Take the free diagnostic first ↗</a>
     </div>
   </div>
@@ -824,7 +824,7 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
            button so an enrolled visitor sees nothing but their dashboard
            link here — no leftover purchase-prompt copy. -->
       <span id="hero-enroll-prompt">Already sure you want full access?</span>
-      <button class="btn-primary" id="hero-enroll-btn" onclick="showSection('pricing')">Enroll Now — $49</button>
+      <button class="btn-primary" id="hero-enroll-btn" onclick="openPaymentModal()">Enroll Now — $49</button>
     </div>
   </div>
 </section>
