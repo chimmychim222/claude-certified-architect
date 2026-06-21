@@ -231,6 +231,44 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
+// ── Bfcache / Stripe back-button handler ──────────────────────────────────────
+// When the user navigates back from Stripe (browser back button OR Stripe's
+// own in-page × / back arrow), the browser may restore this page from the
+// back-forward cache (bfcache) with event.persisted === true.  If the auth
+// modal was left open on the "Redirecting to secure checkout…" spinner, it
+// would remain frozen in that state — the user looks logged in but broken.
+//
+// This handler fires before onAuthStateChanged can re-run, so:
+//   1. It clears the checkout intent (prevents onAuthStateChanged resuming
+//      checkout automatically — the user chose to leave Stripe).
+//   2. It closes the modal so the page renders in a clean, logged-in state.
+//
+// The Stripe Payment Link has no configurable cancel_url (it's a hosted link,
+// not a Checkout Session), so browser back is the only exit path — both the
+// browser back button and Stripe's own navigation button go through bfcache.
+window.addEventListener('pageshow', function(e) {
+  if (!e.persisted) return;
+  // Abandon any pending checkout intent — the user left Stripe voluntarily.
+  window.__pendingCheckout = false;
+  try { sessionStorage.removeItem('cca_checkout_intent'); } catch (_) {}
+  // If the modal is stuck on a loading/spinner state, close it so the user
+  // lands cleanly on the page, logged in and unenrolled, with no hung UI.
+  const modal = document.getElementById('auth-modal');
+  if (modal && modal.classList.contains('show')) {
+    closeAuthModal();
+    // Reset the modal's internal state from spinner back to form, so it
+    // opens correctly the next time the user clicks a buy button.
+    const formArea = document.getElementById('auth-form-area');
+    const loading  = document.getElementById('auth-loading');
+    const welcome  = document.getElementById('auth-welcome');
+    const errEl    = document.getElementById('auth-error');
+    if (formArea) formArea.style.display = 'block';
+    if (loading)  loading.style.display  = 'none';
+    if (welcome)  welcome.style.display  = 'none';
+    if (errEl)    { errEl.style.display  = 'none'; errEl.textContent = ''; }
+  }
+});
+
 // Lazily loads the modular Firestore SDK and points it at this project's
 // custom-named "default" database (see the big `db` comment above).
 // Memoized so concurrent callers (e.g. the auth-state listener and a login
