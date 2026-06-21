@@ -1395,35 +1395,48 @@ function openPaymentModal() {
   url.searchParams.set('client_reference_id', currentUser.uid);
   url.searchParams.set('prefilled_email', currentUser.email);
 
-  // Best-effort: save GA4 + Google Ads attribution to Firestore so the
-  // server-side Measurement Protocol purchase event (fired from
-  // stripe-webhook.js after enrollment) can carry the correct client_id
-  // AND gclid for ad-click attribution in Google Ads.
-  // Runs fire-and-forget alongside the begin_checkout event's ~1s window —
-  // a Firestore setDoc completes in <200ms on a warm connection so this
-  // almost always lands before the page navigates. Never blocks checkout.
+  // Best-effort: save GA4 attribution to Firestore so the server-side
+  // Measurement Protocol purchase event (fired from stripe-webhook.js after
+  // enrollment) can stitch to the original session.
+  //
+  // GA4 MP session stitching requires client_id + session_id (+ optionally
+  // session_number). Without session_id the hit arrives as "(not set)/(not set)"
+  // in the source/medium report. client_id alone isn't enough.
+  //
+  // gtag('get') reads from the in-memory measurement cache — it returns in
+  // the same tick or the next microtask, well within the ~1 s begin_checkout
+  // window. Runs fire-and-forget; never blocks checkout.
   try {
     if (window.__fs) {
-      const _gaMatch = document.cookie.match(/(?:^|;)\s*_ga=GA\d+\.\d+\.(\d+\.\d+)/);
+      const _gaMatch    = document.cookie.match(/(?:^|;)\s*_ga=GA\d+\.\d+\.(\d+\.\d+)/);
       const _gaClientId = _gaMatch ? _gaMatch[1] : null;
-      // _gcl_aw cookie holds the full attribution string (GCL.timestamp.clickId)
-      // set by Google's tag on the ad-click landing page; persists 90 days and
-      // survives navigation away from the gclid URL.
-      // Save the FULL value so stripe-webhook.js can pass it as a GA4 MP
-      // user_property (_gcl_aw) — this is what Google Ads uses to attribute
-      // server-side hits to the originating ad click.
       const _gclidAwMatch = document.cookie.match(/(?:^|;)\s*_gcl_aw=(GCL\.[^;]+)/);
       const _gclidAw  = _gclidAwMatch ? _gclidAwMatch[1] : null;
       const _gclidRaw = (_gclidAw ? _gclidAw.replace(/^GCL\.\d+\./, '') : null)
                         || new URLSearchParams(window.location.search).get('gclid')
                         || (() => { try { return sessionStorage.getItem('cca_gclid'); } catch (e) { return null; } })();
-      if (_gaClientId || _gclidRaw || _gclidAw) {
-        const fs   = window.__fs;
+
+      const fsRef = window.__fs.doc(db, 'users', currentUser.uid);
+      const writeAttribution = (sid, snum) => {
         const data = {};
-        if (_gaClientId) data.ga4ClientId = _gaClientId;
-        if (_gclidRaw)   data.gclid       = _gclidRaw;
-        if (_gclidAw)    data.gclid_aw    = _gclidAw;
-        fs.setDoc(fs.doc(db, 'users', currentUser.uid), data, { merge: true }).catch(() => {});
+        if (_gaClientId)  data.ga4ClientId     = _gaClientId;
+        if (_gclidRaw)    data.gclid           = _gclidRaw;
+        if (_gclidAw)     data.gclid_aw        = _gclidAw;
+        if (sid  != null) data.ga4SessionId    = String(sid);
+        if (snum != null) data.ga4SessionNumber = Number(snum);
+        if (Object.keys(data).length) {
+          window.__fs.setDoc(fsRef, data, { merge: true }).catch(() => {});
+        }
+      };
+
+      if (typeof gtag !== 'undefined') {
+        // Read session_id and session_number in parallel; write once both return.
+        let sid = null, snum = null, pending = 2;
+        const maybe = () => { if (--pending === 0) writeAttribution(sid, snum); };
+        gtag('get', 'G-3ERZD33VQB', 'session_id',     function(v) { sid  = v; maybe(); });
+        gtag('get', 'G-3ERZD33VQB', 'session_number',  function(v) { snum = v; maybe(); });
+      } else {
+        writeAttribution(null, null);
       }
     }
   } catch (e) { /* best-effort, never block checkout */ }

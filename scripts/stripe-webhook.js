@@ -93,7 +93,7 @@ async function sendViaResend({ to, subject, text, html, replyTo, listUnsubscribe
 //
 // If GA4_MEASUREMENT_ID or GA4_MP_API_SECRET are not set, this skips silently —
 // a missing analytics config must never prevent a real enrollment from landing.
-async function fireGA4PurchaseEvent(sessionId, ga4ClientId, uid, gclidAw) {
+async function fireGA4PurchaseEvent(sessionId, ga4ClientId, uid, gclidAw, ga4SessionId, ga4SessionNumber) {
   const measurementId = process.env.GA4_MEASUREMENT_ID;
   const apiSecret     = process.env.GA4_MP_API_SECRET;
 
@@ -124,16 +124,20 @@ async function fireGA4PurchaseEvent(sessionId, ga4ClientId, uid, gclidAw) {
           client_id: clientId,
           events: [{
             name:   'purchase',
-            params: {
-              currency:       'USD',
-              value:          49,
-              transaction_id: sessionId,
-              items: [{ item_id: 'cca_exam_prep', item_name: 'CCA Exam Prep', price: 49, quantity: 1 }],
-            },
+            params: Object.assign(
+              {
+                currency:       'USD',
+                value:          49.0,
+                transaction_id: sessionId,
+                items: [{ item_id: 'cca_exam_prep', item_name: 'CCA Exam Prep', price: 49.0, quantity: 1 }],
+              },
+              // session_id stitches this server-side hit to the browser session
+              // so GA4 reports the correct source/medium instead of "(not set)".
+              ga4SessionId     ? { session_id:     String(ga4SessionId) }     : {},
+              ga4SessionNumber ? { session_number: Number(ga4SessionNumber) } : {}
+            ),
           }],
         },
-        // Pass the full _gcl_aw value as a user property so Google Ads can
-        // attribute this server-side hit to the originating ad click.
         gclidAw ? { user_properties: { _gcl_aw: { value: gclidAw } } } : {}
       )),
     });
@@ -227,14 +231,18 @@ app.post(
 
         // Read GA4 attribution data the client wrote to Firestore before
         // redirecting to checkout — used for the MP purchase event below.
-        let ga4ClientId = null;
-        let gclidAw     = null;
+        let ga4ClientId    = null;
+        let gclidAw        = null;
+        let ga4SessionId   = null;
+        let ga4SessionNumber = null;
         try {
           const attrSnap = await db.collection('users').doc(uid).get();
           if (attrSnap.exists) {
             const d = attrSnap.data();
-            ga4ClientId = d.ga4ClientId || null;
-            gclidAw     = d.gclid_aw   || null;
+            ga4ClientId    = d.ga4ClientId     || null;
+            gclidAw        = d.gclid_aw        || null;
+            ga4SessionId   = d.ga4SessionId    || null;
+            ga4SessionNumber = d.ga4SessionNumber != null ? d.ga4SessionNumber : null;
           }
         } catch (e) { /* best-effort, never block enrollment */ }
 
@@ -259,7 +267,7 @@ app.post(
 
         console.log(`Enrolled via client_reference_id: ${customerEmail || userRecord.email} (${uid})`);
         // Fire server-side GA4 purchase event — additive, deduped by transaction_id.
-        fireGA4PurchaseEvent(session.id, ga4ClientId, uid, gclidAw).catch(() => {});
+        fireGA4PurchaseEvent(session.id, ga4ClientId, uid, gclidAw, ga4SessionId, ga4SessionNumber).catch(() => {});
         return res.json({ ok: true, enrolled: uid });
       } catch (err) {
         console.warn(`client_reference_id lookup failed (${clientReferenceId}):`, err.message);
@@ -309,14 +317,18 @@ app.post(
       const existingClaims = userRecord.customClaims || {};
 
       // Read GA4 attribution data — present if user was logged in at checkout.
-      let ga4ClientId = null;
-      let gclidAw     = null;
+      let ga4ClientId    = null;
+      let gclidAw        = null;
+      let ga4SessionId   = null;
+      let ga4SessionNumber = null;
       try {
         const attrSnap = await db.collection('users').doc(uid).get();
         if (attrSnap.exists) {
           const d = attrSnap.data();
-          ga4ClientId = d.ga4ClientId || null;
-          gclidAw     = d.gclid_aw   || null;
+          ga4ClientId    = d.ga4ClientId     || null;
+          gclidAw        = d.gclid_aw        || null;
+          ga4SessionId   = d.ga4SessionId    || null;
+          ga4SessionNumber = d.ga4SessionNumber != null ? d.ga4SessionNumber : null;
         }
       } catch (e) { /* best-effort */ }
 
@@ -338,7 +350,7 @@ app.post(
       db.collection('pending_enrollments').doc(customerEmail.toLowerCase()).delete().catch(() => {});
 
       console.log(`Enrolled: ${customerEmail} (${uid})`);
-      fireGA4PurchaseEvent(session.id, ga4ClientId, uid, gclidAw).catch(() => {});
+      fireGA4PurchaseEvent(session.id, ga4ClientId, uid, gclidAw, ga4SessionId, ga4SessionNumber).catch(() => {});
       return res.json({ ok: true, enrolled: uid });
 
     } catch (err) {
@@ -400,14 +412,18 @@ app.post('/claim-enrollment', async (req, res) => {
 
     // Read attribution data before the enrollment write so gclid_aw can be
     // included in the Firestore record (for Stripe→ad-click cross-referencing).
-    let ga4ClientId = null;
-    let gclidAw     = null;
+    let ga4ClientId    = null;
+    let gclidAw        = null;
+    let ga4SessionId   = null;
+    let ga4SessionNumber = null;
     try {
       const attrSnap = await db.collection('users').doc(uid).get();
       if (attrSnap.exists) {
         const d = attrSnap.data();
-        ga4ClientId = d.ga4ClientId || null;
-        gclidAw     = d.gclid_aw   || null;
+        ga4ClientId    = d.ga4ClientId     || null;
+        gclidAw        = d.gclid_aw        || null;
+        ga4SessionId   = d.ga4SessionId    || null;
+        ga4SessionNumber = d.ga4SessionNumber != null ? d.ga4SessionNumber : null;
       }
     } catch (e) { /* best-effort */ }
 
@@ -429,7 +445,9 @@ app.post('/claim-enrollment', async (req, res) => {
       pending.stripeSessionId || ('claim_' + uid),
       ga4ClientId,
       uid,
-      gclidAw
+      gclidAw,
+      ga4SessionId,
+      ga4SessionNumber
     ).catch(() => {});
 
     console.log(`Claimed pending enrollment: ${email} (${uid})`);
