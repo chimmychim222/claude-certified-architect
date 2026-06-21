@@ -141,7 +141,7 @@ async function fireGA4PurchaseEvent(sessionId, ga4ClientId, uid, gclidAw, ga4Ses
     });
     // GA4 MP returns 204 No Content on success
     if (resp.ok) {
-      console.log(`[GA4] purchase event sent: session=${sessionId} client_id=${clientId}`);
+      console.log(`[GA4] purchase event sent: stripe=${sessionId} client_id=${clientId} session_id=${ga4SessionId || '(none)'} gclid=${gclidAw ? gclidAw.replace(/^GCL\.\d+\./, '') : '(none)'}`);
     } else {
       const body = await resp.text().catch(() => '');
       console.warn(`[GA4] purchase event failed: HTTP ${resp.status} ${body}`);
