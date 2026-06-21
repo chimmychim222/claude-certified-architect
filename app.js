@@ -251,22 +251,23 @@ window.addEventListener('pageshow', function(e) {
   // Abandon any pending checkout intent — the user left Stripe voluntarily.
   window.__pendingCheckout = false;
   try { sessionStorage.removeItem('cca_checkout_intent'); } catch (_) {}
-  // If the modal is stuck on a loading/spinner state, close it so the user
-  // lands cleanly on the page, logged in and unenrolled, with no hung UI.
-  const modal = document.getElementById('auth-modal');
-  if (modal && modal.classList.contains('show')) {
-    closeAuthModal();
-    // Reset the modal's internal state from spinner back to form, so it
-    // opens correctly the next time the user clicks a buy button.
-    const formArea = document.getElementById('auth-form-area');
-    const loading  = document.getElementById('auth-loading');
-    const welcome  = document.getElementById('auth-welcome');
-    const errEl    = document.getElementById('auth-error');
-    if (formArea) formArea.style.display = 'block';
-    if (loading)  loading.style.display  = 'none';
-    if (welcome)  welcome.style.display  = 'none';
-    if (errEl)    { errEl.style.display  = 'none'; errEl.textContent = ''; }
-  }
+  // Unconditionally reset the modal on bfcache restore — don't rely on
+  // classList.contains('show') which can be unreliable mid-restore. The
+  // page was mid-checkout when it left, so any modal state is stale.
+  try {
+    const modal = document.getElementById('auth-modal');
+    if (!modal) return;
+    modal.classList.remove('show');
+    document.body.style.overflow = '';
+    const formArea  = document.getElementById('auth-form-area');
+    const loadingEl = document.getElementById('auth-loading');
+    const welcomeEl = document.getElementById('auth-welcome');
+    const errEl     = document.getElementById('auth-error');
+    if (formArea)  formArea.style.display  = 'block';
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (welcomeEl) welcomeEl.style.display = 'none';
+    if (errEl)     { errEl.style.display = 'none'; errEl.textContent = ''; }
+  } catch (_) {}
 });
 
 // Lazily loads the modular Firestore SDK and points it at this project's
@@ -1371,6 +1372,11 @@ function flagPaymentNeedsReview(banner, msg) {
 // making the funnel's drop-off numbers look better than reality.
 let checkoutEventSent = false;
 function trackCheckoutAndGo(url) {
+  // Clear the checkout intent the moment we commit to the Stripe redirect.
+  // This ensures that on ANY return path — bfcache restore OR full reload —
+  // onAuthStateChanged finds no intent and does NOT auto-restart checkout.
+  window.__pendingCheckout = false;
+  try { sessionStorage.removeItem('cca_checkout_intent'); } catch (_) {}
   let navigated = false;
   const go = () => {
     if (navigated) return;
