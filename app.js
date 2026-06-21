@@ -390,9 +390,16 @@ function initAuthListener() {
       // second call in the try-block below is a no-op once db is set.
       try { await ensureFirestore(); } catch (e) { /* non-fatal */ }
 
-      if (window.__pendingCheckout) {
-        window.__pendingCheckout = false;
-        openPaymentModal();
+      // Check both in-memory flag and sessionStorage so the checkout intent
+      // survives any same-origin reload that wiped window.__pendingCheckout.
+      {
+        const _hasIntent = window.__pendingCheckout ||
+          (function() { try { return !!sessionStorage.getItem('cca_checkout_intent'); } catch(e) { return false; } }());
+        if (_hasIntent) {
+          window.__pendingCheckout = false;
+          try { sessionStorage.removeItem('cca_checkout_intent'); } catch (e) {}
+          openPaymentModal();
+        }
       }
 
       // Everything below — the Firestore enrollment fallback, the pending-
@@ -459,7 +466,8 @@ function initAuthListener() {
       // authenticate, onAuthStateChanged fires again with a user and the
       // __pendingCheckout handler in the `if (user)` branch above sends them
       // on to Stripe with client_reference_id.
-      if (window.__pendingCheckout) {
+      if (window.__pendingCheckout ||
+          (function() { try { return !!sessionStorage.getItem('cca_checkout_intent'); } catch(e) { return false; } }())) {
         openPaymentModal();
       }
 
@@ -625,6 +633,7 @@ function closeAuthModal() {
   // any "resume checkout after auth" intent set by openPaymentModal(), so a
   // later, unrelated login doesn't unexpectedly redirect to Stripe.
   window.__pendingCheckout = false;
+  try { sessionStorage.removeItem('cca_checkout_intent'); } catch (e) {}
 }
 
 // Puts the auth modal into a loading state with a custom message — covers
@@ -705,9 +714,10 @@ async function signInWithGoogle() {
     return;
   }
 
-  // Capture before any await — see submitAuth for why this must happen
-  // before onAuthStateChanged can clear it.
-  const wasPendingCheckout = !!window.__pendingCheckout;
+  // Capture before any await — onAuthStateChanged (triggered by signInWithPopup)
+  // may fire and consume the intent before this function continues.
+  const wasPendingCheckout = window.__pendingCheckout ||
+    (function() { try { return !!sessionStorage.getItem('cca_checkout_intent'); } catch(e) { return false; } }());
 
   document.getElementById('auth-error').style.display = 'none';
   openAuthModalLoading('Signing you in…');
@@ -755,11 +765,12 @@ async function submitAuth() {
   if (password.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
 
   // Capture before any await — onAuthStateChanged (triggered by the auth
-  // calls below) reads and clears window.__pendingCheckout to resume
-  // checkout, and its timing relative to this function's continuation isn't
-  // guaranteed. Reading it now makes the "resume checkout" branch below
-  // deterministic regardless of which one runs first.
-  const wasPendingCheckout = !!window.__pendingCheckout;
+  // calls below) reads and clears the checkout intent to resume checkout,
+  // and its timing relative to this function's continuation isn't guaranteed.
+  // Reading both the in-memory flag and sessionStorage now makes the
+  // "resume checkout" branch below deterministic regardless of which fires first.
+  const wasPendingCheckout = window.__pendingCheckout ||
+    (function() { try { return !!sessionStorage.getItem('cca_checkout_intent'); } catch(e) { return false; } }());
 
   // Kick off the Firestore bundle load now, in parallel with the auth
   // round-trip below — both signup and login immediately write a
@@ -1369,7 +1380,10 @@ function openPaymentModal() {
     // enroll the right account even if a different/typo'd email is entered
     // at Stripe. __pendingCheckout tells onAuthStateChanged to resume
     // checkout automatically once sign-in/sign-up completes.
+    // Also persist to sessionStorage so the intent survives a same-origin
+    // reload (e.g. Google redirect auth wipes the in-memory flag).
     window.__pendingCheckout = true;
+    try { sessionStorage.setItem('cca_checkout_intent', '1'); } catch (e) {}
     openAuthModal('signup');
     const subtitle = document.getElementById('auth-modal-subtitle');
     if (subtitle) {
