@@ -384,6 +384,12 @@ function initAuthListener() {
       // shouldn't have to click "Enroll Now" a second time after logging in.
       // openPaymentModal() itself handles the "already enrolled" case (goes
       // to the dashboard instead of paying again) — see there.
+      // Load Firestore BEFORE resuming a pending checkout so that
+      // openPaymentModal()'s attribution write (gated on window.__fs) is
+      // never silently skipped. ensureFirestore() is idempotent — the
+      // second call in the try-block below is a no-op once db is set.
+      try { await ensureFirestore(); } catch (e) { /* non-fatal */ }
+
       if (window.__pendingCheckout) {
         window.__pendingCheckout = false;
         openPaymentModal();
@@ -1399,15 +1405,15 @@ function openPaymentModal() {
   // Measurement Protocol purchase event (fired from stripe-webhook.js after
   // enrollment) can stitch to the original session.
   //
-  // GA4 MP session stitching requires client_id + session_id (+ optionally
-  // session_number). Without session_id the hit arrives as "(not set)/(not set)"
-  // in the source/medium report. client_id alone isn't enough.
-  //
-  // gtag('get') reads from the in-memory measurement cache — it returns in
-  // the same tick or the next microtask, well within the ~1 s begin_checkout
-  // window. Runs fire-and-forget; never blocks checkout.
-  try {
-    if (window.__fs) {
+  // Async IIFE — fire-and-forget, never blocks checkout. Awaits
+  // ensureFirestore() so window.__fs can never be null at write time
+  // (the previous if (window.__fs) guard silently skipped the write for
+  // buyers who authenticated during checkout, before Firestore loaded).
+  (async () => {
+    try {
+      await ensureFirestore();
+      const fs = window.__fs;
+      if (!fs) return;
       const _gaMatch    = document.cookie.match(/(?:^|;)\s*_ga=GA\d+\.\d+\.(\d+\.\d+)/);
       const _gaClientId = _gaMatch ? _gaMatch[1] : null;
       const _gclidAwMatch = document.cookie.match(/(?:^|;)\s*_gcl_aw=(GCL\.[^;]+)/);
@@ -1416,7 +1422,7 @@ function openPaymentModal() {
                         || new URLSearchParams(window.location.search).get('gclid')
                         || (() => { try { return sessionStorage.getItem('cca_gclid'); } catch (e) { return null; } })();
 
-      const fsRef = window.__fs.doc(db, 'users', currentUser.uid);
+      const fsRef = fs.doc(db, 'users', currentUser.uid);
       const writeAttribution = (sid, snum) => {
         const data = {};
         if (_gaClientId)  data.ga4ClientId     = _gaClientId;
@@ -1425,7 +1431,7 @@ function openPaymentModal() {
         if (sid  != null) data.ga4SessionId    = String(sid);
         if (snum != null) data.ga4SessionNumber = Number(snum);
         if (Object.keys(data).length) {
-          window.__fs.setDoc(fsRef, data, { merge: true }).catch(() => {});
+          fs.setDoc(fsRef, data, { merge: true }).catch(() => {});
         }
       };
 
@@ -1438,8 +1444,8 @@ function openPaymentModal() {
       } else {
         writeAttribution(null, null);
       }
-    }
-  } catch (e) { /* best-effort, never block checkout */ }
+    } catch (e) { /* best-effort, never block checkout */ }
+  })();
 
   // Server-side pre-checkout guard: confirm the account isn't already enrolled
   // and no duplicate checkout is already in flight. Hard 4 s timeout so a cold
