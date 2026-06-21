@@ -268,6 +268,17 @@ window.addEventListener('pageshow', function(e) {
     if (welcomeEl) welcomeEl.style.display = 'none';
     if (errEl)     { errEl.style.display = 'none'; errEl.textContent = ''; }
   } catch (_) {}
+  // Proactively delete the checkout_intents/{uid} Firestore doc so that if
+  // the user clicks buy again, /pre-checkout returns ok:true rather than
+  // recent_session — which would show the "in progress" banner on what is
+  // actually a fresh checkout attempt after abandoning Stripe.
+  try {
+    if (window.__fs && typeof db !== 'undefined' && currentUser) {
+      window.__fs.deleteDoc(
+        window.__fs.doc(db, 'checkout_intents', currentUser.uid)
+      ).catch(function() {});
+    }
+  } catch (_) {}
 });
 
 // Lazily loads the modular Firestore SDK and points it at this project's
@@ -1526,10 +1537,19 @@ function openPaymentModal() {
         if (document.getElementById('dashboard-section')) showSection('dashboard');
         else window.location.href = '/';
       } else if (result.reason === 'recent_session') {
-        closeAuthModal();
-        const banner = document.getElementById('success-banner');
-        if (banner) { banner.innerHTML = recentSessionMsg(); banner.style.display = 'block'; }
-        if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'smooth' });
+        // The checkout_intents/{uid} doc is stale — the user likely returned
+        // from Stripe without paying and is trying again. Delete it and proceed
+        // directly to Stripe rather than showing the "in progress" banner, which
+        // falsely implies the user may have been charged.
+        // (The webhook independently guards against actual duplicate enrollment.)
+        try {
+          if (window.__fs && typeof db !== 'undefined' && currentUser) {
+            window.__fs.deleteDoc(
+              window.__fs.doc(db, 'checkout_intents', currentUser.uid)
+            ).catch(function() {});
+          }
+        } catch (_) {}
+        trackCheckoutAndGo(_preUrl);
       } else {
         trackCheckoutAndGo(_preUrl);
       }
