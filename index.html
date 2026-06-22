@@ -671,7 +671,7 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
       <a href="/register/" aria-label="Official Claude Certified Architect exam registration on Anthropic's site" style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:6px 10px;border-radius:6px;font-size:.82rem;font-weight:600;color:var(--accent-text);background:transparent;border:1px solid var(--accent-text);transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:4px;white-space:nowrap">Official Exam <span aria-hidden="true" style="font-size:.85em;line-height:1">&#8599;</span></a>
       <!-- Free diagnostic CTA — primary funnel entry, solid-accent treatment, coexists with the Diagnostic nav link above -->
       <a href="/diagnostic/" class="btn-primary btn-sm nav-diagnostic-cta" aria-label="Start the free 10-question CCA diagnostic quiz">Start the Free Diagnostic</a>
-      <button onclick="showSection('lessons')" data-nav="lessons">Lessons</button>
+      <button onclick="showSection('lessons')" data-nav="lessons" id="nav-lessons-link" style="display:none">Lessons</button>
       <button onclick="showSection('progress')" data-nav="progress" id="nav-progress-link" style="display:none">Progress</button>
       <!-- Logged out state. "Sign Up Free" was previously the nav's most
            visually prominent CTA (solid accent / btn-primary); that role now

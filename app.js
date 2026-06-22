@@ -331,9 +331,10 @@ function updateNavUI() {
     loggedOut.style.display = 'flex';
     loggedIn.style.display = 'none';
   }
-  // "Progress" nav link is only meaningful for enrolled users (it tracks
-  // paid practice-test history).
+  // Lessons and Progress nav links are enrolled-only — hide from public nav.
+  const lessonsLink  = document.getElementById('nav-lessons-link');
   const progressLink = document.getElementById('nav-progress-link');
+  if (lessonsLink)  lessonsLink.style.display  = (currentUser && enrolled) ? '' : 'none';
   if (progressLink) progressLink.style.display = (currentUser && enrolled) ? '' : 'none';
 }
 
