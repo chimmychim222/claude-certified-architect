@@ -565,7 +565,8 @@ function blogNav(activePage) {
   <div class="inner">
     <a href="/" class="nav-logo">CCA <span>Practice Platform</span></a>
     <div class="nav-links" id="blog-nav-links">
-      ${link('/cca-practice-questions/', 'Practice Tests')}
+      ${link('/?hub=practice-tests', 'Practice Tests')}
+      ${link('/cca-practice-questions/', 'Question Bank')}
       ${link('/cca-foundations-exam/', 'Exam Sim')}
       ${link('/cca-exam-guide/', 'Guide')}
       ${link('/diagnostic/', 'Diagnostic')}

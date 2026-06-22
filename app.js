@@ -513,6 +513,19 @@ function initAuthListener() {
         window.history.replaceState({}, '', window.location.pathname);
         startTest(params.get('startTest'));
       }
+      // Practice Tests hub — show the dashboard (test-mode selector) directly.
+      // Also reads sessionStorage so the signup-then-hub flow works: a logged-out
+      // user who arrived via ?hub=practice-tests&signup=1 stores the intent there,
+      // signs up, and lands here after auth with the URL already cleared.
+      {
+        const _hub = params.get('hub') ||
+          (function(){ try { return sessionStorage.getItem('cca_hub_intent'); } catch(_){ return null; } }());
+        if (_hub === 'practice-tests') {
+          window.history.replaceState({}, '', '/');
+          try { sessionStorage.removeItem('cca_hub_intent'); } catch(_) {}
+          showSection('dashboard');
+        }
+      }
     } else {
       enrolled = false;
       sessionId = null;
@@ -558,6 +571,21 @@ function initAuthListener() {
       if (anonParams.get('startTest')) {
         window.history.replaceState({}, '', window.location.pathname);
         openPaymentModal();
+      }
+      // Practice Tests hub for logged-out users.
+      // If 'signup' param is set (used by the Exam page "Start Practice Exam"
+      // button), store the hub intent and open signup first; the logged-in
+      // branch will consume the sessionStorage key after auth completes.
+      // Without 'signup', show the dashboard directly — Quick Sprint is free
+      // and locked cards give a natural entry point into the buy flow.
+      if (anonParams.get('hub') === 'practice-tests') {
+        window.history.replaceState({}, '', '/');
+        if (anonParams.get('signup')) {
+          try { sessionStorage.setItem('cca_hub_intent', 'practice-tests'); } catch(_) {}
+          openAuthModal('signup');
+        } else {
+          showSection('dashboard');
+        }
       }
     }
     // Update nav again after Firestore enrollment check completes

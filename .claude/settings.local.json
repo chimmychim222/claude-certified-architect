@@ -615,7 +615,8 @@
       "Bash(grep -v \"style\\\\|css\\\\|description\\\\|//\\\\s\")",
       "Bash(grep -iv \"schema\\\\|json-ld\\\\|description\\\\|title\\\\|content=\\\\|blog\\\\|\\\\.css\\\\|comment\\\\|//\\\\s\")",
       "Bash(grep -iv \"schema\\\\|json\\\\|description\\\\|title\\\\|//\\\\s\\\\|style\\\\|css\")",
-      "Bash(grep -v \"style\\\\|//\\\\|json\\\\|schema\\\\|footer\\\\|breadcrumb\")"
+      "Bash(grep -v \"style\\\\|//\\\\|json\\\\|schema\\\\|footer\\\\|breadcrumb\")",
+      "Bash(grep -v \"//\\\\s\\\\|cca-practice\\\\|question\\\\|QUESTIONS\\\\|QUESTION\")"
     ]
   }
 }
