@@ -106,8 +106,9 @@ function renderFooter(year) {
     .join(' &middot; ');
   return (
     `<div class="links-row">${links}</div>\n` +
-    `<p class="footer-disclaimer">Claude Certified Architects is an independent exam-preparation resource. We are not affiliated with, endorsed by, or sponsored by Anthropic, and this is not the official Claude Certified Architect exam or certification. 'Claude' and 'Claude Certified Architect' are trademarks of Anthropic. We provide unofficial practice materials to help candidates prepare for the official exam.</p>\n` +
-    `<p style="margin-top:12px">© ${year} Claude Certified Architects · Questions? <a href="mailto:support@claudecertifiedarchitects.com">support@claudecertifiedarchitects.com</a></p>`
+    `<p class="footer-disclaimer">Claude Certified Architects is an independent exam-preparation resource. Not affiliated with or endorsed by Anthropic, and not the official CCA exam or certification.</p>\n` +
+    `<p style="margin-top:8px;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.78rem;color:var(--text3)"><a href="/privacy/">Privacy Policy</a> &middot; <a href="/terms/">Terms of Service</a> &middot; <a href="/refund/">Refund Policy</a></p>\n` +
+    `<p style="margin-top:8px">© ${year} Claude Certified Architects · Questions? <a href="mailto:support@claudecertifiedarchitects.com">support@claudecertifiedarchitects.com</a></p>`
   );
 }
 
@@ -377,6 +378,26 @@ const faqPageQA = [
 ];
 
 /** Schemas for /faq */
+/** Schemas for /privacy/, /terms/, /refund/ */
+const privacySchemas = [
+  { '@context': 'https://schema.org', '@type': 'WebPage', name: 'Privacy Policy',
+    description: 'Privacy Policy for Claude Certified Architects.',
+    url: BASE + '/privacy/', isPartOf: { '@type': 'WebSite', name: schema.course.provider, url: BASE } },
+  breadcrumb([{ name: 'Home', url: BASE }, { name: 'Privacy Policy', url: BASE + '/privacy/' }])
+];
+const termsSchemas = [
+  { '@context': 'https://schema.org', '@type': 'WebPage', name: 'Terms of Service',
+    description: 'Terms of Service for Claude Certified Architects.',
+    url: BASE + '/terms/', isPartOf: { '@type': 'WebSite', name: schema.course.provider, url: BASE } },
+  breadcrumb([{ name: 'Home', url: BASE }, { name: 'Terms of Service', url: BASE + '/terms/' }])
+];
+const refundSchemas = [
+  { '@context': 'https://schema.org', '@type': 'WebPage', name: 'Refund Policy',
+    description: 'Refund Policy for Claude Certified Architects — 10-day money-back guarantee.',
+    url: BASE + '/refund/', isPartOf: { '@type': 'WebSite', name: schema.course.provider, url: BASE } },
+  breadcrumb([{ name: 'Home', url: BASE }, { name: 'Refund Policy', url: BASE + '/refund/' }])
+];
+
 const faqPageSchemas = [
   {
     '@context': 'https://schema.org',
@@ -689,8 +710,9 @@ function blogFooter() {
 <!-- cca:footer:start -->
   <p style="margin:0 0 6px">&copy; ${year} Claude Certified Architects</p>
   <p style="margin:0 0 10px;font-size:.82rem">${links}</p>
-  <p style="max-width:620px;margin:0 auto;font-size:.85rem;line-height:1.65;color:#c8c8be">Claude Certified Architects is an independent exam-preparation resource. We are not affiliated with, endorsed by, or sponsored by Anthropic, and this is not the official Claude Certified Architect exam or certification. 'Claude' and 'Claude Certified Architect' are trademarks of Anthropic. We provide unofficial practice materials to help candidates prepare for the official exam.</p>
-  <p style="margin:10px 0 0;font-size:.82rem">Questions? <a href="mailto:support@claudecertifiedarchitects.com">support@claudecertifiedarchitects.com</a></p>
+  <p style="max-width:620px;margin:0 auto;font-size:.85rem;line-height:1.65;color:#c8c8be">Claude Certified Architects is an independent exam-preparation resource. Not affiliated with or endorsed by Anthropic, and not the official CCA exam or certification.</p>
+  <p style="margin:8px 0 0;font-size:.82rem"><a href="/privacy/">Privacy Policy</a> &middot; <a href="/terms/">Terms of Service</a> &middot; <a href="/refund/">Refund Policy</a></p>
+  <p style="margin:8px 0 0;font-size:.82rem">Questions? <a href="mailto:support@claudecertifiedarchitects.com">support@claudecertifiedarchitects.com</a></p>
 <!-- cca:footer:end -->
 </footer>`;
 }
@@ -993,6 +1015,9 @@ function generateSitemap(posts = []) {
     { loc: BASE + '/diagnostic/',             priority: '0.8', changefreq: 'monthly', lastmod: gitLastmod('diagnostic/index.html') },
     { loc: BASE + '/study-plan-generator/',   priority: '0.8', changefreq: 'monthly', lastmod: gitLastmod('study-plan-generator/index.html') },
     { loc: BASE + '/faq/',                    priority: '0.8', changefreq: 'monthly', lastmod: gitLastmod('faq/index.html') },
+    { loc: BASE + '/privacy/',                priority: '0.3', changefreq: 'yearly',  lastmod: gitLastmod('privacy/index.html') },
+    { loc: BASE + '/terms/',                  priority: '0.3', changefreq: 'yearly',  lastmod: gitLastmod('terms/index.html') },
+    { loc: BASE + '/refund/',                 priority: '0.3', changefreq: 'yearly',  lastmod: gitLastmod('refund/index.html') },
     ...posts.map(p => ({
       loc:        `${BASE}/blog/${p.slug}/`,
       priority:   '0.8',
@@ -1016,7 +1041,7 @@ function generateSitemap(posts = []) {
 
   const dest = path.join(__dirname, 'sitemap.xml');
   fs.writeFileSync(dest, xml, 'utf8');
-  console.log('✓ sitemap.xml  (' + today + ', ' + (8 + posts.length) + ' URLs)');
+  console.log('✓ sitemap.xml  (' + today + ', ' + (11 + posts.length) + ' URLs)');
 }
 
 // ---------------------------------------------------------------------------
@@ -1047,6 +1072,15 @@ processFile(path.join(__dirname, 'study-plan-generator',    'index.html'), '/stu
 
 processFile(path.join(__dirname, 'faq',                     'index.html'), '/faq/',
   ...faqPageSchemas);
+
+processFile(path.join(__dirname, 'privacy',                 'index.html'), '/privacy/',
+  ...privacySchemas);
+
+processFile(path.join(__dirname, 'terms',                   'index.html'), '/terms/',
+  ...termsSchemas);
+
+processFile(path.join(__dirname, 'refund',                  'index.html'), '/refund/',
+  ...refundSchemas);
 
 
 console.log('\nBuilding blog…\n');
