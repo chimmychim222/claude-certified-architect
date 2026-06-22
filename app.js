@@ -169,6 +169,27 @@ document.addEventListener('DOMContentLoaded', function() {
     } catch(e) {}
   })();
 
+  // Capture ?login=true and ?signup=true — same synchronous pattern as
+  // ?checkout=true above. Consumed in onAuthStateChanged's else branch.
+  // ?signup=true deliberately does NOT set cca_checkout_intent — it opens
+  // the free signup modal with no purchase flow attached.
+  (function() {
+    try {
+      if (new URLSearchParams(window.location.search).get('login') === 'true') {
+        window.__pendingLogin = true;
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    } catch(e) {}
+  })();
+  (function() {
+    try {
+      if (new URLSearchParams(window.location.search).get('signup') === 'true') {
+        window.__pendingSignup = true;
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    } catch(e) {}
+  })();
+
   // Restore the "this browser's payment never got matched" warning across
   // reloads — see flagPaymentNeedsReview/PAYMENT_NEEDS_REVIEW_KEY. Runs
   // before Firebase loads; if enrollment turns out to already be confirmed,
@@ -430,6 +451,10 @@ function initAuthListener() {
   fbAuth.onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     if (user) {
+      // Discard pending auth-modal flags from static-page header buttons — the
+      // user is already authenticated so no login/signup modal should open.
+      if (window.__pendingLogin)  window.__pendingLogin  = false;
+      if (window.__pendingSignup) window.__pendingSignup = false;
       // Show the user's email in the nav immediately (enrolled badge will update below).
       updateNavUI();
 
@@ -567,6 +592,19 @@ function initAuthListener() {
       if (window.__pendingCheckout ||
           (function() { try { return !!sessionStorage.getItem('cca_checkout_intent'); } catch(e) { return false; } }())) {
         openPaymentModal();
+      }
+      // Static-page header "Log In" / "Sign Up Free" buttons route to
+      // /?login=true and /?signup=true respectively. The DOMContentLoaded
+      // handlers above set these flags synchronously, then we consume them
+      // here once auth state is known. ?signup=true intentionally does NOT
+      // set cca_checkout_intent — it must never trigger the $49 buy flow.
+      if (window.__pendingLogin) {
+        window.__pendingLogin = false;
+        openAuthModal('login');
+      }
+      if (window.__pendingSignup) {
+        window.__pendingSignup = false;
+        openAuthModal('signup');
       }
 
       // Anonymous visitor returning from Stripe checkout — they paid BEFORE

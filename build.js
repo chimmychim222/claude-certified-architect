@@ -122,6 +122,56 @@ function spliceFooter(html, footerInnerHtml) {
   return html;
 }
 
+// ── Auth cluster injection ────────────────────────────────────────────────────
+// Injects "Log In" (/?login=true) and "Sign Up Free" (/?signup=true) buttons,
+// plus an optional page-specific CTA, into every static page's nav via
+// <!-- cca:auth:start/end --> markers placed after <!-- cca:nav:end -->.
+// The homepage keeps its own JS-driven #nav-logged-in/#nav-logged-out swap and
+// is NOT processed here (activePage === null skips auth cluster injection).
+const AUTH_START = '<!-- cca:auth:start -->';
+const AUTH_END   = '<!-- cca:auth:end -->';
+const AUTH_RE    = /<!-- cca:auth:start -->[\s\S]*?<!-- cca:auth:end -->/;
+
+// Page-specific CTAs. Pages not listed get auth buttons only (no page CTA).
+// bp = mobile breakpoint matching that page's hamburger media query.
+const AUTH_CLUSTER_CONFIG = {
+  '/diagnostic/': { label: 'Get Access — $49', href: '/?checkout=true', bp: 600 }
+};
+const AUTH_DEFAULT_BP = 640;
+
+const S_LOGIN  = "font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:6px 14px;" +
+  "font-size:.8rem;font-weight:600;color:var(--text2);background:transparent;" +
+  "border:1px solid var(--border);border-radius:6px;text-decoration:none;" +
+  "white-space:nowrap;transition:all .2s";
+const S_SIGNUP = "font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:6px 14px;" +
+  "font-size:.8rem;font-weight:700;color:var(--accent-text);background:transparent;" +
+  "border:1px solid var(--accent-text);border-radius:6px;text-decoration:none;" +
+  "white-space:nowrap;transition:all .2s";
+const S_CTA    = "font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:6px 14px;" +
+  "font-size:.8rem;font-weight:600;color:#fff;background:var(--accent-btn);" +
+  "border:1px solid var(--accent-btn);border-radius:6px;text-decoration:none;" +
+  "white-space:nowrap;transition:background .2s";
+
+function renderAuthCluster(ctaConfig, bp) {
+  const breakpoint = bp || AUTH_DEFAULT_BP;
+  const css = `.nav-auth-cluster{display:flex;align-items:center;gap:8px;flex-shrink:0}` +
+              `@media(max-width:${breakpoint}px){.nav-auth-cluster{display:none}}`;
+  const parts = [];
+  if (ctaConfig) parts.push(`<a href="${ctaConfig.href}" style="${S_CTA}">${ctaConfig.label}</a>`);
+  parts.push(`<a href="/?login=true" style="${S_LOGIN}">Log In</a>`);
+  parts.push(`<a href="/?signup=true" style="${S_SIGNUP}">Sign Up Free</a>`);
+  return `<style>${css}</style>\n    <div class="nav-auth-cluster">\n      ` +
+         parts.join('\n      ') +
+         `\n    </div>`;
+}
+
+function spliceAuthCluster(html, ctaConfig, bp) {
+  const inner   = renderAuthCluster(ctaConfig, bp);
+  const wrapped = `${AUTH_START}\n    ${inner}\n    ${AUTH_END}`;
+  if (AUTH_RE.test(html)) return html.replace(AUTH_RE, wrapped);
+  return html;
+}
+
 // ---------------------------------------------------------------------------
 // Read schema.json
 // ---------------------------------------------------------------------------
@@ -451,6 +501,11 @@ function processFile(filePath, activePage, ...schemas) {
   const block = renderBlock(...schemas);
   let out     = splice(html, block);
   if (activePage) out = spliceNav(out, renderNav(activePage));
+  if (activePage) {
+    const cfg = AUTH_CLUSTER_CONFIG[activePage] || null;
+    const bp  = (cfg && cfg.bp) || AUTH_DEFAULT_BP;
+    out = spliceAuthCluster(out, cfg, bp);
+  }
   out = spliceFooter(out, renderFooter(new Date().getFullYear()));
   fs.writeFileSync(filePath, out, 'utf8');
   console.log('✓', rel);
@@ -692,6 +747,11 @@ function blogNav(activePage) {
       <a href="/register/" aria-label="Official Claude Certified Architect exam registration on Anthropic's site">Official Exam <span aria-hidden="true" style="font-size:.85em;line-height:1">&#8599;</span></a>
     </div>
     <a href="/" class="nav-cta">Start Practicing</a>
+    <style>.nav-auth-cluster{display:flex;align-items:center;gap:8px;flex-shrink:0}@media(max-width:660px){.nav-auth-cluster{display:none}}</style>
+    <div class="nav-auth-cluster">
+      <a href="/?login=true" style="${S_LOGIN}">Log In</a>
+      <a href="/?signup=true" style="${S_SIGNUP}">Sign Up Free</a>
+    </div>
     <button class="nav-hamburger" aria-label="Toggle menu"
       onclick="document.getElementById('blog-nav-links').classList.toggle('open')">
       <span></span><span></span><span></span>
