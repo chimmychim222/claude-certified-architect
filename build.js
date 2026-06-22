@@ -111,9 +111,9 @@ function renderFooter(year) {
     .join(' &middot; ');
   return (
     `<div class="links-row">${links}</div>\n` +
-    `<p class="footer-disclaimer">Claude Certified Architects is an independent exam-preparation resource. Not affiliated with or endorsed by Anthropic, and not the official CCA exam or certification.</p>\n` +
+    `<p class="footer-disclaimer">CCA Practice Platforms is an independent exam-preparation resource. Not affiliated with or endorsed by Anthropic, and not the official CCA exam or certification.</p>\n` +
     `<p style="margin-top:8px;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.78rem;color:var(--text3)"><a href="/privacy/">Privacy Policy</a> &middot; <a href="/terms/">Terms of Service</a> &middot; <a href="/refund/">Refund Policy</a></p>\n` +
-    `<p style="margin-top:8px">© ${year} Claude Certified Architects · Questions? <a href="mailto:support@claudecertifiedarchitects.com">support@claudecertifiedarchitects.com</a></p>`
+    `<p style="margin-top:8px">© ${year} CCA Practice Platforms · Questions? <a href="mailto:support@claudecertifiedarchitects.com">support@claudecertifiedarchitects.com</a></p>`
   );
 }
 
@@ -178,7 +178,7 @@ const LOGO_CSS  =
   '@media(max-width:768px){.user-area{display:none!important}}';
 
 const LOGO_HTML  = `<style>${LOGO_CSS}</style>` +
-  '<a href="/" class="logo">Claude Certified Architects</a>';
+  '<a href="/" class="logo">CCA Practice Platforms</a>';
 
 function spliceLogo(html) {
   const wrapped = `${LOGO_START}${LOGO_HTML}${LOGO_END}`;
@@ -823,9 +823,9 @@ function blogFooter() {
     .join(' &nbsp;&middot;&nbsp; ');
   return `<footer class="site-footer">
 <!-- cca:footer:start -->
-  <p style="margin:0 0 6px">&copy; ${year} Claude Certified Architects</p>
+  <p style="margin:0 0 6px">&copy; ${year} CCA Practice Platforms</p>
   <p style="margin:0 0 10px;font-size:.82rem">${links}</p>
-  <p style="max-width:620px;margin:0 auto;font-size:.85rem;line-height:1.65;color:#c8c8be">Claude Certified Architects is an independent exam-preparation resource. Not affiliated with or endorsed by Anthropic, and not the official CCA exam or certification.</p>
+  <p style="max-width:620px;margin:0 auto;font-size:.85rem;line-height:1.65;color:#c8c8be">CCA Practice Platforms is an independent exam-preparation resource. Not affiliated with or endorsed by Anthropic, and not the official CCA exam or certification.</p>
   <p style="margin:8px 0 0;font-size:.82rem"><a href="/privacy/">Privacy Policy</a> &middot; <a href="/terms/">Terms of Service</a> &middot; <a href="/refund/">Refund Policy</a></p>
   <p style="margin:8px 0 0;font-size:.82rem">Questions? <a href="mailto:support@claudecertifiedarchitects.com">support@claudecertifiedarchitects.com</a></p>
 <!-- cca:footer:end -->
