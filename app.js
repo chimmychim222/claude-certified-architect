@@ -527,19 +527,32 @@ function initAuthListener() {
           showSection('dashboard');
         }
       }
+      // ?checkout=true — used by marketing-page CTAs on static pages that
+      // can't call openPaymentModal() directly. Handles all auth states:
+      // enrolled → dashboard; not-enrolled → Stripe; logged-out → auth modal
+      // which sets cca_checkout_intent so signup resumes checkout.
+      if (params.get('checkout') === 'true') {
+        window.history.replaceState({}, '', window.location.pathname);
+        openPaymentModal();
+      }
     } else {
       enrolled = false;
       sessionId = null;
       if (sessionUnsubscribe) { sessionUnsubscribe(); sessionUnsubscribe = null; }
 
+      // ?checkout=true — logged-out visitor arrived from a static marketing page
+      // CTA. openPaymentModal() sets cca_checkout_intent + opens auth modal;
+      // after signup the logged-in branch above resumes checkout → Stripe.
+      if (anonParams.get('checkout') === 'true') {
+        window.history.replaceState({}, '', window.location.pathname);
+        openPaymentModal();
+      }
       // Pending checkout intent — a logged-out user previously clicked a buy
       // button (openPaymentModal() set window.__pendingCheckout and wrote
       // cca_checkout_intent to sessionStorage), was shown the auth modal, and
       // is now on a page still carrying that intent. openPaymentModal() resumes
       // the checkout: once they authenticate, onAuthStateChanged fires again
       // in the `if (user)` branch above and sends them on to Stripe.
-      // NOTE: the ?checkout=true URL param is NOT checked here — it has no
-      // active handler and navigating to /?checkout=true has no effect.
       if (window.__pendingCheckout ||
           (function() { try { return !!sessionStorage.getItem('cca_checkout_intent'); } catch(e) { return false; } }())) {
         openPaymentModal();
