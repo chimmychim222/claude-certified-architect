@@ -54,7 +54,7 @@ const NAV_PAGES = [
 const OFFICIAL_EXAM_LINK =
   '<a href="/register/"' +
   ' aria-label="Official Claude Certified Architect exam registration on Anthropic\'s site"' +
-  ' style="font-family:-apple-system,system-ui,\'Segoe UI\',sans-serif;padding:8px 16px;border-radius:6px;font-size:.88rem;font-weight:600;color:var(--accent-text);background:transparent;border:1px solid var(--accent-text);transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:4px;white-space:nowrap"' +
+  ' style="font-family:-apple-system,system-ui,\'Segoe UI\',sans-serif;padding:5px 10px;border-radius:6px;font-size:.85rem;font-weight:600;color:var(--accent-text);background:transparent;border:1px solid var(--accent-text);transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:4px;white-space:nowrap"' +
   ' onclick="closeNav()">Official Exam <span aria-hidden="true" style="font-size:.85em;line-height:1">&#8599;</span></a>';
 
 const REGISTER_CTA_LINK =
@@ -566,7 +566,7 @@ nav .inner{display:flex;align-items:center;justify-content:space-between;padding
 .nav-logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1rem;font-weight:600;color:var(--text);text-decoration:none;letter-spacing:-.3px;white-space:nowrap}
 .nav-logo span{color:var(--text3);font-weight:400;font-size:.82rem;margin-left:6px}
 .nav-links{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
-.nav-links a{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:8px 16px;border-radius:6px;font-size:.88rem;color:var(--text2);text-decoration:none;transition:all .2s;white-space:nowrap}
+.nav-links a{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:5px 10px;border-radius:6px;font-size:.85rem;color:var(--text2);text-decoration:none;transition:all .2s;white-space:nowrap}
 .nav-links a:hover{color:var(--text);background:rgba(0,0,0,.04)}
 .nav-links a.active{color:var(--text);font-weight:600}
 .nav-cta{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;background:var(--accent-btn);color:#fff !important;padding:8px 18px;border-radius:6px;font-size:.88rem;font-weight:600;text-decoration:none !important;transition:background .2s;white-space:nowrap}
