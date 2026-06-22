@@ -65,10 +65,10 @@ nav{position:fixed;top:var(--banner-h,0px);left:0;right:0;z-index:100;background
 nav .inner{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;max-width:1100px;margin:0 auto;gap:12px}
 nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1rem;font-weight:600;color:var(--text);letter-spacing:-.3px}
 nav .logo span{color:var(--text3);font-weight:400;font-size:.82rem;margin-left:6px}
-nav .nav-links{display:flex;gap:2px;align-items:center;flex-wrap:nowrap;justify-content:flex-end}
-nav .nav-links button{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:6px 10px;border-radius:var(--radius-sm);font-size:.82rem;color:var(--text2);transition:all .2s;white-space:nowrap}
-nav .nav-links button:hover{color:var(--text)}
-nav .nav-links button.active{color:var(--text);font-weight:600}
+nav .nav-links{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+nav .nav-links a,nav .nav-links button{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:8px 16px;border-radius:6px;font-size:.88rem;color:var(--text2);text-decoration:none;transition:color .2s;white-space:nowrap;background:none;border:none;cursor:pointer}
+nav .nav-links a:hover,nav .nav-links button:hover{color:var(--text)}
+nav .nav-links a.active,nav .nav-links button.active{color:var(--text);font-weight:600}
 nav .user-area{display:flex;align-items:center;gap:6px;margin-left:8px;padding-left:12px;border-left:1px solid var(--border)}
 /* Kept deliberately narrow: the logged-in .user-area (email+badge+logout) must
    stay close in width to the logged-out one (Log In/Sign Up Free) so the nav's
@@ -659,16 +659,16 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
     <button class="hamburger" onclick="toggleMobileNav()" id="hamburger" aria-label="Toggle navigation" aria-expanded="false"><span></span><span></span><span></span></button>
     <div class="nav-links" id="nav-links">
       <button onclick="showSection('home')" class="active" data-nav="home">Home</button>
-      <a href="/cca-foundations-exam/" style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:6px 10px;border-radius:var(--radius-sm);font-size:.82rem;color:var(--text2);transition:all .2s;text-decoration:none">Exam</a>
+      <a href="/cca-foundations-exam/">Exam</a>
       <button onclick="showSection('dashboard')" data-nav="dashboard">Practice Tests</button>
-      <a href="/cca-practice-questions/" style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:6px 10px;border-radius:var(--radius-sm);font-size:.82rem;color:var(--text2);transition:all .2s;text-decoration:none">Question Bank</a>
-      <a href="/cca-exam-guide/" style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:6px 10px;border-radius:var(--radius-sm);font-size:.82rem;color:var(--text2);transition:all .2s;text-decoration:none">Guide</a>
-      <a href="/diagnostic/" style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:6px 10px;border-radius:var(--radius-sm);font-size:.82rem;color:var(--text2);transition:all .2s;text-decoration:none">Diagnostic</a>
-      <a href="/study-plan-generator/" style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:6px 10px;border-radius:var(--radius-sm);font-size:.82rem;color:var(--text2);transition:all .2s;text-decoration:none">Study Plan</a>
-      <a href="/blog/" style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:6px 10px;border-radius:var(--radius-sm);font-size:.82rem;color:var(--text2);transition:all .2s;text-decoration:none">Blog</a>
-      <a href="/faq/" style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:6px 10px;border-radius:var(--radius-sm);font-size:.82rem;color:var(--text2);transition:all .2s;text-decoration:none">FAQ</a>
+      <a href="/cca-practice-questions/">Question Bank</a>
+      <a href="/cca-exam-guide/">Guide</a>
+      <a href="/diagnostic/">Diagnostic</a>
+      <a href="/study-plan-generator/">Study Plan</a>
+      <a href="/blog/">Blog</a>
+      <a href="/faq/">FAQ</a>
       <!-- Links OUT to Anthropic's official exam-registration portal — secondary/outline style so it reads as external, not a site account. -->
-      <a href="/register/" aria-label="Official Claude Certified Architect exam registration on Anthropic's site" style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:6px 10px;border-radius:6px;font-size:.82rem;font-weight:600;color:var(--accent-text);background:transparent;border:1px solid var(--accent-text);transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:4px;white-space:nowrap">Official Exam <span aria-hidden="true" style="font-size:.85em;line-height:1">&#8599;</span></a>
+      <a href="/register/" aria-label="Official Claude Certified Architect exam registration on Anthropic's site" style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:8px 16px;border-radius:6px;font-size:.88rem;font-weight:600;color:var(--accent-text);background:transparent;border:1px solid var(--accent-text);transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:4px;white-space:nowrap">Official Exam <span aria-hidden="true" style="font-size:.85em;line-height:1">&#8599;</span></a>
       <!-- Free diagnostic CTA — primary funnel entry, solid-accent treatment, coexists with the Diagnostic nav link above -->
       <a href="/diagnostic/" class="btn-primary btn-sm nav-diagnostic-cta" aria-label="Start the free 10-question CCA diagnostic quiz">Start the Free Diagnostic</a>
       <button onclick="showSection('lessons')" data-nav="lessons" id="nav-lessons-link" style="display:none">Lessons</button>

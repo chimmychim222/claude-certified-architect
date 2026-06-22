@@ -624,7 +624,8 @@
       "Bash(ls privacy* terms* refund*)",
       "Bash(ls */privacy* */terms* */refund*)",
       "Bash(grep -v \"//\\\\s\\\\|style\\\\|css\\\\|links-row\")",
-      "Bash(awk 'NR>=661 && NR<=704' index.html)"
+      "Bash(awk 'NR>=661 && NR<=704' index.html)",
+      "Bash(grep -v \"style\\\\|//\\\\s\\\\|schema\\\\|json\\\\|hover\\\\|btn-sm\\\\|mobile-open\\\\|btn-enrolled\\\\|btn-primary\\\\|data-count\")"
     ]
   }
 }
