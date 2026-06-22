@@ -625,7 +625,9 @@
       "Bash(ls */privacy* */terms* */refund*)",
       "Bash(grep -v \"//\\\\s\\\\|style\\\\|css\\\\|links-row\")",
       "Bash(awk 'NR>=661 && NR<=704' index.html)",
-      "Bash(grep -v \"style\\\\|//\\\\s\\\\|schema\\\\|json\\\\|hover\\\\|btn-sm\\\\|mobile-open\\\\|btn-enrolled\\\\|btn-primary\\\\|data-count\")"
+      "Bash(grep -v \"style\\\\|//\\\\s\\\\|schema\\\\|json\\\\|hover\\\\|btn-sm\\\\|mobile-open\\\\|btn-enrolled\\\\|btn-primary\\\\|data-count\")",
+      "Bash(grep -v \"//\\\\s\")",
+      "Bash(grep -v \"//\\\\s\\\\|comment\\\\|cca_checkout\\\\|Checkout\\\\|trackCheckout\\\\|pre-checkout\\\\|checkoutEventSent\\\\|intent_key\\\\|PAYMENT_NEEDS\\\\|session_id\\\\|cca_hub_intent\")"
     ]
   }
 }

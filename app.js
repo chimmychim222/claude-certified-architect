@@ -605,6 +605,13 @@ function initAuthListener() {
       if (window.__pendingSignup) {
         window.__pendingSignup = false;
         openAuthModal('signup');
+        // Show a "free, no payment" subtitle so this modal is visibly distinct
+        // from the checkout flow (which shows the $49 purchase subtitle instead).
+        const _signupSubtitle = document.getElementById('auth-modal-subtitle');
+        if (_signupSubtitle) {
+          _signupSubtitle.textContent = 'Create your free account — no payment required.';
+          _signupSubtitle.style.display = 'block';
+        }
       }
 
       // Anonymous visitor returning from Stripe checkout — they paid BEFORE
