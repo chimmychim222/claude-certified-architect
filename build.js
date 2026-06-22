@@ -81,6 +81,46 @@ function spliceNav(html, navHtml) {
   return html; // no nav div found — skip silently
 }
 
+// ── Footer injection ──────────────────────────────────────────────────────────
+const FOOTER_START   = '<!-- cca:footer:start -->';
+const FOOTER_END     = '<!-- cca:footer:end -->';
+const FOOTER_RE      = /<!-- cca:footer:start -->[\s\S]*?<!-- cca:footer:end -->/;
+const FOOTER_EL_RE   = /<footer[^>]*>[\s\S]*?<\/footer>/;
+
+const FOOTER_NAV_PAGES = [
+  ['/',                       'Home'          ],
+  ['/cca-foundations-exam/',  'Exam'          ],
+  ['/?hub=practice-tests',    'Practice Tests'],
+  ['/cca-practice-questions/','Question Bank' ],
+  ['/cca-exam-guide/',        'Guide'         ],
+  ['/diagnostic/',            'Diagnostic'    ],
+  ['/study-plan-generator/',  'Study Plan'    ],
+  ['/blog/',                  'Blog'          ],
+  ['/faq/',                   'FAQ'           ],
+  ['/register/',              'Official Exam' ],
+];
+
+function renderFooter(year) {
+  const links = FOOTER_NAV_PAGES
+    .map(([h, l]) => `<a href="${h}">${l}</a>`)
+    .join(' &middot; ');
+  return (
+    `<div class="links-row">${links}</div>\n` +
+    `<p class="footer-disclaimer">Claude Certified Architects is an independent exam-preparation resource. We are not affiliated with, endorsed by, or sponsored by Anthropic, and this is not the official Claude Certified Architect exam or certification. 'Claude' and 'Claude Certified Architect' are trademarks of Anthropic. We provide unofficial practice materials to help candidates prepare for the official exam.</p>\n` +
+    `<p style="margin-top:12px">© ${year} Claude Certified Architects · Questions? <a href="mailto:support@claudecertifiedarchitects.com">support@claudecertifiedarchitects.com</a></p>`
+  );
+}
+
+function spliceFooter(html, footerInnerHtml) {
+  const wrapped = `${FOOTER_START}\n${footerInnerHtml}\n${FOOTER_END}`;
+  if (FOOTER_RE.test(html))   return html.replace(FOOTER_RE, wrapped);
+  if (FOOTER_EL_RE.test(html)) {
+    return html.replace(FOOTER_EL_RE,
+      `<footer>\n<div class="container">\n${wrapped}\n</div>\n</footer>`);
+  }
+  return html;
+}
+
 // ---------------------------------------------------------------------------
 // Read schema.json
 // ---------------------------------------------------------------------------
@@ -390,6 +430,7 @@ function processFile(filePath, activePage, ...schemas) {
   const block = renderBlock(...schemas);
   let out     = splice(html, block);
   if (activePage) out = spliceNav(out, renderNav(activePage));
+  out = spliceFooter(out, renderFooter(new Date().getFullYear()));
   fs.writeFileSync(filePath, out, 'utf8');
   console.log('✓', rel);
 }
@@ -641,24 +682,16 @@ function blogNav(activePage) {
 /** Shared footer HTML */
 function blogFooter() {
   const year = new Date().getFullYear();
-  // Mini-sitemap: every key page on the site, with descriptive anchor text,
-  // reachable from every blog post's footer (strengthens internal linking
-  // and keeps every important page within 1–2 clicks of any page on the site).
-  const links = [
-    ['/', 'Home'],
-    ['/cca-practice-questions/', 'Practice Questions'],
-    ['/cca-foundations-exam/', 'Foundations Exam Simulator'],
-    ['/cca-exam-guide/', 'Exam Guide'],
-    ['/diagnostic/', 'Free Diagnostic Quiz'],
-    ['/blog/', 'Blog'],
-    ['/faq/', 'FAQ'],
-    ['/register/', 'Official Exam Registration'],
-  ].map(([href, label]) => `<a href="${href}">${label}</a>`).join(' &nbsp;&middot;&nbsp; ');
+  const links = FOOTER_NAV_PAGES
+    .map(([href, label]) => `<a href="${href}">${label}</a>`)
+    .join(' &nbsp;&middot;&nbsp; ');
   return `<footer class="site-footer">
+<!-- cca:footer:start -->
   <p style="margin:0 0 6px">&copy; ${year} Claude Certified Architects</p>
   <p style="margin:0 0 10px;font-size:.82rem">${links}</p>
-  <p style="max-width:620px;margin:0 auto;font-size:.85rem;line-height:1.65;color:#c8c8be">Claude Certified Architects is an independent exam-preparation resource. We are not affiliated with, endorsed by, or sponsored by Anthropic, and this is not the official Claude Certified Architect exam or certification. ‘Claude’ and ‘Claude Certified Architect’ are trademarks of Anthropic. We provide unofficial practice materials to help candidates prepare for the official exam.</p>
+  <p style="max-width:620px;margin:0 auto;font-size:.85rem;line-height:1.65;color:#c8c8be">Claude Certified Architects is an independent exam-preparation resource. We are not affiliated with, endorsed by, or sponsored by Anthropic, and this is not the official Claude Certified Architect exam or certification. 'Claude' and 'Claude Certified Architect' are trademarks of Anthropic. We provide unofficial practice materials to help candidates prepare for the official exam.</p>
   <p style="margin:10px 0 0;font-size:.82rem">Questions? <a href="mailto:support@claudecertifiedarchitects.com">support@claudecertifiedarchitects.com</a></p>
+<!-- cca:footer:end -->
 </footer>`;
 }
 

@@ -619,7 +619,12 @@
       "Bash(grep -v \"//\\\\s\\\\|cca-practice\\\\|question\\\\|QUESTIONS\\\\|QUESTION\")",
       "Bash(grep -v \"style\\\\|css\\\\|schema\\\\|json\\\\|//\\\\s\\\\|description\\\\|title\\\\|content=\\\\|data-nav-\\\\|locked\\\\|dash-card\\\\|lesson\")",
       "Bash(awk 'NR>=255 && NR<=290')",
-      "Bash(awk 'NR>=130 && NR<=170')"
+      "Bash(awk 'NR>=130 && NR<=170')",
+      "Bash(grep -v \"style\\\\|css\\\\|//\\\\s\\\\|schema\\\\|json\\\\|description\")",
+      "Bash(ls privacy* terms* refund*)",
+      "Bash(ls */privacy* */terms* */refund*)",
+      "Bash(grep -v \"//\\\\s\\\\|style\\\\|css\\\\|links-row\")",
+      "Bash(awk 'NR>=661 && NR<=704' index.html)"
     ]
   }
 }
