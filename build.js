@@ -130,7 +130,14 @@ function spliceFooter(html, footerInnerHtml) {
 const LOGO_START = '<!-- cca:logo:start -->';
 const LOGO_END   = '<!-- cca:logo:end -->';
 const LOGO_RE    = /<!-- cca:logo:start -->[\s\S]*?<!-- cca:logo:end -->/;
-const LOGO_HTML  = '<a href="/" class="logo">Claude Architect <span>Certification</span></a>';
+// CSS is injected alongside the markup so the logo style can't drift independently
+// of the logo text. The <style> appears in <body> after any per-page <head> styles,
+// so it wins the cascade and enforces white-space:nowrap unconditionally.
+const LOGO_CSS  = 'nav .logo{font-family:-apple-system,system-ui,\'Segoe UI\',sans-serif;' +
+  'font-size:1rem;font-weight:600;color:var(--text);text-decoration:none;' +
+  'letter-spacing:-.3px;white-space:nowrap}';
+const LOGO_HTML  = `<style>${LOGO_CSS}</style>` +
+  '<a href="/" class="logo">Claude Certified Architects</a>';
 
 function spliceLogo(html) {
   const wrapped = `${LOGO_START}${LOGO_HTML}${LOGO_END}`;
@@ -516,8 +523,8 @@ function processFile(filePath, activePage, ...schemas) {
   const html  = fs.readFileSync(filePath, 'utf8');
   const block = renderBlock(...schemas);
   let out     = splice(html, block);
+  out = spliceLogo(out);  // unconditional — homepage included if markers present
   if (activePage) out = spliceNav(out, renderNav(activePage));
-  if (activePage) out = spliceLogo(out);
   if (activePage) {
     const cfg = AUTH_CLUSTER_CONFIG[activePage] || null;
     const bp  = (cfg && cfg.bp) || AUTH_DEFAULT_BP;
@@ -657,7 +664,6 @@ a:hover{color:var(--accent3)}
 nav{position:fixed;top:var(--banner-h,0px);left:0;right:0;z-index:100;background:rgba(245,243,234,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
 nav .inner{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;max-width:1100px;margin:0 auto;gap:12px}
 nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1rem;font-weight:600;color:var(--text);text-decoration:none;letter-spacing:-.3px;white-space:nowrap}
-nav .logo span{color:var(--text3);font-weight:400;font-size:.82rem;margin-left:6px}
 .nav-links{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
 .nav-links a{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:5px 10px;border-radius:6px;font-size:.85rem;color:var(--text2);text-decoration:none;transition:all .2s;white-space:nowrap}
 .nav-links a:hover{color:var(--text);background:rgba(0,0,0,.04)}
@@ -750,7 +756,7 @@ function blogNav(activePage) {
   };
   return "<div id=\"site-banner\" role=\"note\" aria-label=\"Independence notice\">Independent exam prep · Not affiliated with or endorsed by Anthropic · Not the official CCA exam or certification<button id=\"site-banner-close\" aria-label=\"Dismiss notice\">✕</button></div>\n<script>(function(){var b=document.getElementById(\"site-banner\"),c=document.getElementById(\"site-banner-close\");if(!b)return;if(localStorage.getItem(\"ccaBanner\")===\"0\"){b.style.display=\"none\";document.documentElement.style.setProperty(\"--banner-h\",\"0px\");return;}function setH(){document.documentElement.style.setProperty(\"--banner-h\",b.offsetHeight+\"px\");}setH();window.addEventListener(\"resize\",setH);c.addEventListener(\"click\",function(){b.style.display=\"none\";document.documentElement.style.setProperty(\"--banner-h\",\"0px\");localStorage.setItem(\"ccaBanner\",\"0\");});})()</script>\n" + `<nav aria-label="Main navigation">
   <div class="inner">
-    <!-- cca:logo:start --><a href="/" class="logo">Claude Architect <span>Certification</span></a><!-- cca:logo:end -->
+    ${LOGO_START}${LOGO_HTML}${LOGO_END}
     <div class="nav-links" id="blog-nav-links">
       ${link('/', 'Home')}
       ${link('/cca-foundations-exam/', 'Exam')}
