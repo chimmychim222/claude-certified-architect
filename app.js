@@ -505,6 +505,14 @@ function initAuthListener() {
         window.history.replaceState({}, '', window.location.pathname);
         if (!enrolled) confirmPaymentAndUnlock(user);
       }
+      // Direct-launch via ?startTest= — used by off-site CTAs (e.g. the
+      // /register/ "Full 60-Question Simulation" button). startTest() is
+      // already enrollment-aware: it calls openPaymentModal() for non-enrolled
+      // users, so no extra guard is needed here.
+      if (params.get('startTest')) {
+        window.history.replaceState({}, '', window.location.pathname);
+        startTest(params.get('startTest'));
+      }
     } else {
       enrolled = false;
       sessionId = null;
@@ -543,6 +551,13 @@ function initAuthListener() {
             '<button onclick="document.getElementById(\'success-banner\').style.display=\'none\'" style="margin-left:16px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px">Dismiss</button>';
           banner.style.display = 'block';
         }
+      }
+      // Logged-out user arrived via ?startTest= — route through checkout/auth.
+      // After signup + payment they'll be enrolled; they can launch the sim
+      // from the dashboard, or return to /?startTest=full directly.
+      if (anonParams.get('startTest')) {
+        window.history.replaceState({}, '', window.location.pathname);
+        openPaymentModal();
       }
     }
     // Update nav again after Firestore enrollment check completes
