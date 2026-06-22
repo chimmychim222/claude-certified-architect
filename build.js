@@ -29,6 +29,58 @@ const END_MARKER   = '<!-- cca:schema:end -->';
 const FIRST_RUN_RE = /<!-- Structured Data[\s\S]*?<\/script>/;
 const REBUILD_RE   = /<!-- cca:schema:start -->[\s\S]*?<!-- cca:schema:end -->/;
 
+// ── Nav injection ─────────────────────────────────────────────────────────────
+// Canonical 10-item navbar in fixed order. processFile() calls spliceNav()
+// which either replaces between <!-- cca:nav:start/end --> markers (subsequent
+// runs) or finds the <div class="nav-links" id="nav-links"> div directly (first
+// run), so no manual marker seeding is required on the first build.
+const NAV_START  = '<!-- cca:nav:start -->';
+const NAV_END    = '<!-- cca:nav:end -->';
+const NAV_RE     = /<!-- cca:nav:start -->[\s\S]*?<!-- cca:nav:end -->/;
+const NAV_DIV_RE = /<div class="nav-links" id="nav-links">[\s\S]*?<\/div>/;
+
+const NAV_PAGES = [
+  ['/',                       'Home'          ],
+  ['/cca-foundations-exam/',  'Exam'          ],
+  ['/?hub=practice-tests',    'Practice Tests'],
+  ['/cca-practice-questions/','Question Bank' ],
+  ['/cca-exam-guide/',        'Guide'         ],
+  ['/diagnostic/',            'Diagnostic'    ],
+  ['/study-plan-generator/',  'Study Plan'    ],
+  ['/blog/',                  'Blog'          ],
+  ['/faq/',                   'FAQ'           ],
+];
+
+const OFFICIAL_EXAM_LINK =
+  '<a href="/register/"' +
+  ' aria-label="Official Claude Certified Architect exam registration on Anthropic\'s site"' +
+  ' style="font-family:-apple-system,system-ui,\'Segoe UI\',sans-serif;padding:8px 16px;border-radius:6px;font-size:.88rem;font-weight:600;color:var(--accent-text);background:transparent;border:1px solid var(--accent-text);transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:4px;white-space:nowrap"' +
+  ' onclick="closeNav()">Official Exam <span aria-hidden="true" style="font-size:.85em;line-height:1">&#8599;</span></a>';
+
+const REGISTER_CTA_LINK =
+  '<a href="#register-action" class="nav-cta active"' +
+  ' aria-label="Jump to the exam registration portal link below"' +
+  ' onclick="closeNav()">Register</a>';
+
+function renderNav(activePage) {
+  const items = NAV_PAGES.map(([href, label]) => {
+    const active = href === activePage ? ' class="active" aria-current="page"' : '';
+    return `<a href="${href}" onclick="closeNav()"${active}>${label}</a>`;
+  });
+  items.push(activePage === '/register/' ? REGISTER_CTA_LINK : OFFICIAL_EXAM_LINK);
+  return items.join('\n      ');
+}
+
+function spliceNav(html, navHtml) {
+  const wrapped = `${NAV_START}\n      ${navHtml}\n      ${NAV_END}`;
+  if (NAV_RE.test(html))     return html.replace(NAV_RE, wrapped);
+  if (NAV_DIV_RE.test(html)) {
+    return html.replace(NAV_DIV_RE,
+      `<div class="nav-links" id="nav-links">\n      ${wrapped}\n    </div>`);
+  }
+  return html; // no nav div found — skip silently
+}
+
 // ---------------------------------------------------------------------------
 // Read schema.json
 // ---------------------------------------------------------------------------
@@ -332,11 +384,12 @@ function splice(html, block) {
   return html.replace('</head>', block + '\n</head>');
 }
 
-function processFile(filePath, ...schemas) {
+function processFile(filePath, activePage, ...schemas) {
   const rel   = path.relative(__dirname, filePath);
   const html  = fs.readFileSync(filePath, 'utf8');
   const block = renderBlock(...schemas);
-  const out   = splice(html, block);
+  let out     = splice(html, block);
+  if (activePage) out = spliceNav(out, renderNav(activePage));
   fs.writeFileSync(filePath, out, 'utf8');
   console.log('✓', rel);
 }
@@ -565,17 +618,15 @@ function blogNav(activePage) {
   <div class="inner">
     <a href="/" class="nav-logo">CCA <span>Practice Platform</span></a>
     <div class="nav-links" id="blog-nav-links">
+      ${link('/', 'Home')}
+      ${link('/cca-foundations-exam/', 'Exam')}
       ${link('/?hub=practice-tests', 'Practice Tests')}
       ${link('/cca-practice-questions/', 'Question Bank')}
-      ${link('/cca-foundations-exam/', 'Exam Sim')}
       ${link('/cca-exam-guide/', 'Guide')}
       ${link('/diagnostic/', 'Diagnostic')}
+      ${link('/study-plan-generator/', 'Study Plan')}
       ${link('/blog/', 'Blog')}
       ${link('/faq/', 'FAQ')}
-      <!-- Was a plain "Register" nav-link, easily mistaken for "register/sign
-           up for this site." It actually opens Anthropic's external exam-
-           registration info page, so it now reads as an explicit external
-           link with an arrow + accessible label. -->
       <a href="/register/" aria-label="Official Claude Certified Architect exam registration on Anthropic's site">Official Exam <span aria-hidden="true" style="font-size:.85em;line-height:1">&#8599;</span></a>
     </div>
     <a href="/" class="nav-cta">Start Practicing</a>
@@ -940,28 +991,28 @@ function generateSitemap(posts = []) {
 // ---------------------------------------------------------------------------
 console.log('Pre-rendering JSON-LD…\n');
 
-processFile(path.join(__dirname, 'index.html'),
+processFile(path.join(__dirname, 'index.html'), null,
   organizationSchema, websiteSchema, courseSchema, faqSchema);
 
-processFile(path.join(__dirname, 'cca-foundations-exam',  'index.html'),
+processFile(path.join(__dirname, 'cca-foundations-exam',   'index.html'), '/cca-foundations-exam/',
   ...examSchemas);
 
-processFile(path.join(__dirname, 'cca-practice-questions', 'index.html'),
+processFile(path.join(__dirname, 'cca-practice-questions',  'index.html'), '/cca-practice-questions/',
   ...questionsSchemas);
 
-processFile(path.join(__dirname, 'cca-exam-guide',         'index.html'),
+processFile(path.join(__dirname, 'cca-exam-guide',          'index.html'), '/cca-exam-guide/',
   ...guideSchemas);
 
-processFile(path.join(__dirname, 'register', 'index.html'),
+processFile(path.join(__dirname, 'register',                'index.html'), '/register/',
   ...registerSchemas);
 
-processFile(path.join(__dirname, 'diagnostic', 'index.html'),
+processFile(path.join(__dirname, 'diagnostic',              'index.html'), '/diagnostic/',
   ...diagnosticSchemas);
 
-processFile(path.join(__dirname, 'study-plan-generator', 'index.html'),
+processFile(path.join(__dirname, 'study-plan-generator',    'index.html'), '/study-plan-generator/',
   ...studyPlanSchemas);
 
-processFile(path.join(__dirname, 'faq', 'index.html'),
+processFile(path.join(__dirname, 'faq',                     'index.html'), '/faq/',
   ...faqPageSchemas);
 
 

@@ -144,23 +144,18 @@ footer a:hover{color:var(--accent-text)}
     <a class="logo" href="/">Claude Architect <span>Certification</span></a>
     <button class="hamburger" id="hamburger" onclick="toggleNav()" aria-label="Toggle navigation" aria-expanded="false"><span></span><span></span><span></span></button>
     <div class="nav-links" id="nav-links">
+      <!-- cca:nav:start -->
       <a href="/" onclick="closeNav()">Home</a>
       <a href="/cca-foundations-exam/" onclick="closeNav()">Exam</a>
       <a href="/?hub=practice-tests" onclick="closeNav()">Practice Tests</a>
       <a href="/cca-practice-questions/" onclick="closeNav()">Question Bank</a>
       <a href="/cca-exam-guide/" onclick="closeNav()">Guide</a>
       <a href="/diagnostic/" onclick="closeNav()">Diagnostic</a>
+      <a href="/study-plan-generator/" onclick="closeNav()">Study Plan</a>
       <a href="/blog/" onclick="closeNav()">Blog</a>
       <a href="/faq/" onclick="closeNav()">FAQ</a>
-      <!-- This is the page you're already on, so the prominent nav-cta
-           "Register" button previously self-linked to /register/ — clicking
-           it appeared to do nothing (no navigation, no visible change).
-           Instead, point it at the actual registration action further down
-           this page (the "Go to Registration Portal" card) so the click
-           visibly does something useful: smoothly scrolls you straight to
-           it. scroll-behavior:smooth is already set globally on html{}, and
-           .register-card has scroll-margin-top to clear the fixed nav. -->
       <a href="#register-action" class="nav-cta active" aria-label="Jump to the exam registration portal link below" onclick="closeNav()">Register</a>
+      <!-- cca:nav:end -->
     </div>
   </div>
 </nav>

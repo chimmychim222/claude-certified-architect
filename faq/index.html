@@ -107,15 +107,18 @@ footer a:hover{color:var(--accent-text)}
     <a class="logo" href="/">Claude Architect <span>Certification</span></a>
     <button class="hamburger" id="hamburger" onclick="toggleNav()" aria-label="Toggle navigation"><span></span><span></span><span></span></button>
     <div class="nav-links" id="nav-links">
+      <!-- cca:nav:start -->
       <a href="/" onclick="closeNav()">Home</a>
       <a href="/cca-foundations-exam/" onclick="closeNav()">Exam</a>
       <a href="/?hub=practice-tests" onclick="closeNav()">Practice Tests</a>
       <a href="/cca-practice-questions/" onclick="closeNav()">Question Bank</a>
       <a href="/cca-exam-guide/" onclick="closeNav()">Guide</a>
       <a href="/diagnostic/" onclick="closeNav()">Diagnostic</a>
+      <a href="/study-plan-generator/" onclick="closeNav()">Study Plan</a>
       <a href="/blog/" onclick="closeNav()">Blog</a>
-      <a href="/faq/" class="active" onclick="closeNav()">FAQ</a>
+      <a href="/faq/" onclick="closeNav()" class="active" aria-current="page">FAQ</a>
       <a href="/register/" aria-label="Official Claude Certified Architect exam registration on Anthropic's site" style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:8px 16px;border-radius:6px;font-size:.88rem;font-weight:600;color:var(--accent-text);background:transparent;border:1px solid var(--accent-text);transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:4px;white-space:nowrap" onclick="closeNav()">Official Exam <span aria-hidden="true" style="font-size:.85em;line-height:1">&#8599;</span></a>
+      <!-- cca:nav:end -->
     </div>
   </div>
 </nav>

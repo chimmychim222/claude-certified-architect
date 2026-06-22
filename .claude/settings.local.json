@@ -616,7 +616,10 @@
       "Bash(grep -iv \"schema\\\\|json-ld\\\\|description\\\\|title\\\\|content=\\\\|blog\\\\|\\\\.css\\\\|comment\\\\|//\\\\s\")",
       "Bash(grep -iv \"schema\\\\|json\\\\|description\\\\|title\\\\|//\\\\s\\\\|style\\\\|css\")",
       "Bash(grep -v \"style\\\\|//\\\\|json\\\\|schema\\\\|footer\\\\|breadcrumb\")",
-      "Bash(grep -v \"//\\\\s\\\\|cca-practice\\\\|question\\\\|QUESTIONS\\\\|QUESTION\")"
+      "Bash(grep -v \"//\\\\s\\\\|cca-practice\\\\|question\\\\|QUESTIONS\\\\|QUESTION\")",
+      "Bash(grep -v \"style\\\\|css\\\\|schema\\\\|json\\\\|//\\\\s\\\\|description\\\\|title\\\\|content=\\\\|data-nav-\\\\|locked\\\\|dash-card\\\\|lesson\")",
+      "Bash(awk 'NR>=255 && NR<=290')",
+      "Bash(awk 'NR>=130 && NR<=170')"
     ]
   }
 }
