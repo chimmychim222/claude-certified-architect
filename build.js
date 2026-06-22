@@ -176,7 +176,7 @@ const registerSchemas = [
   },
   breadcrumb([
     { name: 'Home',     url: BASE },
-    { name: 'Register', url: BASE + '/register' }
+    { name: 'Register', url: BASE + '/register/' }
   ])
 ];
 
@@ -192,7 +192,7 @@ const diagnosticSchemas = [
   },
   breadcrumb([
     { name: 'Home',            url: BASE },
-    { name: 'Diagnostic Quiz', url: BASE + '/diagnostic' }
+    { name: 'Diagnostic Quiz', url: BASE + '/diagnostic/' }
   ])
 ];
 
@@ -565,7 +565,7 @@ function blogNav(activePage) {
   <div class="inner">
     <a href="/" class="nav-logo">CCA <span>Practice Platform</span></a>
     <div class="nav-links" id="blog-nav-links">
-      ${link('/cca-practice-questions/', 'Practice')}
+      ${link('/cca-practice-questions/', 'Practice Tests')}
       ${link('/cca-foundations-exam/', 'Exam Sim')}
       ${link('/cca-exam-guide/', 'Guide')}
       ${link('/diagnostic/', 'Diagnostic')}
