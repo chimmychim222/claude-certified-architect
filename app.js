@@ -3922,17 +3922,11 @@ function reviewTest() {
 
 function exitTest() {
   clearInterval(timerInterval);
-  if (currentTest && !currentTest.finished && !currentTest.freePreview) {
-    if (!confirm('Are you sure you want to exit? Your progress will be lost.')) return;
+  if (currentTest && !currentTest.finished) {
+    if (!confirm('Exit test? Your progress will be lost.')) return;
   }
-  const wasFreePreview = currentTest && currentTest.freePreview;
   currentTest = null;
-  document.getElementById('test-timer').style.visibility = 'visible';
-  if (wasFreePreview) {
-    showSection('home');
-  } else {
-    showSection('dashboard');
-  }
+  window.location.href = '/';
 }
 
 // ═══════════════════════════════════════
