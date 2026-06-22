@@ -540,13 +540,6 @@ function initAuthListener() {
       sessionId = null;
       if (sessionUnsubscribe) { sessionUnsubscribe(); sessionUnsubscribe = null; }
 
-      // ?checkout=true — logged-out visitor arrived from a static marketing page
-      // CTA. openPaymentModal() sets cca_checkout_intent + opens auth modal;
-      // after signup the logged-in branch above resumes checkout → Stripe.
-      if (anonParams.get('checkout') === 'true') {
-        window.history.replaceState({}, '', window.location.pathname);
-        openPaymentModal();
-      }
       // Pending checkout intent — a logged-out user previously clicked a buy
       // button (openPaymentModal() set window.__pendingCheckout and wrote
       // cca_checkout_intent to sessionStorage), was shown the auth modal, and
@@ -602,6 +595,13 @@ function initAuthListener() {
         } else {
           showSection('dashboard');
         }
+      }
+      // ?checkout=true — logged-out visitor from a static marketing-page CTA.
+      // openPaymentModal() sets cca_checkout_intent + opens auth modal so that
+      // after signup the logged-in branch resumes checkout automatically → Stripe.
+      if (anonParams.get('checkout') === 'true') {
+        window.history.replaceState({}, '', window.location.pathname);
+        openPaymentModal();
       }
     }
     // Update nav again after Firestore enrollment check completes
