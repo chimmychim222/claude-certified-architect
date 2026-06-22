@@ -68,6 +68,11 @@ function renderNav(activePage) {
     return `<a href="${href}" onclick="closeNav()"${active}>${label}</a>`;
   });
   items.push(activePage === '/register/' ? REGISTER_CTA_LINK : OFFICIAL_EXAM_LINK);
+  // Auth buttons are the last items inside nav-links. On desktop, margin-left:auto
+  // (see LOGO_CSS) pushes them to the right of the header. On mobile they appear
+  // naturally at the bottom of the hamburger dropdown.
+  items.push('<a href="/?login=true" class="nav-auth-login" onclick="closeNav()">Log In</a>');
+  items.push('<a href="/?signup=true" class="nav-auth-signup" onclick="closeNav()">Sign Up Free</a>');
   return items.join('\n      ');
 }
 
@@ -130,12 +135,48 @@ function spliceFooter(html, footerInnerHtml) {
 const LOGO_START = '<!-- cca:logo:start -->';
 const LOGO_END   = '<!-- cca:logo:end -->';
 const LOGO_RE    = /<!-- cca:logo:start -->[\s\S]*?<!-- cca:logo:end -->/;
-// CSS is injected alongside the markup so the logo style can't drift independently
-// of the logo text. The <style> appears in <body> after any per-page <head> styles,
-// so it wins the cascade and enforces white-space:nowrap unconditionally.
-const LOGO_CSS  = 'nav .logo{font-family:-apple-system,system-ui,\'Segoe UI\',sans-serif;' +
-  'font-size:1rem;font-weight:600;color:var(--text);text-decoration:none;' +
-  'letter-spacing:-.3px;white-space:nowrap}';
+// CSS injected alongside the logo markup. Appears in <body> after per-page
+// <head> styles, so higher-specificity rules here win the cascade.
+// Auth buttons (nav-auth-login / nav-auth-signup) are the last items inside
+// nav-links on every static/blog page. margin-left:auto on nav-auth-login
+// pushes the pair to the right on desktop. On mobile they appear naturally
+// inside the hamburger dropdown.
+const LOGO_CSS  =
+  // Logo wordmark
+  'nav .logo{font-family:-apple-system,system-ui,\'Segoe UI\',sans-serif;' +
+    'font-size:1rem;font-weight:600;color:var(--text);text-decoration:none;' +
+    'letter-spacing:-.3px;white-space:nowrap}' +
+
+  // nav-links must fill available width so margin-left:auto on auth-login works
+  'nav .nav-links{flex:1}' +
+
+  // Auth button desktop appearance (specificity 0-2-1 beats nav .nav-links a 0-1-2)
+  'nav .nav-links .nav-auth-login{margin-left:auto;font-family:-apple-system,' +
+    'system-ui,\'Segoe UI\',sans-serif;font-size:.8rem;font-weight:600;' +
+    'color:var(--text2);background:transparent;border:1px solid var(--border);' +
+    'border-radius:6px;text-decoration:none;white-space:nowrap;transition:all .2s}' +
+  'nav .nav-links .nav-auth-signup{font-family:-apple-system,system-ui,\'Segoe UI\',' +
+    'sans-serif;font-size:.8rem;font-weight:700;color:var(--accent-text);' +
+    'background:transparent;border:1px solid var(--accent-text);' +
+    'border-radius:6px;text-decoration:none;white-space:nowrap;transition:all .2s}' +
+
+  // Homepage mobile-only auth links (class nav-auth-btn) — hidden on desktop
+  'nav .nav-auth-btn{display:none}' +
+
+  // Mobile ≤640 px: reset auth-button styles so they look like regular dropdown items
+  '@media(max-width:640px){' +
+    'nav .nav-links .nav-auth-login{margin-left:0;border:none;' +
+      'color:var(--text2);font-size:.9rem}' +
+    'nav .nav-links .nav-auth-signup{border:none;color:var(--text2);font-size:.9rem}' +
+    // Show homepage mobile auth links inside hamburger dropdown
+    'nav .nav-auth-btn{display:flex;align-items:center;color:var(--text2);' +
+      'text-decoration:none;font-family:-apple-system,system-ui,\'Segoe UI\',sans-serif;' +
+      'font-size:.9rem;min-height:44px}' +
+  '}' +
+
+  // Homepage only: hide the JS-driven user-area on mobile (it overflows the bar)
+  '@media(max-width:768px){.user-area{display:none!important}}';
+
 const LOGO_HTML  = `<style>${LOGO_CSS}</style>` +
   '<a href="/" class="logo">Claude Certified Architects</a>';
 
@@ -525,11 +566,9 @@ function processFile(filePath, activePage, ...schemas) {
   let out     = splice(html, block);
   out = spliceLogo(out);  // unconditional — homepage included if markers present
   if (activePage) out = spliceNav(out, renderNav(activePage));
-  if (activePage) {
-    const cfg = AUTH_CLUSTER_CONFIG[activePage] || null;
-    const bp  = (cfg && cfg.bp) || AUTH_DEFAULT_BP;
-    out = spliceAuthCluster(out, cfg, bp);
-  }
+  // Auth buttons are now inside nav-links (via renderNav). The old auth-cluster
+  // markers in static pages are stripped by the Python clean-up step; this call
+  // is intentionally removed so no new cluster is injected.
   out = spliceFooter(out, renderFooter(new Date().getFullYear()));
   fs.writeFileSync(filePath, out, 'utf8');
   console.log('✓', rel);
@@ -664,20 +703,17 @@ a:hover{color:var(--accent3)}
 nav{position:fixed;top:var(--banner-h,0px);left:0;right:0;z-index:100;background:rgba(245,243,234,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
 nav .inner{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;max-width:1100px;margin:0 auto;gap:12px}
 nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1rem;font-weight:600;color:var(--text);text-decoration:none;letter-spacing:-.3px;white-space:nowrap}
-.nav-links{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.nav-links{flex:1;display:flex;gap:4px;align-items:center;flex-wrap:wrap}
 .nav-links a{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:5px 10px;border-radius:6px;font-size:.85rem;color:var(--text2);text-decoration:none;transition:all .2s;white-space:nowrap}
 .nav-links a:hover{color:var(--text);background:rgba(0,0,0,.04)}
 .nav-links a.active{color:var(--text);font-weight:600}
-.nav-cta{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;background:var(--accent-btn);color:#fff !important;padding:8px 18px;border-radius:6px;font-size:.88rem;font-weight:600;text-decoration:none !important;transition:background .2s;white-space:nowrap}
-.nav-cta:hover{background:var(--accent2) !important}
 .nav-hamburger{display:none;flex-direction:column;justify-content:center;align-items:center;gap:5px;padding:6px;cursor:pointer;border:none;background:none;margin-left:auto;flex-shrink:0;min-width:44px;min-height:44px}
 .nav-hamburger span{display:block;width:22px;height:2px;background:var(--text);border-radius:2px;transition:transform .25s,opacity .25s}
-@media(max-width:660px){
+@media(max-width:640px){
   nav .inner{flex-wrap:nowrap}
-  .nav-links{display:none !important;position:absolute;top:100%;left:0;right:0;flex-direction:column;background:rgba(245,243,234,.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:12px 16px;gap:0;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+  .nav-links{display:none !important;flex:none;position:absolute;top:100%;left:0;right:0;flex-direction:column;background:rgba(245,243,234,.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:12px 16px;gap:0;box-shadow:0 8px 24px rgba(0,0,0,.08)}
   .nav-links.open{display:flex !important}
   .nav-links a{padding:12px 16px;border-radius:6px;width:100%;text-align:left;white-space:normal;min-height:44px;display:flex;align-items:center}
-  .nav-cta{display:none !important}
   .nav-hamburger{display:flex !important}
 }
 
@@ -768,12 +804,8 @@ function blogNav(activePage) {
       ${link('/blog/', 'Blog')}
       ${link('/faq/', 'FAQ')}
       <a href="/register/" aria-label="Official Claude Certified Architect exam registration on Anthropic's site">Official Exam <span aria-hidden="true" style="font-size:.85em;line-height:1">&#8599;</span></a>
-    </div>
-    <a href="/" class="nav-cta">Start Practicing</a>
-    <style>.nav-auth-cluster{display:flex;align-items:center;gap:8px;flex-shrink:0}@media(max-width:660px){.nav-auth-cluster{display:none}}</style>
-    <div class="nav-auth-cluster">
-      <a href="/?login=true" style="${S_LOGIN}">Log In</a>
-      <a href="/?signup=true" style="${S_SIGNUP}">Sign Up Free</a>
+      <a href="/?login=true" class="nav-auth-login">Log In</a>
+      <a href="/?signup=true" class="nav-auth-signup">Sign Up Free</a>
     </div>
     <button class="nav-hamburger" aria-label="Toggle menu"
       onclick="document.getElementById('blog-nav-links').classList.toggle('open')">
