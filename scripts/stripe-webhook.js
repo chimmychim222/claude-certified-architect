@@ -920,7 +920,7 @@ const SITE_URL    = 'https://www.claudecertifiedarchitects.com';
 const OPT_LETTERS = ['A', 'B', 'C', 'D', 'E'];
 
 function nurtureCtaUrl(stage) {
-  return `${SITE_URL}/?checkout=true&utm_source=email&utm_medium=nurture&utm_campaign=diagnostic_sequence&utm_content=${stage}`;
+  return `${SITE_URL}/?hub=practice-tests&utm_source=email&utm_medium=nurture&utm_campaign=diagnostic_sequence&utm_content=${stage}`;
 }
 
 // ── Shared HTML email wrapper (table-based for email-client compatibility) ────

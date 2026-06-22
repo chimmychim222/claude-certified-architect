@@ -531,12 +531,14 @@ function initAuthListener() {
       sessionId = null;
       if (sessionUnsubscribe) { sessionUnsubscribe(); sessionUnsubscribe = null; }
 
-      // Picked up ?checkout=true (see DOMContentLoaded) — this visitor isn't
-      // logged in, so open the login/signup modal now. openPaymentModal()
-      // re-sets __pendingCheckout and shows the checkout subtitle; once they
-      // authenticate, onAuthStateChanged fires again with a user and the
-      // __pendingCheckout handler in the `if (user)` branch above sends them
-      // on to Stripe with client_reference_id.
+      // Pending checkout intent — a logged-out user previously clicked a buy
+      // button (openPaymentModal() set window.__pendingCheckout and wrote
+      // cca_checkout_intent to sessionStorage), was shown the auth modal, and
+      // is now on a page still carrying that intent. openPaymentModal() resumes
+      // the checkout: once they authenticate, onAuthStateChanged fires again
+      // in the `if (user)` branch above and sends them on to Stripe.
+      // NOTE: the ?checkout=true URL param is NOT checked here — it has no
+      // active handler and navigating to /?checkout=true has no effect.
       if (window.__pendingCheckout ||
           (function() { try { return !!sessionStorage.getItem('cca_checkout_intent'); } catch(e) { return false; } }())) {
         openPaymentModal();
