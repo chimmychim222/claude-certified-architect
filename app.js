@@ -151,6 +151,24 @@ document.addEventListener('DOMContentLoaded', function() {
     } catch (e) {}
   })();
 
+  // Capture ?checkout=true synchronously — before Firebase loads — so the
+  // checkout intent is set before onAuthStateChanged fires. For logged-out
+  // users the existing window.__pendingCheckout check (line ~549) fires
+  // openPaymentModal() → openAuthModal('signup'). For logged-in users the
+  // existing _hasIntent check (line ~447) fires openPaymentModal() → Stripe.
+  // Clearing the URL here prevents the later URL-param handlers (lines ~534
+  // and ~602) from double-calling openPaymentModal when the same param is
+  // consumed by the early-intent path above.
+  (function() {
+    try {
+      if (new URLSearchParams(window.location.search).get('checkout') === 'true') {
+        window.__pendingCheckout = true;
+        try { sessionStorage.setItem('cca_checkout_intent', '1'); } catch(e) {}
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    } catch(e) {}
+  })();
+
   // Restore the "this browser's payment never got matched" warning across
   // reloads — see flagPaymentNeedsReview/PAYMENT_NEEDS_REVIEW_KEY. Runs
   // before Firebase loads; if enrollment turns out to already be confirmed,
