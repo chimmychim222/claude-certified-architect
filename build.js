@@ -515,7 +515,7 @@ const faqPageQA = [
   },
   {
     q: 'How long is the CCA Foundations certification valid?',
-    a: 'The CCA Foundations certification is valid for 2 years from your passing date.'
+    a: "Anthropic has not published a specified validity or renewal period for the CCA-F. For the latest, check Anthropic's official exam guide before you book your exam."
   },
   {
     q: 'Can I retake the CCA Foundations exam if I fail?',
@@ -527,7 +527,7 @@ const faqPageQA = [
   },
   {
     q: 'Is the CCA Foundations certification worth it?',
-    a: "For engineers and architects who build production applications with Claude, yes. The certification validates practical skills across agent design, configuration, prompt engineering, tool integration, and context management, and it's valid for 2 years. Even if you don't need the credential itself, the preparation builds a working understanding of the architectural tradeoffs that come up constantly when building with Claude."
+    a: "For engineers and architects who build production applications with Claude, yes. The certification validates practical skills across agent design, configuration, prompt engineering, tool integration, and context management. Even if you don't need the credential itself, the preparation builds a working understanding of the architectural tradeoffs that come up constantly when building with Claude."
   },
   {
     q: 'Who should take the CCA Foundations exam?',
