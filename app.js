@@ -451,6 +451,10 @@ function initAuthListener() {
   fbAuth.onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     if (user) {
+      // Write the localStorage hint that nav-auth.js reads on static pages for
+      // an instant first-paint logged-in state (zero CLS, works before Firebase
+      // finishes initialising on those pages).
+      try { localStorage.setItem('cca_logged_in', user.email); } catch(e) {}
       // Discard pending auth-modal flags from static-page header buttons — the
       // user is already authenticated so no login/signup modal should open.
       if (window.__pendingLogin)  window.__pendingLogin  = false;
@@ -581,6 +585,8 @@ function initAuthListener() {
     } else {
       enrolled = false;
       sessionId = null;
+      // Clear the nav-auth.js hint flags so static pages revert to logged-out state.
+      try { localStorage.removeItem('cca_logged_in'); localStorage.removeItem('cca_enrolled'); } catch(e) {}
       if (sessionUnsubscribe) { sessionUnsubscribe(); sessionUnsubscribe = null; }
 
       // Pending checkout intent — a logged-out user previously clicked a buy
@@ -1213,6 +1219,9 @@ function recentSessionMsg() {
 // (and duplicated, or missed) across each detection path.
 function markEnrolled(user) {
   enrolled = true;
+  // Persist enrollment state so nav-auth.js can show it on static pages
+  // without a Firestore round-trip.
+  try { localStorage.setItem('cca_enrolled', 'true'); } catch(e) {}
   if (window.__paymentNeedsManualReview) {
     window.__paymentNeedsManualReview = false;
     try { localStorage.removeItem(PAYMENT_NEEDS_REVIEW_KEY); } catch(e) {}

@@ -68,11 +68,18 @@ function renderNav(activePage) {
     return `<a href="${href}" onclick="closeNav()"${active}>${label}</a>`;
   });
   items.push(activePage === '/register/' ? REGISTER_CTA_LINK : OFFICIAL_EXAM_LINK);
-  // Auth buttons are the last items inside nav-links. On desktop, margin-left:auto
-  // (see LOGO_CSS) pushes them to the right of the header. On mobile they appear
-  // naturally at the bottom of the hamburger dropdown.
-  items.push('<a href="/?login=true" class="nav-auth-login" onclick="closeNav()">Log In</a>');
-  items.push('<a href="/?signup=true" class="nav-auth-signup" onclick="closeNav()">Sign Up Free</a>');
+  // #nav-auth-static: fixed-min-width wrapper that holds the auth cluster.
+  // margin-left:auto (via LOGO_CSS) pushes it to the right on desktop.
+  // nav-auth.js (deferred) and the inline NAV_HINT_SCRIPT swap its contents
+  // to the logged-in cluster when the user is authenticated.
+  items.push(
+    '<div id="nav-auth-static">' +
+      '<a href="/?login=true" class="nav-auth-login" onclick="closeNav()">Log In</a>' +
+      '<a href="/?signup=true" class="nav-auth-signup" onclick="closeNav()">Sign Up Free</a>' +
+    '</div>'
+  );
+  // Inline hint: synchronous localStorage read before first paint → zero CLS.
+  items.push(NAV_HINT_SCRIPT);
   return items.join('\n      ');
 }
 
@@ -147,27 +154,47 @@ const LOGO_CSS  =
     'font-size:1rem;font-weight:600;color:var(--text);text-decoration:none;' +
     'letter-spacing:-.3px;white-space:nowrap}' +
 
-  // nav-links must fill available width so margin-left:auto on auth-login works
+  // nav-links fills available width so the auth wrapper can push to the right
   'nav .nav-links{flex:1}' +
 
-  // Auth button desktop appearance (specificity 0-2-1 beats nav .nav-links a 0-1-2)
-  'nav .nav-links .nav-auth-login{margin-left:auto;font-family:-apple-system,' +
-    'system-ui,\'Segoe UI\',sans-serif;font-size:.8rem;font-weight:600;' +
-    'color:var(--text2);background:transparent;border:1px solid var(--border);' +
-    'border-radius:6px;text-decoration:none;white-space:nowrap;transition:all .2s}' +
-  'nav .nav-links .nav-auth-signup{font-family:-apple-system,system-ui,\'Segoe UI\',' +
+  // #nav-auth-static: fixed-minimum-width wrapper — margin-left:auto pushes it
+  // to the right edge; min-width keeps the space reserved so swapping
+  // Log In/Sign Up Free for the logged-in cluster causes zero layout shift.
+  '#nav-auth-static{margin-left:auto;display:flex;align-items:center;gap:8px;' +
+    'min-width:180px;justify-content:flex-end;flex-shrink:0}' +
+
+  // Logged-out links inside the wrapper (desktop appearance)
+  '#nav-auth-static .nav-auth-login{font-family:-apple-system,system-ui,\'Segoe UI\',' +
+    'sans-serif;font-size:.8rem;font-weight:600;color:var(--text2);background:transparent;' +
+    'border:1px solid var(--border);border-radius:6px;text-decoration:none;' +
+    'white-space:nowrap;transition:all .2s}' +
+  '#nav-auth-static .nav-auth-signup{font-family:-apple-system,system-ui,\'Segoe UI\',' +
     'sans-serif;font-size:.8rem;font-weight:700;color:var(--accent-text);' +
-    'background:transparent;border:1px solid var(--accent-text);' +
-    'border-radius:6px;text-decoration:none;white-space:nowrap;transition:all .2s}' +
+    'background:transparent;border:1px solid var(--accent-text);border-radius:6px;' +
+    'text-decoration:none;white-space:nowrap;transition:all .2s}' +
+
+  // Logged-in elements (injected by nav-auth.js / inline hint)
+  '.nav-user-name{font-family:-apple-system,system-ui,\'Segoe UI\',sans-serif;' +
+    'font-size:.78rem;font-weight:600;color:var(--text);white-space:nowrap;' +
+    'overflow:hidden;text-overflow:ellipsis;max-width:90px}' +
+  '.nav-logout-btn{font-family:-apple-system,system-ui,\'Segoe UI\',sans-serif;' +
+    'font-size:.75rem;font-weight:600;color:var(--text3);background:transparent;' +
+    'border:1px solid var(--border);border-radius:6px;padding:4px 10px;' +
+    'cursor:pointer;white-space:nowrap;transition:all .2s}' +
 
   // Homepage mobile-only auth links (class nav-auth-btn) — hidden on desktop
   'nav .nav-auth-btn{display:none}' +
 
-  // Mobile ≤640 px: reset auth-button styles so they look like regular dropdown items
+  // Mobile ≤640 px: expand wrapper to full-width column, reset border styles
   '@media(max-width:640px){' +
-    'nav .nav-links .nav-auth-login{margin-left:0;border:none;' +
-      'color:var(--text2);font-size:.9rem}' +
-    'nav .nav-links .nav-auth-signup{border:none;color:var(--text2);font-size:.9rem}' +
+    '#nav-auth-static{margin-left:0;min-width:0;width:100%;flex-direction:column;' +
+      'align-items:flex-start;gap:4px}' +
+    '#nav-auth-static .nav-auth-login,' +
+    '#nav-auth-static .nav-auth-signup,' +
+    '#nav-auth-static .nav-logout-btn,' +
+    '#nav-auth-static .nav-user-name{border:none;color:var(--text2);' +
+      'font-size:.9rem;width:100%;padding:12px 16px;min-height:44px;' +
+      'display:flex;align-items:center;max-width:none}' +
     // Show homepage mobile auth links inside hamburger dropdown
     'nav .nav-auth-btn{display:flex;align-items:center;color:var(--text2);' +
       'text-decoration:none;font-family:-apple-system,system-ui,\'Segoe UI\',sans-serif;' +
@@ -177,7 +204,27 @@ const LOGO_CSS  =
   // Homepage only: hide the JS-driven user-area on mobile (it overflows the bar)
   '@media(max-width:768px){.user-area{display:none!important}}';
 
-const LOGO_HTML  = `<style>${LOGO_CSS}</style>` +
+// Inline hint — synchronous localStorage read that runs BEFORE first paint
+// so a logged-in user never sees the logged-out state (zero CLS). Placed
+// inside nav-links after #nav-auth-static so the element already exists.
+const NAV_HINT_SCRIPT =
+  '<script>(function(){' +
+  'try{var e=localStorage.getItem(\'cca_logged_in\');if(!e)return;' +
+  'var c=document.getElementById(\'nav-auth-static\');if(!c)return;' +
+  'c.innerHTML=' +
+    '\'<span class="nav-user-name" title="\'+e+\'">\'+e.split(\'@\')[0]+\'</span>\'' +
+    '+\'<button class="nav-logout-btn" onclick="window.__navSO&&window.__navSO()">Log out</button>\';' +
+  '}catch(x){}})()' +
+  '<' + '/script>';
+
+const LOGO_HTML  =
+  // Preconnect to Firebase/gstatic CDN — minimises the cold-load round-trip
+  // for nav-auth.js's dynamic firebase-app + firebase-auth imports.
+  '<link rel="preconnect" href="https://www.gstatic.com" crossorigin>' +
+  // nav-auth.js is deferred so it never blocks LCP; it uses requestIdleCallback
+  // internally so the Firebase import doesn't compete with rendering.
+  '<script src="/nav-auth.js" defer></script>' +
+  `<style>${LOGO_CSS}</style>` +
   '<a href="/" class="logo">CCA Practice Platforms</a>';
 
 function spliceLogo(html) {
@@ -804,8 +851,8 @@ function blogNav(activePage) {
       ${link('/blog/', 'Blog')}
       ${link('/faq/', 'FAQ')}
       <a href="/register/" aria-label="Official Claude Certified Architect exam registration on Anthropic's site">Official Exam <span aria-hidden="true" style="font-size:.85em;line-height:1">&#8599;</span></a>
-      <a href="/?login=true" class="nav-auth-login">Log In</a>
-      <a href="/?signup=true" class="nav-auth-signup">Sign Up Free</a>
+      <div id="nav-auth-static"><a href="/?login=true" class="nav-auth-login">Log In</a><a href="/?signup=true" class="nav-auth-signup">Sign Up Free</a></div>
+      ${NAV_HINT_SCRIPT}
     </div>
     <button class="nav-hamburger" aria-label="Toggle menu"
       onclick="document.getElementById('blog-nav-links').classList.toggle('open')">
