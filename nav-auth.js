@@ -82,11 +82,16 @@
       var onAuthStateChanged = mods[1].onAuthStateChanged;
       var signOut            = mods[1].signOut;
 
-      // Use a named app so we never collide with app.js's [DEFAULT] instance.
-      // getApps() guard prevents double-init if this script somehow executes twice.
-      var existing = getApps().find(function (a) { return a.name === 'nav-auth'; });
-      var app  = existing || initializeApp(FIREBASE_CONFIG, 'nav-auth');
-      var auth = getAuth(app);
+      // Prefer the [DEFAULT] app if app.js has already initialized it (e.g. on
+      // /diagnostic/). Using the same app instance means onAuthStateChanged reads
+      // from the same auth session — no separate 'nav-auth' auth state that would
+      // fire null and clear the localStorage hint. Fall back to a named app on
+      // static pages where app.js is absent.
+      var apps    = getApps();
+      var defApp  = apps.find(function (a) { return a.name === '[DEFAULT]'; });
+      var navApp  = apps.find(function (a) { return a.name === 'nav-auth'; });
+      var app     = defApp || navApp || initializeApp(FIREBASE_CONFIG, 'nav-auth');
+      var auth    = getAuth(app);
 
       // Expose signOut for the "Log out" button (set before onAuthStateChanged
       // fires so a quick click on the instant-hint logout button still works).

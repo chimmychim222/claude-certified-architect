@@ -983,6 +983,13 @@ async function submitAuth() {
       // their way out. Recording the failure here lets that banner open by
       // leading with the resend action instead of "check your inbox" for an
       // email that was never sent. See window.__verificationSendFailed below.
+      // Write the hint flag immediately after credential resolution, before
+      // the welcome panel appears or any navigation occurs — so if the user
+      // clicks "Take the free diagnostic" (same-tab), the inline hint on
+      // /diagnostic/ finds the key and shows logged-in state from first paint.
+      // onAuthStateChanged also writes it, but its timing vs. the await
+      // continuation is implementation-dependent; this write is guaranteed.
+      try { localStorage.setItem('cca_logged_in', cred.user.email); } catch(e) {}
       fbAuth.sendEmailVerification(cred.user, VERIFY_ACTION_CODE_SETTINGS).catch(e => {
         console.warn('Verification email failed:', e.message);
         window.__verificationSendFailed = true;
