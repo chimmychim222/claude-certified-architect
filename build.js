@@ -436,11 +436,9 @@ const registerSchemas = [
     description: "Register for the CCA Foundations exam through Anthropic's Skilljar portal. Review exam details, passing score, format, and cost before requesting access.",
     url: BASE + '/register/',
     isPartOf: { '@type': 'WebSite', name: schema.course.provider, url: BASE }
-  },
-  breadcrumb([
-    { name: 'Home',     url: BASE },
-    { name: 'Register', url: BASE + '/register/' }
-  ])
+  }
+  // BreadcrumbList removed: visible breadcrumb was removed from /register/ on 2026-06-23.
+  // Keeping it orphaned in schema would mislead search engines — removed for consistency.
 ];
 
 /** Schemas for /diagnostic */
