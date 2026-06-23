@@ -28,7 +28,24 @@
   var LS_EMAIL    = 'cca_logged_in'; // value = user's email; absent = logged out
   var LS_ENROLLED = 'cca_enrolled';  // value = 'true' if enrolled
 
-  function getCluster() { return document.getElementById('nav-auth-static'); }
+  // Returns the #nav-auth-static wrapper, creating it on-the-fly if the page
+  // was served from a stale CDN cache that predates the wrapper injection.
+  // Falls back to finding the bare .nav-auth-login / .nav-auth-signup links and
+  // wrapping them, so the swap always has a single container to innerHTML-replace.
+  function getCluster() {
+    var el = document.getElementById('nav-auth-static');
+    if (el) return el;
+    // Fallback: locate the individual auth links and wrap them dynamically.
+    var login = document.querySelector('a.nav-auth-login');
+    if (!login) return null; // not a static-nav page at all
+    var signup = document.querySelector('a.nav-auth-signup');
+    var wrapper = document.createElement('div');
+    wrapper.id = 'nav-auth-static';
+    login.parentElement.insertBefore(wrapper, login);
+    wrapper.appendChild(login);
+    if (signup) wrapper.appendChild(signup);
+    return wrapper;
+  }
 
   // Replace the static Log In / Sign Up Free links with a logged-in cluster.
   function applyLoggedIn(email) {

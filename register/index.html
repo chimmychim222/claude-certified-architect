@@ -155,7 +155,7 @@ footer a:hover{color:var(--accent-text)}
       <a href="/faq/" onclick="closeNav()">FAQ</a>
       <a href="#register-action" class="nav-cta active" aria-label="Jump to the exam registration portal link below" onclick="closeNav()">Register</a>
       <div id="nav-auth-static"><a href="/?login=true" class="nav-auth-login" onclick="closeNav()">Log In</a><a href="/?signup=true" class="nav-auth-signup" onclick="closeNav()">Sign Up Free</a></div>
-      <script>(function(){try{var e=localStorage.getItem('cca_logged_in');if(!e)return;var c=document.getElementById('nav-auth-static');if(!c)return;c.innerHTML='<span class="nav-user-name" title="'+e+'">'+e.split('@')[0]+'</span>'+'<button class="nav-logout-btn" onclick="window.__navSO&&window.__navSO()">Log out</button>';}catch(x){}})()</script>
+      <script>(function(){try{var e=localStorage.getItem('cca_logged_in');if(!e)return;var c=document.getElementById('nav-auth-static');if(!c){var l=document.querySelector('a.nav-auth-login');if(!l)return;c=document.createElement('div');c.id='nav-auth-static';l.parentElement.insertBefore(c,l);c.appendChild(l);var s=document.querySelector('a.nav-auth-signup');if(s)c.appendChild(s);}c.innerHTML='<span class="nav-user-name" title="'+e+'">'+e.split('@')[0]+'</span>'+'<button class="nav-logout-btn" onclick="window.__navSO&&window.__navSO()">Log out</button>';}catch(x){}})()</script>
       <!-- cca:nav:end -->
     </div>
   </div>

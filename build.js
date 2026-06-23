@@ -207,10 +207,19 @@ const LOGO_CSS  =
 // Inline hint — synchronous localStorage read that runs BEFORE first paint
 // so a logged-in user never sees the logged-out state (zero CLS). Placed
 // inside nav-links after #nav-auth-static so the element already exists.
+// Inline hint: synchronous localStorage read before first paint → zero CLS.
+// Falls back to wrapping bare .nav-auth-login links if #nav-auth-static was
+// served from a stale CDN cache without the wrapper div.
 const NAV_HINT_SCRIPT =
   '<script>(function(){' +
   'try{var e=localStorage.getItem(\'cca_logged_in\');if(!e)return;' +
-  'var c=document.getElementById(\'nav-auth-static\');if(!c)return;' +
+  'var c=document.getElementById(\'nav-auth-static\');' +
+  'if(!c){' +
+    'var l=document.querySelector(\'a.nav-auth-login\');if(!l)return;' +
+    'c=document.createElement(\'div\');c.id=\'nav-auth-static\';' +
+    'l.parentElement.insertBefore(c,l);c.appendChild(l);' +
+    'var s=document.querySelector(\'a.nav-auth-signup\');if(s)c.appendChild(s);' +
+  '}' +
   'c.innerHTML=' +
     '\'<span class="nav-user-name" title="\'+e+\'">\'+e.split(\'@\')[0]+\'</span>\'' +
     '+\'<button class="nav-logout-btn" onclick="window.__navSO&&window.__navSO()">Log out</button>\';' +
