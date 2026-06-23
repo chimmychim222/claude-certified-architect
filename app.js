@@ -4112,8 +4112,15 @@ document.querySelectorAll('.nav-links button[data-nav]').forEach(btn => {
   btn.addEventListener('click', closeMobileNav);
 });
 
-// Initialize
-if (!enrolled) showSection('home');
+// Initialize — show the correct section from first paint (before Firebase loads).
+// ?hub=practice-tests must show the dashboard immediately; any other load shows home.
+// onAuthStateChanged still runs later and calls showSection('dashboard') + updateDashCards()
+// for enrollment state — this early check is purely cosmetic: prevents the visible flash
+// where /?hub=practice-tests briefly renders the homepage hero before Firebase swaps it.
+if (!enrolled) {
+  const _earlyHub = new URLSearchParams(window.location.search).get('hub');
+  showSection(_earlyHub === 'practice-tests' ? 'dashboard' : 'home');
+}
 
 // ═══════ SCROLL REVEAL (IntersectionObserver) ═══════
 (function(){
