@@ -107,6 +107,30 @@ footer a:hover{color:var(--accent-text)}
 .hamburger.open span:nth-child(2){opacity:0}
 .hamburger.open span:nth-child(3){transform:rotate(-45deg) translate(5px,-5px)}
 
+
+/* OFFER BANNER — high conversion block between hero and overview */
+.offer-banner{background:linear-gradient(135deg,rgba(196,82,44,.07) 0%,rgba(196,82,44,.02) 100%);border-top:1px solid rgba(196,82,44,.22);border-bottom:1px solid rgba(196,82,44,.22);padding:34px 0 38px;margin-bottom:4px}
+.offer-eyebrow{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--accent-text);margin-bottom:9px}
+.offer-headline{font-size:clamp(1.5rem,3vw,2.1rem);font-weight:700;color:var(--text);margin-bottom:13px;line-height:1.2;font-family:Georgia,'Times New Roman',serif}
+.offer-body{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.95rem;color:var(--text2);max-width:600px;line-height:1.65;margin-bottom:12px}
+.offer-independence{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.73rem;color:var(--text3);margin-bottom:22px;line-height:1.5;max-width:540px;border-left:2px solid var(--border2);padding-left:10px}
+.offer-ctas{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px;align-items:center}
+.btn-offer-paid{display:inline-block;padding:13px 28px;border-radius:var(--radius);background:transparent;border:2px solid var(--accent-btn);color:var(--accent-btn);font-size:.95rem;font-weight:700;text-decoration:none;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;transition:all .2s;white-space:nowrap}
+.btn-offer-paid:hover{background:var(--accent-btn);color:#fff}
+.offer-features{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.83rem;color:var(--text2);list-style:none;display:flex;gap:8px 22px;flex-wrap:wrap;max-width:600px}
+.offer-features li{display:flex;align-items:center;gap:6px}
+.offer-features li::before{content:"✓";color:var(--green);font-weight:700;flex-shrink:0;font-size:.9rem}
+/* BOTTOM OFFER STRIP */
+.offer-strip{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:22px 26px;margin:20px 0 8px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.offer-strip-text h3{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.97rem;font-weight:700;color:var(--text);margin-bottom:3px}
+.offer-strip-text p{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.83rem;color:var(--text2);line-height:1.5}
+.offer-strip-ctas{display:flex;gap:10px;flex-shrink:0;flex-wrap:wrap;align-items:center}
+@media(max-width:640px){
+  .offer-strip{flex-direction:column;align-items:flex-start}
+  .offer-ctas,.offer-strip-ctas{flex-direction:column;width:100%}
+  .btn-offer-paid,.btn-primary,.btn-secondary{text-align:center;width:100%;box-sizing:border-box}
+}
+
 /* FOCUS */
 :focus{outline:none}:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:3px}
 
@@ -175,6 +199,25 @@ footer a:hover{color:var(--accent-text)}
     <p>Request access to the Claude Certified Architect exam through Anthropic's certification portal.</p>
   </div>
 </section>
+
+<div class="offer-banner" aria-labelledby="offer-headline">
+  <div class="container">
+    <p class="offer-eyebrow">Independent practice resource — not affiliated with Anthropic</p>
+    <h2 class="offer-headline" id="offer-headline">Preparing to register? Practice first.</h2>
+    <p class="offer-body">The official CCA-F exam costs $99. A failed attempt means another $99. Our independent practice platform is $49 — 400 domain-weighted, scenario-based questions, a full 60-question timed simulation, and a free readiness diagnostic. That's less than the cost of a second exam attempt, and candidates who practice with realistic scenarios pass at a far higher rate.</p>
+    <p class="offer-independence">This is an independent study resource. We are not affiliated with, authorized by, or endorsed by Anthropic. Registration for the official CCA Foundations exam is through Anthropic's Skilljar portal — see the registration card below.</p>
+    <div class="offer-ctas">
+      <a href="/diagnostic/" class="btn-primary">Start the free diagnostic</a>
+      <a href="/?checkout=true" class="btn-offer-paid">Get full access — $49</a>
+    </div>
+    <ul class="offer-features" aria-label="What you get">
+      <li>400 scenario-based practice questions across all 5 domains</li>
+      <li>Full 60-question timed simulation with domain-weighted scoring</li>
+      <li>Free 10-question readiness diagnostic</li>
+      <li>Detailed explanations for every question and answer choice</li>
+    </ul>
+  </div>
+</div>
 
 <div class="container">
 
@@ -267,6 +310,18 @@ footer a:hover{color:var(--accent-text)}
     </div>
 
   </div><!-- /overview-section -->
+  <div class="offer-strip" aria-label="Practice offer">
+    <div class="offer-strip-text">
+      <h3>Make your $99 exam fee count — practice before you book.</h3>
+      <p>400 questions · full timed simulation · free diagnostic · $49 independent practice platform</p>
+    </div>
+    <div class="offer-strip-ctas">
+      <a href="/diagnostic/" class="btn-primary" style="padding:11px 22px;font-size:.88rem">Free diagnostic</a>
+      <a href="/?checkout=true" class="btn-offer-paid" style="padding:11px 22px;font-size:.88rem">Get access — $49</a>
+    </div>
+  </div>
+
+
 
   <div class="prep-section">
     <h2>Not ready to register yet?</h2>
