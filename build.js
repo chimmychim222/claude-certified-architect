@@ -385,7 +385,7 @@ const examSchemas = [
   },
   breadcrumb([
     { name: 'Home',                  url: BASE },
-    { name: 'CCA Foundations Exam',  url: BASE + '/cca-foundations-exam' }
+    { name: 'CCA Foundations Exam',  url: BASE + '/cca-foundations-exam/' }
   ])
 ];
 
@@ -401,7 +401,7 @@ const questionsSchemas = [
   },
   breadcrumb([
     { name: 'Home',                     url: BASE },
-    { name: 'CCA Practice Questions',   url: BASE + '/cca-practice-questions' }
+    { name: 'CCA Practice Questions',   url: BASE + '/cca-practice-questions/' }
   ])
 ];
 
@@ -423,7 +423,7 @@ const guideSchemas = [
   },
   breadcrumb([
     { name: 'Home',          url: BASE },
-    { name: 'CCA Exam Guide', url: BASE + '/cca-exam-guide' }
+    { name: 'CCA Exam Guide', url: BASE + '/cca-exam-guide/' }
   ])
 ];
 
@@ -451,10 +451,7 @@ const diagnosticSchemas = [
     url: BASE + '/diagnostic/',
     isPartOf: { '@type': 'WebSite', name: schema.course.provider, url: BASE }
   },
-  breadcrumb([
-    { name: 'Home',            url: BASE },
-    { name: 'Diagnostic Quiz', url: BASE + '/diagnostic/' }
-  ])
+  // BreadcrumbList removed: /diagnostic/ has no visible breadcrumb — orphaned schema removed for consistency.
 ];
 
 /** Schemas for /study-plan-generator */
@@ -473,7 +470,7 @@ const studyPlanSchemas = [
   },
   breadcrumb([
     { name: 'Home',                  url: BASE },
-    { name: 'Study Plan Generator',  url: BASE + '/study-plan-generator' }
+    { name: 'Study Plan Generator',  url: BASE + '/study-plan-generator/' }
   ])
 ];
 
@@ -551,19 +548,19 @@ const privacySchemas = [
   { '@context': 'https://schema.org', '@type': 'WebPage', name: 'Privacy Policy',
     description: 'Privacy Policy for Claude Certified Architects.',
     url: BASE + '/privacy/', isPartOf: { '@type': 'WebSite', name: schema.course.provider, url: BASE } },
-  breadcrumb([{ name: 'Home', url: BASE }, { name: 'Privacy Policy', url: BASE + '/privacy/' }])
+  // BreadcrumbList removed: /privacy/ has no visible breadcrumb — orphaned schema removed.
 ];
 const termsSchemas = [
   { '@context': 'https://schema.org', '@type': 'WebPage', name: 'Terms of Service',
     description: 'Terms of Service for Claude Certified Architects.',
     url: BASE + '/terms/', isPartOf: { '@type': 'WebSite', name: schema.course.provider, url: BASE } },
-  breadcrumb([{ name: 'Home', url: BASE }, { name: 'Terms of Service', url: BASE + '/terms/' }])
+  // BreadcrumbList removed: /terms/ has no visible breadcrumb — orphaned schema removed.
 ];
 const refundSchemas = [
   { '@context': 'https://schema.org', '@type': 'WebPage', name: 'Refund Policy',
     description: 'Refund Policy for Claude Certified Architects — 10-day money-back guarantee.',
     url: BASE + '/refund/', isPartOf: { '@type': 'WebSite', name: schema.course.provider, url: BASE } },
-  breadcrumb([{ name: 'Home', url: BASE }, { name: 'Refund Policy', url: BASE + '/refund/' }])
+  // BreadcrumbList removed: /refund/ has no visible breadcrumb — orphaned schema removed.
 ];
 
 const faqPageSchemas = [
@@ -577,7 +574,7 @@ const faqPageSchemas = [
   },
   breadcrumb([
     { name: 'Home', url: BASE },
-    { name: 'FAQ',  url: BASE + '/faq' }
+    { name: 'FAQ',  url: BASE + '/faq/' }
   ]),
   {
     '@context': 'https://schema.org',
@@ -1013,7 +1010,7 @@ ${blogFooter()}
 function generateBlogIndex(posts) {
   const schemas = `<script type="application/ld+json">${JSON.stringify(breadcrumb([
     { name: 'Home', url: BASE },
-    { name: 'Blog', url: `${BASE}/blog` }
+    { name: 'Blog', url: `${BASE}/blog/` }
   ]))}</script>`;
 
   const listHtml = posts.length === 0
