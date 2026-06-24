@@ -628,7 +628,11 @@
       "Bash(grep -v \"style\\\\|//\\\\s\\\\|schema\\\\|json\\\\|hover\\\\|btn-sm\\\\|mobile-open\\\\|btn-enrolled\\\\|btn-primary\\\\|data-count\")",
       "Bash(grep -v \"//\\\\s\")",
       "Bash(grep -v \"//\\\\s\\\\|comment\\\\|cca_checkout\\\\|Checkout\\\\|trackCheckout\\\\|pre-checkout\\\\|checkoutEventSent\\\\|intent_key\\\\|PAYMENT_NEEDS\\\\|session_id\\\\|cca_hub_intent\")",
-      "Bash(grep -v \"//\\\\|schema\\\\|course\\\\|provider\\\\|publisher\\\\|title\\\\|desc\\\\|name.*schema\\\\|org.*schema\\\\|teaches\\\\|website\\\\|CCA-F\\\\|CCA_\\\\|CCA exam\\\\|CCA Foundations\\\\|'CCA'\\\\|certification.*exam\\\\|exam.*certif\")"
+      "Bash(grep -v \"//\\\\|schema\\\\|course\\\\|provider\\\\|publisher\\\\|title\\\\|desc\\\\|name.*schema\\\\|org.*schema\\\\|teaches\\\\|website\\\\|CCA-F\\\\|CCA_\\\\|CCA exam\\\\|CCA Foundations\\\\|'CCA'\\\\|certification.*exam\\\\|exam.*certif\")",
+      "Bash(python3 -c \"import sys; [print\\(repr\\(l\\)\\) for l in sys.stdin]\")",
+      "Bash(grep -v \"//\\\\|nav\\\\|footer\\\\|bc\\\\|logo\")",
+      "Bash(grep -v \"//\\\\|footer\\\\|FOOTER\\\\|footer_nav\\\\|css\\\\|nav\\\\|logo\\\\|href\")",
+      "Bash(grep -v \"//\\\\|cca_hub\\\\|hub_intent\\\\|study-plan\\\\|blog\\\\|practice-questions\\\\|diagnostic\\\\|register\\\\|faq\\\\|exam-guide\\\\|cca-foundations\")"
     ]
   }
 }

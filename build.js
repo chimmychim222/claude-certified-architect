@@ -118,7 +118,7 @@ function renderFooter(year) {
     .join(' &middot; ');
   return (
     `<div class="links-row">${links}</div>\n` +
-    `<p class="footer-disclaimer">CCA Practice Platforms is an independent exam-preparation resource. Not affiliated with or endorsed by Anthropic, and not the official CCA exam or certification.</p>\n` +
+    `<p class="footer-disclaimer">CCA Practice Platforms is an independent exam-preparation resource. We are not affiliated with, endorsed by, sponsored by, or authorized by Anthropic, and this is not the official Claude Certified Architect exam or certification. 'Claude', 'Claude Certified Architect', and 'CCA' are trademarks of Anthropic, PBC, used here only to identify the exam our materials help you prepare for.</p>\n` +
     `<p style="margin-top:8px;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.78rem;color:var(--text3)"><a href="/privacy/">Privacy Policy</a> &middot; <a href="/terms/">Terms of Service</a> &middot; <a href="/refund/">Refund Policy</a></p>\n` +
     `<p style="margin-top:8px">© ${year} CCA Practice Platforms · Questions? <a href="mailto:support@claudecertifiedarchitects.com">support@claudecertifiedarchitects.com</a></p>`
   );
@@ -876,7 +876,7 @@ function blogFooter() {
 <!-- cca:footer:start -->
   <p style="margin:0 0 6px">&copy; ${year} CCA Practice Platforms</p>
   <p style="margin:0 0 10px;font-size:.82rem">${links}</p>
-  <p style="max-width:620px;margin:0 auto;font-size:.85rem;line-height:1.65;color:#c8c8be">CCA Practice Platforms is an independent exam-preparation resource. Not affiliated with or endorsed by Anthropic, and not the official CCA exam or certification.</p>
+  <p style="max-width:620px;margin:0 auto;font-size:.85rem;line-height:1.65;color:#c8c8be">CCA Practice Platforms is an independent exam-preparation resource. We are not affiliated with, endorsed by, sponsored by, or authorized by Anthropic, and this is not the official Claude Certified Architect exam or certification. 'Claude', 'Claude Certified Architect', and 'CCA' are trademarks of Anthropic, PBC, used here only to identify the exam our materials help you prepare for.</p>
   <p style="margin:8px 0 0;font-size:.82rem"><a href="/privacy/">Privacy Policy</a> &middot; <a href="/terms/">Terms of Service</a> &middot; <a href="/refund/">Refund Policy</a></p>
   <p style="margin:8px 0 0;font-size:.82rem">Questions? <a href="mailto:support@claudecertifiedarchitects.com">support@claudecertifiedarchitects.com</a></p>
 <!-- cca:footer:end -->
@@ -946,7 +946,7 @@ function generateBlogPost(post, _index, allPosts) {
 <meta property="og:title" content="${escAttr(post.title)}">
 <meta property="og:description" content="${escAttr(post.description)}">
 <meta property="og:url" content="${BASE}/blog/${post.slug}/">
-<meta property="og:site_name" content="Claude Certified Architects">
+<meta property="og:site_name" content="CCA Practice Platforms">
 <meta property="og:image" content="${ogImg}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -954,7 +954,7 @@ function generateBlogPost(post, _index, allPosts) {
 <meta property="article:published_time" content="${post.date}">
 <meta property="article:modified_time" content="${post.updated || post.date}">
 <meta property="article:section" content="CCA Exam Preparation">
-<meta name="author" content="Claude Certified Architects">
+<meta name="author" content="CCA Practice Platforms">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${escAttr(post.title)}">
 <meta name="twitter:description" content="${escAttr(post.description)}">
@@ -1037,12 +1037,12 @@ function generateBlogIndex(posts) {
 <meta property="og:title" content="CCA Blog | Claude Certified Architect Guides &amp; Study Tips">
 <meta property="og:description" content="Articles and guides on Claude architecture, prompt engineering, MCP, and passing the CCA Foundations exam.">
 <meta property="og:url" content="${BASE}/blog/">
-<meta property="og:site_name" content="Claude Certified Architects">
+<meta property="og:site_name" content="CCA Practice Platforms">
 <meta property="og:image" content="${BASE}/og-image-v2.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:type" content="image/png">
-<meta name="author" content="Claude Certified Architects">
+<meta name="author" content="CCA Practice Platforms">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="CCA Blog | Claude Certified Architect Guides &amp; Study Tips">
 <meta name="twitter:description" content="Articles and guides on Claude architecture, prompt engineering, MCP, and passing the CCA Foundations exam.">
