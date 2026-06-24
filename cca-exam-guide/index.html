@@ -96,6 +96,7 @@ footer a:hover{color:var(--accent-text)}
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"Claude Certified Architect Exam Guide","description":"The Claude Certified Architect exam guide: format, domain weights, passing score, and proven study strategies for all 5 domains.","url":"https://www.claudecertifiedarchitects.com/cca-exam-guide/","isPartOf":{"@type":"WebSite","name":"Claude Certified Architects","url":"https://www.claudecertifiedarchitects.com"}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.claudecertifiedarchitects.com"},{"@type":"ListItem","position":2,"name":"CCA Exam Guide","item":"https://www.claudecertifiedarchitects.com/cca-exam-guide/"}]}</script>
 <!-- cca:schema:end -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How hard is the CCA Foundations exam?","acceptedAnswer":{"@type":"Answer","text":"Harder than most candidates expect. Every question is scenario-based — the exam tests whether you can choose correctly between two architecturally plausible options under real-world constraints. Candidates who build judgment through active practice pass at a significantly higher rate than those who only read documentation."}},{"@type":"Question","name":"How much does the official CCA exam cost?","acceptedAnswer":{"@type":"Answer","text":"The standard fee is $99 USD, paid directly to Anthropic at the time of booking. The first 5,000 employees at Claude Partner Network companies qualify for free registration during the early-access period."}},{"@type":"Question","name":"What score do I need to pass the CCA exam?","acceptedAnswer":{"@type":"Answer","text":"A scaled score of 720 out of 1,000. This is domain-weighted, not a raw percentage of questions answered correctly."}},{"@type":"Question","name":"How long is the CCA Foundations exam?","acceptedAnswer":{"@type":"Answer","text":"60 scenario-based multiple-choice questions with a 120-minute time limit."}},{"@type":"Question","name":"How long is the CCA certification valid?","acceptedAnswer":{"@type":"Answer","text":"Anthropic has not published a specified validity or renewal period for the CCA-F. Check Anthropic's official exam guide for the latest information."}},{"@type":"Question","name":"Who should take the CCA Foundations exam?","acceptedAnswer":{"@type":"Answer","text":"Professionals with at least six months of hands-on production experience building Claude-powered applications — what Anthropic describes as 300-level expertise."}},{"@type":"Question","name":"Can I retake the CCA exam if I fail?","acceptedAnswer":{"@type":"Answer","text":"Yes — a mandatory waiting period applies between attempts. Refer to Anthropic's current certification policy for the exact interval."}}]}</script>
 <link rel="preconnect" href="https://www.googletagmanager.com">
 </head>
 <body>
@@ -187,6 +188,30 @@ footer a:hover{color:var(--accent-text)}
     <p>Token budget optimization, prompt caching (ephemeral and persistent), multi-turn conversation design, the CALM framework, context window strategies, and managing long conversations.</p>
     <p><a href="/blog/context-management-reliability-cca-domain-5/">Go deeper on Domain 5: Context Management &amp; Reliability</a> — what this domain actually tests.</p>
 
+
+    <h2>The Exam Scenarios</h2>
+    <p>Each CCA Foundations exam is built around <strong>six production scenarios</strong>, of which <strong>four are randomly selected</strong> for your sitting. Rather than abstract questions, every item is set inside one of these real deployment contexts — so you encounter familiar architectural problems under real-world constraints.</p>
+
+    <h3>Customer Support Resolution Agent</h3>
+    <p>An autonomous agent that handles customer enquiries end-to-end — classifying intent, retrieving relevant knowledge, drafting resolutions, and escalating to humans when confidence is low. Tests routing logic, human-in-the-loop design, and graceful degradation patterns.</p>
+
+    <h3>Code Generation with Claude Code</h3>
+    <p>A developer-facing assistant that reads codebases, proposes changes, and runs commands via Claude Code. Tests CLAUDE.md configuration, permission scoping, and the boundary between autonomous action and human approval.</p>
+
+    <h3>Multi-Agent Research System</h3>
+    <p>An orchestrator that dispatches specialised subagents to gather, synthesise, and cite information from multiple sources in parallel. Tests orchestration patterns (router, parallel, pipeline), error propagation, and output aggregation.</p>
+
+    <h3>Developer Productivity with Claude</h3>
+    <p>A team-facing tool that accelerates engineering workflows — code review, documentation generation, and onboarding assistance. Tests context management across long sessions, tool scoping, and minimal-footprint design.</p>
+
+    <h3>Claude Code for Continuous Integration</h3>
+    <p>Integration of Claude Code into a CI/CD pipeline to automate test writing, bug identification, and release notes. Tests agentic reliability under time constraints, failure handling, and safe automation at scale.</p>
+
+    <h3>Structured Data Extraction</h3>
+    <p>An extraction pipeline that parses unstructured documents into validated schemas for legal, financial, or operational data. Tests prompt engineering for structured output, schema design, and downstream validation patterns.</p>
+
+    <div class="tip-box"><strong>Study note:</strong> Each scenario maps to one or more of the five exam domains. Because four scenarios are drawn at random, strong preparation across all domains is essential. Our <a href="/cca-practice-questions/">400-question practice bank</a> includes scenario questions from all six contexts across all five domains.</div>
+
     <h2>Study Strategy</h2>
     <p>Based on the experience of students who have passed the CCA on their first attempt, here is an effective preparation approach:</p>
     <ol>
@@ -228,6 +253,43 @@ footer a:hover{color:var(--accent-text)}
     <h2>Test Your Readiness</h2>
     <p>Once you understand the format and domains, take a full <a href="/cca-foundations-exam/" title="Timed CCA Foundations Exam Practice">CCA Foundations exam</a> to evaluate your readiness.</p>
     <p>You can also sharpen specific areas with our <a href="/cca-practice-questions/">CCA practice questions</a> bank of 400 scenario-based questions across all domains.</p>
+
+    <h2>How to Register for the Official Exam</h2>
+    <div class="card">
+      <p><strong>Registration is handled entirely by Anthropic</strong> through their official Skilljar certification portal. CCA Practice Platforms is an independent exam-preparation resource — we are not affiliated with or endorsed by Anthropic, and we do not register candidates for the official exam.</p>
+      <p>What to know before you book:</p>
+      <ul>
+        <li>Standard fee: <strong>$99 USD</strong>, paid directly to Anthropic at scheduling</li>
+        <li>Free registration is available to the first 5,000 employees at Claude Partner Network companies during the early-access period — verify eligibility on the portal before booking</li>
+        <li>Delivered online and proctored via Skilljar; you will need a webcam, stable internet, and a quiet private space</li>
+        <li>Launched March 12, 2026; currently partner-network gated</li>
+      </ul>
+      <p><a href="/register/" style="font-weight:600">Go to the official exam registration page &#8594;</a></p>
+      <p style="font-size:.875rem;color:var(--text3);margin-bottom:0">Before committing the $99 fee, take our <a href="/diagnostic/">free 10-question readiness diagnostic</a> — it scores you across all five domains in about five minutes and tells you which areas need the most work before your exam date.</p>
+    </div>
+
+    <h2>Frequently Asked Questions</h2>
+
+    <h3>How hard is the CCA Foundations exam?</h3>
+    <p>Harder than most candidates expect. Every question is scenario-based — you will not encounter simple definitions or recall prompts. The exam tests whether you can choose correctly between two architecturally plausible options under real-world constraints. Candidates who build judgment through active practice pass at a significantly higher rate than those who only read documentation.</p>
+
+    <h3>How much does the official exam cost?</h3>
+    <p>The standard fee is <strong>$99 USD</strong>, paid directly to Anthropic at the time of booking. The first 5,000 employees at Claude Partner Network companies qualify for free registration during the early-access period — check <a href="/register/">Anthropic's registration portal</a> for current eligibility before you book.</p>
+
+    <h3>What score do I need to pass?</h3>
+    <p>A scaled score of <strong>720 out of 1,000</strong>. This is domain-weighted, not a raw percentage of questions answered correctly — strong performance in a high-weight domain (Agentic Architecture at 27%) carries more influence on your total than equal accuracy in a lighter one.</p>
+
+    <h3>How long is the exam?</h3>
+    <p><strong>60 questions, 120 minutes</strong> — an average of two minutes per question, though complex scenario questions in the higher-weighted domains typically take more time than shorter ones.</p>
+
+    <h3>How long is the certification valid?</h3>
+    <p>Anthropic has not published a specified validity or renewal period for the CCA-F. Check <a href="/register/">Anthropic's official exam guide</a> for the latest information.</p>
+
+    <h3>Who should take it?</h3>
+    <p>Professionals with at least six months of hands-on production experience building Claude-powered applications — what Anthropic describes as "300-level" expertise. If you regularly work with Claude APIs, agentic workflows, tool use, or Claude Code in a production context, you are the target candidate. It is not suited to those new to Claude or working at a tutorial level.</p>
+
+    <h3>Can I retake the exam if I fail?</h3>
+    <p>Yes — a mandatory waiting period applies between attempts. For a full breakdown of retake costs, strategy, and what to prioritise differently, see our <a href="/blog/cca-exam-retake-policy-cost-wait-time-strategy/">CCA exam retake policy guide</a>.</p>
 
     <div class="cta-box">
       <h2>Start Your CCA Preparation</h2>
