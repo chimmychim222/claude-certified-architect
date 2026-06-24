@@ -502,11 +502,11 @@ const faqPageQA = [
   // registration page — capacity and pricing can change. Last verified 2026-06-12.
   {
     q: 'How much does the CCA Foundations exam cost?',
-    a: "The standard registration fee for the CCA Foundations exam is $99 (USD), paid directly to Anthropic when you schedule your session. Anthropic is also offering free registration to the first 5,000 employees at partner companies through an early-access program — verify current eligibility and pricing on Anthropic's official registration page before you book. Either way, it's worth taking our free 10-question diagnostic quiz first to see where you stand against the 720/1,000 passing standard."
+    a: "The standard registration fee for the CCA Foundations exam is $99 (USD), paid directly to Anthropic when you schedule your session. Anthropic is also offering free registration to the first 5,000 employees at partner companies through an early-access program — verify current eligibility and pricing on Anthropic's official Skilljar registration portal before you book. Either way, it's worth taking our free 10-question diagnostic quiz first to see where you stand against the 720/1,000 passing standard."
   },
   {
     q: 'Where do I register for the official CCA Foundations exam?',
-    a: "You register for the official CCA Foundations exam directly through Anthropic. Visit our official exam registration page for a summary of the registration details and a link to Anthropic's registration portal."
+    a: "You register for the official CCA Foundations exam directly through Anthropic's official Skilljar registration portal. For an overview of exam requirements and what to prepare, see our registration guide at claudecertifiedarchitects.com/register/."
   },
   {
     q: 'How long is the CCA Foundations certification valid?',
