@@ -546,7 +546,8 @@ app.post('/pre-checkout', express.json(), async (req, res) => {
 // counterpart: point an external uptime monitor at it on a daily schedule
 // (which has the side benefit of keeping the instance warm) for a check that
 // doesn't depend on this process's uptime.
-const STALE_PENDING_THRESHOLD_MS = 48 * 60 * 60 * 1000; // 48 hours
+const STALE_PENDING_THRESHOLD_MS    = 48 * 60 * 60 * 1000; // 48 hours
+const STALE_PENDING_ALERT_COOLDOWN_MS = 24 * 60 * 60 * 1000; // min gap between alerts per doc
 
 // ── Alert delivery ────────────────────────────────────────────────────────
 // Pure console.warn logging is easy to miss — Render's free tier doesn't
@@ -621,32 +622,96 @@ async function sendStaleEnrollmentAlert(stale) {
 }
 
 async function findStalePendingEnrollments() {
-  const cutoff = Date.now() - STALE_PENDING_THRESHOLD_MS;
-  const snap   = await db.collection('pending_enrollments').get();
-  const stale  = [];
-  snap.forEach(doc => {
+  const cutoff      = Date.now() - STALE_PENDING_THRESHOLD_MS;
+  const alertCutoff = Date.now() - STALE_PENDING_ALERT_COOLDOWN_MS;
+  const snap        = await db.collection('pending_enrollments').get();
+  const stale   = []; // records that need a fresh alert
+  const docRefs = []; // parallel Firestore refs for stale[] (for lastAlertedAt writes)
+  const orphans = []; // zombie docs: enrolled user exists, pending record is dead weight
+
+  for (const doc of snap.docs) {
     const data = doc.data();
     const createdAtMs = (data.createdAt && typeof data.createdAt.toMillis === 'function')
       ? data.createdAt.toMillis()
       : null;
-    // Missing timestamp (e.g. a write that raced serverTimestamp resolution)
-    // is flagged as stale too — better to over-report than silently miss one.
-    if (createdAtMs === null || createdAtMs <= cutoff) {
-      stale.push({
-        email:           data.email || doc.id,
-        stripeSessionId: data.stripeSessionId || null,
-        ageHours:        createdAtMs === null ? null : Math.round((Date.now() - createdAtMs) / 3600000),
-      });
+
+    // Only consider docs older than the staleness threshold (or missing
+    // timestamp — better to over-report than silently miss one).
+    if (createdAtMs !== null && createdAtMs > cutoff) continue;
+
+    const email = (data.email || doc.id).toLowerCase();
+
+    // ── Guard 1: Enrollment cross-check ────────────────────────────────
+    // If this email already has an enrolled Firebase account, the pending
+    // doc is a zombie — the user signed up after the pending record was
+    // stashed and access was granted via /claim-enrollment (or a manual
+    // write), but the doc was never cleaned up.  Skip the alert and queue
+    // the orphan for deletion so it stops appearing in future checks.
+    try {
+      const userRecord = await auth.getUserByEmail(email);
+      const fsSnap     = await db.collection('users').doc(userRecord.uid).get();
+      if (fsSnap.exists && fsSnap.data().enrolled === true) {
+        orphans.push(doc.ref);
+        console.log(
+          `[pending_enrollments] zombie found for ${email}` +
+          ` (enrolled uid=${userRecord.uid}) — queuing for cleanup`
+        );
+        continue; // skip alert for this doc
+      }
+    } catch (e) {
+      if (e.code !== 'auth/user-not-found') {
+        // Unexpected error — log but fall through so the record is not
+        // silently skipped; we would rather over-alert than miss a real problem.
+        console.warn(`[pending_enrollments] enrollment cross-check failed for ${email}:`, e.message);
+      }
+      // auth/user-not-found is the normal case: no account exists yet.
     }
-  });
-  return stale;
+
+    // ── Guard 2: Per-doc alert dedup (24 h cooldown) ───────────────────
+    // Skip if an alert was already sent for this doc within the last 24 h.
+    // Prevents the 6-hourly setInterval AND any external daily cron from
+    // each firing independent alerts for the same unresolved record.
+    // After the cooldown window, the doc surfaces again — one alert per day
+    // until the customer gets access or the doc is otherwise resolved.
+    const lastAlertedMs = (data.lastAlertedAt && typeof data.lastAlertedAt.toMillis === 'function')
+      ? data.lastAlertedAt.toMillis()
+      : null;
+    if (lastAlertedMs !== null && lastAlertedMs > alertCutoff) {
+      continue; // alerted within the last 24 h — skip this cycle
+    }
+
+    // ── Guard 3: Genuinely stale, unenrolled, not alerted recently ──────
+    // This customer paid but has no course access — include in the digest.
+    stale.push({
+      email,
+      stripeSessionId: data.stripeSessionId || null,
+      ageHours:        createdAtMs === null ? null : Math.round((Date.now() - createdAtMs) / 3600000),
+    });
+    docRefs.push(doc.ref);
+  }
+
+  // Best-effort cleanup: delete zombie orphan docs.  Fire-and-forget —
+  // failure is not fatal; the doc will be re-checked next cycle and
+  // re-skipped by Guard 1.
+  orphans.forEach(ref => ref.delete().catch(err =>
+    console.warn('[pending_enrollments] orphan cleanup failed for', ref.id, ':', err.message)
+  ));
+
+  return { stale, docRefs };
 }
 
 async function checkStalePendingEnrollmentsAndAlert() {
   try {
-    const stale = await findStalePendingEnrollments();
+    const { stale, docRefs } = await findStalePendingEnrollments();
     if (stale.length) {
       await sendStaleEnrollmentAlert(stale);
+      // Stamp lastAlertedAt on each alerted doc so Guard 2 suppresses
+      // repeat alerts for the next 24 h (applies to both the setInterval
+      // path here and the external-cron /admin endpoint below).
+      const now = admin.firestore.FieldValue.serverTimestamp();
+      docRefs.forEach(ref => ref.update({ lastAlertedAt: now }).catch(err =>
+        console.warn('[pending_enrollments] lastAlertedAt update failed for', ref.id, ':', err.message)
+      ));
     }
   } catch (err) {
     console.error('[pending_enrollments] stale check failed:', err.message);
@@ -694,14 +759,17 @@ app.get('/admin/stale-pending-enrollments', async (req, res) => {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   try {
-    const stale = await findStalePendingEnrollments();
+    const { stale, docRefs } = await findStalePendingEnrollments();
     if (stale.length) {
-      // Awaited rather than fire-and-forget: this route is meant to be hit
-      // by an infrequent external scheduler, not a latency-sensitive
-      // client — better to spend an extra second guaranteeing the alert was
-      // attempted than risk losing it if the process idles out right after
-      // the response goes out.
+      // Awaited rather than fire-and-forget: this route is called by an
+      // infrequent external scheduler — better to spend a moment ensuring
+      // the alert was attempted than to risk losing it if the dyno idles.
       await sendStaleEnrollmentAlert(stale);
+      // Stamp lastAlertedAt so Guard 2 deduplicates the next scheduler hit.
+      const now = admin.firestore.FieldValue.serverTimestamp();
+      docRefs.forEach(ref => ref.update({ lastAlertedAt: now }).catch(err =>
+        console.warn('[pending_enrollments] lastAlertedAt update failed for', ref.id, ':', err.message)
+      ));
     }
     return res.json({ ok: true, count: stale.length, stale });
   } catch (err) {
