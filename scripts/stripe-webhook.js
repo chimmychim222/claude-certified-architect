@@ -1112,7 +1112,7 @@ function buildEmail1(results, unsubUrl) {
   return { subject, text, html: emailWrap(bodyHtml, unsubUrl) };
 }
 
-// ── Email 2 (D+3): "Why $49 beats a $99 retake" ─────────────────────────────
+// ── Email 2 (D+3): "Why $49 beats a $125 retake" ─────────────────────────────
 function buildEmail2(results, unsubUrl) {
   const score  = results.estimatedScore      || 0;
   const pass   = results.passScore           || 720;
@@ -1123,12 +1123,12 @@ function buildEmail2(results, unsubUrl) {
   const correctLetter = OPT_LETTERS[sampleQ.correct];
   const cta = nurtureCtaUrl('d3');
 
-  const subject = 'Why $49 beats a $99 retake';
+  const subject = 'Why $49 beats a $125 retake';
 
   // ── plain text ──
   const stakesPara = above
-    ? `Your diagnostic showed you at passing level on a 10-question sample. The real exam is 60 questions at a harder difficulty curve — and it costs $99 (USD) to sit. A mandatory waiting period applies between attempts, so an underprepared attempt costs both the registration fee and weeks before you can retry.`
-    : `You’re currently ${gap} points below the 720 passing standard. The real CCA Foundations exam costs $99 (USD) — and a mandatory waiting period applies between attempts. Sitting it underprepared means losing both the fee and weeks before you can retry.`;
+    ? `Your diagnostic showed you at passing level on a 10-question sample. The real exam is 60 questions at a harder difficulty curve — and it costs $125 (USD) to sit. A mandatory waiting period applies between attempts, so an underprepared attempt costs both the registration fee and weeks before you can retry.`
+    : `You’re currently ${gap} points below the 720 passing standard. The real CCA Foundations exam costs $125 (USD) — and a mandatory waiting period applies between attempts. Sitting it underprepared means losing both the fee and weeks before you can retry.`;
   const optText = sampleQ.options.map((o, i) => `  ${OPT_LETTERS[i]}. ${o}`).join('\n');
 
   const text = [
@@ -1166,8 +1166,8 @@ function buildEmail2(results, unsubUrl) {
 
   // ── HTML ──
   const stakesHtml = above
-    ? eP(`Your diagnostic showed you at passing level on a short sample. The real exam is 60 questions at a harder curve — and it costs <strong>$99 (USD)</strong>. A mandatory waiting period applies between attempts, so one underprepared attempt costs both the fee and weeks of time.`)
-    : eP(`You’re currently <strong>${gap} points below the 720 passing standard</strong>. The real CCA Foundations exam costs <strong>$99 (USD)</strong> — and a mandatory waiting period applies between attempts. Sitting it underprepared means losing both the fee and weeks before you can retry.`);
+    ? eP(`Your diagnostic showed you at passing level on a short sample. The real exam is 60 questions at a harder curve — and it costs <strong>$125 (USD)</strong>. A mandatory waiting period applies between attempts, so one underprepared attempt costs both the fee and weeks of time.`)
+    : eP(`You’re currently <strong>${gap} points below the 720 passing standard</strong>. The real CCA Foundations exam costs <strong>$125 (USD)</strong> — and a mandatory waiting period applies between attempts. Sitting it underprepared means losing both the fee and weeks before you can retry.`);
 
   const optRows = sampleQ.options.map((o, i) => {
     const isCorrect = i === sampleQ.correct;

@@ -715,7 +715,7 @@ function showResults() {
     document.getElementById('cta-personal-line').innerHTML = ctaOver
       ? 'You scored <strong>' + estimatedScore + ' / 1,000</strong> — at passing level on this short sample. But the real exam is 60 broader questions. Lock it in with <strong>' + ctaN + ' more in your weakest area, ' + weakest.label + '</strong>.'
       : 'You scored <strong>' + estimatedScore + ' / 1,000</strong> — <strong>' + ctaGap + ' points below passing</strong>. Your weakest domain is <strong>' + weakest.label + '</strong>; the full bank has <strong>' + ctaN + ' questions</strong> targeting exactly that. Don’t walk into the real exam unprepared.';
-    document.getElementById('cta-anchor-line').textContent = 'The official exam costs $99 and has a mandatory waiting period between retakes — $49 now is cheap insurance against an attempt you can’t immediately redo.';
+    document.getElementById('cta-anchor-line').textContent = 'The official exam costs $125 and has a mandatory waiting period between retakes — $49 now is cheap insurance against an attempt you can’t immediately redo.';
   } catch(e) {
     document.getElementById('cta-headline').textContent = 'Close the gap with the full 400-question bank — $49';
     document.getElementById('cta-personal-line').innerHTML = 'Your diagnostic shows <strong>' + (weakest && weakest.label || 'your weakest domain') + '</strong> as your weakest area. The full 400-question bank gives you focused, domain-weighted practice to close that gap before exam day.';
