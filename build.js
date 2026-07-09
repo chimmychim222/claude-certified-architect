@@ -55,7 +55,7 @@ const OFFICIAL_EXAM_LINK =
   '<a href="/register/"' +
   ' aria-label="Official Claude Certified Architect exam registration on Anthropic\'s site"' +
   ' style="font-family:-apple-system,system-ui,\'Segoe UI\',sans-serif;padding:5px 10px;border-radius:6px;font-size:.85rem;font-weight:600;color:var(--accent-text);background:transparent;border:1px solid var(--accent-text);transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:4px;white-space:nowrap"' +
-  ' onclick="closeNav()">Official Exam <span aria-hidden="true" style="font-size:.85em;line-height:1">&#8599;</span></a>';
+  ' onclick="closeNav()">Exam Info</a>';
 
 const REGISTER_CTA_LINK =
   '<a href="#register-action" class="nav-cta active"' +
@@ -109,7 +109,7 @@ const FOOTER_NAV_PAGES = [
   ['/study-plan-generator/',  'Study Plan'    ],
   ['/blog/',                  'Blog'          ],
   ['/faq/',                   'FAQ'           ],
-  ['/register/',              'Official Exam' ],
+  ['/register/',              'Exam Info' ],
 ];
 
 function renderFooter(year) {
@@ -854,7 +854,7 @@ function blogNav(activePage) {
       ${link('/study-plan-generator/', 'Study Plan')}
       ${link('/blog/', 'Blog')}
       ${link('/faq/', 'FAQ')}
-      <a href="/register/" aria-label="Official Claude Certified Architect exam registration on Anthropic's site">Official Exam <span aria-hidden="true" style="font-size:.85em;line-height:1">&#8599;</span></a>
+      <a href="/register/" aria-label="Official Claude Certified Architect exam registration on Anthropic's site">Exam Info</a>
       <div id="nav-auth-static"><a href="/?login=true" class="nav-auth-login">Log In</a><a href="/?signup=true" class="nav-auth-signup">Sign Up Free</a></div>
       ${NAV_HINT_SCRIPT}
     </div>
