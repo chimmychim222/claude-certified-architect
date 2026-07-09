@@ -433,7 +433,7 @@ const registerSchemas = [
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     name: 'Register for the CCA Exam',
-    description: "Register for the CCA Foundations exam through Anthropic's Skilljar portal. Review exam details, passing score, format, and cost before requesting access.",
+    description: "Register for the CCA Foundations exam through Anthropic's official certification page; the exam is delivered via Pearson VUE. Review exam details, passing score, format, and cost before booking.",
     url: BASE + '/register/',
     isPartOf: { '@type': 'WebSite', name: schema.course.provider, url: BASE }
   }
@@ -483,11 +483,11 @@ const faqPageQA = [
   },
   {
     q: 'How many questions are on the CCA Foundations exam, and how long do I have?',
-    a: 'The CCA Foundations exam consists of 60 scenario-based multiple choice questions with a 120-minute time limit, delivered as a proctored online exam.'
+    a: 'The CCA Foundations exam consists of 60 scenario-based multiple choice and multiple response questions with a 120-minute time limit, delivered as a proctored online exam.'
   },
   {
     q: 'What types of questions appear on the CCA Foundations exam?',
-    a: "All questions are scenario-based multiple choice — you're placed in a realistic situation and must choose the best architectural decision. There are no simple definition or recall questions, which is why hands-on practice matters more than memorizing terminology."
+    a: "All questions are scenario-based — either multiple choice (one best answer) or multiple response (select all that apply). You're placed in a realistic situation and must choose the best architectural decision(s). There are no simple definition or recall questions, which is why hands-on practice matters more than memorizing terminology."
   },
   {
     q: 'What is the passing score for the CCA Foundations exam?',
@@ -497,24 +497,24 @@ const faqPageQA = [
     q: 'Is the CCA Foundations exam open-book?',
     a: 'No. The CCA Foundations exam is a proctored, closed-book assessment — you cannot reference documentation, notes, or external resources during the exam. This is why active recall practice, working through questions without looking up the answer first, is the most effective way to prepare.'
   },
-  // TODO(cost-verify): standard fee ($99) and free-for-first-5,000-partner-employees
+  // TODO(cost-verify): standard fee ($125) and free-for-first-5,000-partner-employees
   // early-access terms should be periodically re-checked against Anthropic's
   // registration page — capacity and pricing can change. Last verified 2026-06-12.
   {
     q: 'How much does the CCA Foundations exam cost?',
-    a: "The standard registration fee for the CCA Foundations exam is $99 (USD), paid directly to Anthropic when you schedule your session. Anthropic is also offering free registration to the first 5,000 employees at partner companies through an early-access program — verify current eligibility and pricing on Anthropic's official Skilljar registration portal before you book. Either way, it's worth taking our free 10-question diagnostic quiz first to see where you stand against the 720/1,000 passing standard."
+    a: "The standard registration fee for the CCA Foundations exam is $125 (USD), paid directly to Anthropic when you schedule your session. Anthropic is also offering free registration to the first 5,000 employees at partner companies through an early-access program — verify current eligibility and pricing on Anthropic's official certification page before you book. Either way, it's worth taking our free 10-question diagnostic quiz first to see where you stand against the 720/1,000 passing standard."
   },
   {
     q: 'Where do I register for the official CCA Foundations exam?',
-    a: "You register for the official CCA Foundations exam directly through Anthropic's official Skilljar registration portal. For an overview of exam requirements and what to prepare, see our registration guide at claudecertifiedarchitects.com/register/."
+    a: "You register for the official CCA Foundations exam through Anthropic's official certification page. The exam is delivered via Pearson VUE (online proctored or at a Pearson VUE test centre). For an overview of exam requirements, see our registration guide at claudecertifiedarchitects.com/register/."
   },
   {
     q: 'How long is the CCA Foundations certification valid?',
-    a: "Anthropic has not published a specified validity or renewal period for the CCA-F. For the latest, check Anthropic's official exam guide before you book your exam."
+    a: "The CCA Foundations certification is valid for 12 months from the date of passing. You must renew before your 12-month term expires; if it lapses, you must re-earn the certification. Check Anthropic's official exam policy for renewal details."
   },
   {
     q: 'Can I retake the CCA Foundations exam if I fail?',
-    a: "Yes. A mandatory waiting period applies between attempts — refer to Anthropic's current certification policy for the exact interval. The most effective retake strategy is to use your score breakdown to find your weakest domain, spend most of your retake preparation there, and run one more full timed simulation before attempting again."
+    a: "Yes. Retake waiting periods and attempt limits are set by Anthropic and scheduled through Pearson VUE — check Anthropic's official exam policy and your Pearson VUE scheduling for current details. The most effective retake strategy is to use your score breakdown to find your weakest domain, spend most of your retake preparation there, and run one more full timed simulation before attempting again."
   },
   {
     q: 'What are the five CCA Foundations exam domains and how are they weighted?',

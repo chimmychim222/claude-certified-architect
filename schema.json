@@ -21,7 +21,7 @@
   "faq": [
     {
       "q": "What is the Claude Certified Architect (CCA) Foundations exam?",
-      "a": "The CCA Foundations exam is Anthropic's official certification for professionals who design and build production-grade applications with Claude. It tests knowledge across five domains: Agentic Architecture, Claude Code Configuration, Prompt Engineering, Tool Design & MCP, and Context Management."
+      "a": "The CCA Foundations exam is Anthropic's official certification for professionals who design and build production-grade applications with Claude. It tests knowledge across five domains: Agentic Architecture, Claude Code Configuration, Prompt Engineering, Tool Design & MCP, and Context Management. (Note: this is an independent practice resource — we are not affiliated with, endorsed by, or sponsored by Anthropic.)"
     },
     {
       "q": "How many questions are on the CCA Foundations exam?",
