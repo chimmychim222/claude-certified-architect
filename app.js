@@ -818,6 +818,20 @@ function closeAuthModal() {
   try { sessionStorage.removeItem('cca_checkout_intent'); } catch (e) {}
 }
 
+// Backdrop click and Escape both dismiss the modal exactly like the × button
+// — routed through closeAuthModal() itself so all three get the same "not
+// now" cleanup (pending-checkout intent cleared) with no navigation anywhere.
+(function() {
+  const _authModalEl = document.getElementById('auth-modal');
+  if (!_authModalEl) return; // pages that don't include the modal (e.g. /register)
+  _authModalEl.addEventListener('click', (e) => {
+    if (e.target === _authModalEl) closeAuthModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && _authModalEl.classList.contains('show')) closeAuthModal();
+  });
+})();
+
 // Puts the auth modal into a loading state with a custom message — covers
 // every async wait between a click and the next visible step (Firebase
 // still loading, the post-auth checkout handoff, the Stripe redirect's
