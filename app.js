@@ -159,9 +159,13 @@ document.addEventListener('DOMContentLoaded', function() {
   // Clearing the URL here prevents the later URL-param handlers (lines ~534
   // and ~602) from double-calling openPaymentModal when the same param is
   // consumed by the early-intent path above.
+  // ?checkout=resume is the same intent, arriving via the email-verification
+  // continueUrl (see VERIFY_ACTION_CODE_SETTINGS / submitAuth) instead of a
+  // marketing-page CTA — treated identically so it re-arms the same flags.
   (function() {
     try {
-      if (new URLSearchParams(window.location.search).get('checkout') === 'true') {
+      const _checkoutParam = new URLSearchParams(window.location.search).get('checkout');
+      if (_checkoutParam === 'true' || _checkoutParam === 'resume') {
         window.__pendingCheckout = true;
         try { sessionStorage.setItem('cca_checkout_intent', '1'); } catch(e) {}
         window.history.replaceState({}, '', window.location.pathname);
@@ -990,7 +994,20 @@ async function submitAuth() {
       // onAuthStateChanged also writes it, but its timing vs. the await
       // continuation is implementation-dependent; this write is guaranteed.
       try { localStorage.setItem('cca_logged_in', cred.user.email); } catch(e) {}
-      fbAuth.sendEmailVerification(cred.user, VERIFY_ACTION_CODE_SETTINGS).catch(e => {
+      // If this signup was triggered by a pending checkout (wasPendingCheckout,
+      // captured above before any await), carry that intent through the
+      // verification link's continueUrl too — a same-browser fresh tab has no
+      // access to this tab's sessionStorage/__pendingCheckout. The
+      // DOMContentLoaded ?checkout= handler (~line 164) reads it back on that
+      // landing and re-arms the same flags. Built per-call (not baked into the
+      // shared VERIFY_ACTION_CODE_SETTINGS constant) so the unrelated "Resend
+      // verification email" button in showPendingVerificationBanner — used to
+      // claim an *existing* purchase, not start a new one — stays on the plain
+      // URL and never re-enters checkout.
+      const verifySettings = wasPendingCheckout
+        ? Object.assign({}, VERIFY_ACTION_CODE_SETTINGS, { url: VERIFY_ACTION_CODE_SETTINGS.url + '?checkout=resume' })
+        : VERIFY_ACTION_CODE_SETTINGS;
+      fbAuth.sendEmailVerification(cred.user, verifySettings).catch(e => {
         console.warn('Verification email failed:', e.message);
         window.__verificationSendFailed = true;
       });
