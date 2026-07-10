@@ -695,7 +695,6 @@ const POST_TOPICS = {
   'cca-real-world-reports-responsibilities-salaries': 'career',
   'claude-certified-architect-salary-career-2026':    'career',
   'why-claude-certification-is-important':            'career',
-  'is-cca-certification-worth-it-2026':               'career',
   'how-to-become-claude-certified-architect':         'career',
   'claude-certified-architect-certification-worth-it':'career',
   'ai-engineer-certifications-2026':                  'career',
