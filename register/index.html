@@ -355,5 +355,15 @@ function closeNav() {
   btn.setAttribute('aria-expanded', 'false');
 }
 </script>
+<script>
+document.querySelectorAll('a[href="/?checkout=true"]').forEach(function(a) {
+  a.addEventListener('click', function() {
+    var placement = a.closest('.offer-banner') ? 'hero_offer' : (a.closest('.offer-strip') ? 'bottom_strip' : 'unknown');
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'register_unlock_click', { source: 'register_page', placement: placement, transport_type: 'beacon' });
+    }
+  });
+});
+</script>
 </body>
 </html>

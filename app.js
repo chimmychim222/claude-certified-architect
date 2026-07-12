@@ -169,6 +169,7 @@ document.addEventListener('DOMContentLoaded', function() {
         window.__pendingCheckout = true;
         try { sessionStorage.setItem('cca_checkout_intent', '1'); } catch(e) {}
         window.history.replaceState({}, '', window.location.pathname);
+        if (typeof gtag !== 'undefined') { gtag('event', 'checkout_intent_landed', { checkout_param: _checkoutParam }); }
       }
     } catch(e) {}
   })();
@@ -1609,6 +1610,7 @@ function openPaymentModal() {
     window.__pendingCheckout = true;
     try { sessionStorage.setItem('cca_checkout_intent', '1'); } catch (e) {}
     openAuthModal('signup');
+    if (typeof gtag !== 'undefined') { gtag('event', 'signup_wall_shown', { had_checkout_intent: true }); }
     const subtitle = document.getElementById('auth-modal-subtitle');
     if (subtitle) {
       subtitle.textContent = "Create a free account (or log in) to continue — we'll link your $49 purchase to it automatically.";
