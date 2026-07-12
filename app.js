@@ -933,7 +933,14 @@ async function signInWithGoogle() {
       openAuthModalLoading('Setting up your purchase…');
     } else if (info && info.isNewUser) {
       document.getElementById('auth-loading').style.display = 'none';
-      document.getElementById('auth-welcome').style.display = 'block';
+      // Google-verified emails come back with email_verified already true,
+      // so unlike the password-signup path, a matching pending_enrollments
+      // record could claim (enrolled:true) right here rather than just
+      // surfacing 'unverified_email' — markEnrolled() inside
+      // claimPendingEnrollment() handles that case; renderAuthWelcome only
+      // needs to branch on the still-unverified case.
+      const claim = await claimPendingEnrollment(result.user);
+      renderAuthWelcome(claim.reason === 'unverified_email');
     } else {
       closeAuthModal();
     }
@@ -983,9 +990,10 @@ async function submitAuth() {
   loading.style.display = 'block';
   if (loadingText) loadingText.textContent = authMode === 'signup' ? 'Creating your account…' : 'Signing you in…';
 
+  let cred; // hoisted so the welcome-panel logic below can read cred.user
   try {
     if (authMode === 'signup') {
-      const cred = await Promise.race([
+      cred = await Promise.race([
           fbAuth.createUserWithEmailAndPassword(auth, email, password),
           new Promise((_, reject) => setTimeout(() => reject(new Error('auth/timeout')), 15000))
         ]);
@@ -1056,8 +1064,15 @@ async function submitAuth() {
       // real next steps (enroll now, or try the free diagnostic first) so
       // "Sign Up Free" visibly leads somewhere. Either button in that panel
       // calls closeAuthModal() itself once the user picks one.
+      //
+      // A guest who already paid under this email has a pending_enrollments
+      // record waiting — don't offer them a second $49 purchase here.
+      // claimPendingEnrollment shares its in-flight call with
+      // onAuthStateChanged (running concurrently on the same sign-in), so
+      // this is one network round-trip either way, not two.
       loading.style.display = 'none';
-      document.getElementById('auth-welcome').style.display = 'block';
+      const claim = await claimPendingEnrollment(cred.user);
+      renderAuthWelcome(claim.reason === 'unverified_email');
     } else {
       closeAuthModal();
     }
@@ -1280,36 +1295,82 @@ function markEnrolled(user) {
 // find a matching Firebase user at payment time, so it stashed the purchase
 // server-side. When the matching account shows up, we claim it here. Returns
 // true if enrollment was applied.
+//
+// De-duped against concurrent callers: onAuthStateChanged calls this on every
+// sign-in, and the post-signup welcome-panel logic (submitAuth /
+// signInWithGoogle) now also calls it right after account creation — both can
+// fire within the same tick. Sharing one in-flight promise means concurrent
+// callers await the same single /claim-enrollment round-trip and see the
+// same resolved result, instead of racing two requests that could each pass
+// the server's pendingDoc.exists() check before either deletes it (double
+// claim + double GA4 purchase fire).
+let __claimPendingPromise = null;
 async function claimPendingEnrollment(user) {
   if (!user) return { enrolled: false, reason: null };
-  try {
-    // Force-refresh: the SDK's cached ID token is a snapshot from whenever
-    // it was last minted and does NOT update itself when emailVerified
-    // flips server-side (e.g. the user clicks the verification link in
-    // another tab). Without `true` here, a just-verified user would keep
-    // sending a stale token whose email_verified claim still reads false,
-    // and the server-side gate in /claim-enrollment would keep rejecting
-    // a perfectly legitimate claim.
-    const token = await fbAuth.getIdToken(user, true);
-    const resp  = await fetch(WEBHOOK_BASE + '/claim-enrollment', {
-      method:  'POST',
-      headers: { 'Authorization': 'Bearer ' + token }
-    });
-    if (!resp.ok) return { enrolled: false, reason: null };
-    const data = await resp.json();
-    if (data.enrolled) {
-      await fbAuth.getIdTokenResult(user, true); // refresh local claim cache
-      markEnrolled(user);
-      return { enrolled: true, reason: null };
+  if (__claimPendingPromise) return __claimPendingPromise;
+  __claimPendingPromise = (async () => {
+    try {
+      // Force-refresh: the SDK's cached ID token is a snapshot from whenever
+      // it was last minted and does NOT update itself when emailVerified
+      // flips server-side (e.g. the user clicks the verification link in
+      // another tab). Without `true` here, a just-verified user would keep
+      // sending a stale token whose email_verified claim still reads false,
+      // and the server-side gate in /claim-enrollment would keep rejecting
+      // a perfectly legitimate claim.
+      const token = await fbAuth.getIdToken(user, true);
+      const resp  = await fetch(WEBHOOK_BASE + '/claim-enrollment', {
+        method:  'POST',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (!resp.ok) return { enrolled: false, reason: null };
+      const data = await resp.json();
+      if (data.enrolled) {
+        await fbAuth.getIdTokenResult(user, true); // refresh local claim cache
+        markEnrolled(user);
+        return { enrolled: true, reason: null };
+      }
+      // data.reason surfaces server-side gates, e.g. 'unverified_email' — a
+      // pending purchase exists for this address, but we won't hand it over
+      // until the account proves it controls that inbox (see /claim-enrollment).
+      return { enrolled: false, reason: data.reason || null };
+    } catch (e) {
+      console.warn('[Enrollment] claim check failed:', e.message);
+      return { enrolled: false, reason: null };
     }
-    // data.reason surfaces server-side gates, e.g. 'unverified_email' — a
-    // pending purchase exists for this address, but we won't hand it over
-    // until the account proves it controls that inbox (see /claim-enrollment).
-    return { enrolled: false, reason: data.reason || null };
-  } catch (e) {
-    console.warn('[Enrollment] claim check failed:', e.message);
+  })();
+  try {
+    return await __claimPendingPromise;
+  } finally {
+    __claimPendingPromise = null;
   }
-  return { enrolled: false, reason: null };
+}
+
+// Toggles the post-signup welcome panel (#auth-welcome, static markup in
+// index.html / diagnostic/index.html) between its default "buy now" state
+// and a "you already have a pending purchase" state. Non-destructive (hides/
+// shows rather than rewriting the button away) so it's safe to call more
+// than once. One JS-side source of truth means neither HTML file needs a
+// second static block for the pending-purchase case.
+function renderAuthWelcome(pendingUnverified) {
+  const panel = document.getElementById('auth-welcome');
+  if (!panel) return;
+  const buyBtn = panel.querySelector('.btn-primary');
+  let pendingMsg = document.getElementById('auth-welcome-pending-msg');
+  if (pendingUnverified) {
+    if (buyBtn) buyBtn.style.display = 'none';
+    if (!pendingMsg) {
+      pendingMsg = document.createElement('p');
+      pendingMsg.id = 'auth-welcome-pending-msg';
+      pendingMsg.style.cssText = 'color:var(--text2);font-size:.9rem;margin:0 0 10px;line-height:1.5';
+      if (buyBtn) buyBtn.insertAdjacentElement('beforebegin', pendingMsg);
+    }
+    pendingMsg.textContent = "We found a pending $49 purchase for this email — verify your address (check your inbox) to unlock it. No need to pay again.";
+    pendingMsg.style.display = 'block';
+  } else {
+    if (buyBtn) buyBtn.style.display = '';
+    if (pendingMsg) pendingMsg.style.display = 'none';
+  }
+  panel.style.display = 'block';
 }
 
 // Shown when a pending Stripe purchase exists for this account's email but
@@ -1707,6 +1768,14 @@ function openPaymentModal() {
         closeAuthModal();
         if (document.getElementById('dashboard-section')) showSection('dashboard');
         else window.location.href = '/';
+      } else if (result.reason === 'pending_purchase') {
+        // Server found an unclaimed pending_enrollments record for this
+        // account's verified email — they already paid once under this
+        // email; sending them to Stripe again would double-charge them.
+        // Same "verify to unlock" guidance claimPendingEnrollment's
+        // unverified_email path already shows elsewhere, not a new UI.
+        closeAuthModal();
+        showPendingVerificationBanner(currentUser);
       } else if (result.reason === 'recent_session') {
         // The checkout_intents/{uid} doc is stale — the user likely returned
         // from Stripe without paying and is trying again. Delete it and proceed

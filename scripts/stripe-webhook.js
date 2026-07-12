@@ -463,14 +463,20 @@ app.post('/claim-enrollment', async (req, res) => {
 //
 // Called by openPaymentModal() before the browser navigates to the Stripe
 // Payment Link. Prevents an already-enrolled account from accidentally paying
-// again, and catches a duplicate in-flight checkout (same UID, started in the
-// last 10 minutes). Returns one of:
-//   { ok: false, reason: 'already_enrolled' }   — account has access; redirect to dashboard
+// again, blocks checkout when this account's verified email already has an
+// unclaimed pending_enrollments record (paid once, not yet reconciled — a
+// second checkout would double-charge), and catches a duplicate in-flight
+// checkout (same UID, started in the last 10 minutes). Returns one of:
+//   { ok: false, reason: 'already_enrolled' }    — account has access; redirect to dashboard
+//   { ok: false, reason: 'pending_purchase' }    — unclaimed purchase exists; verify email to unlock it instead
 //   { ok: false, reason: 'recent_session', ageSeconds }  — checkout in progress; wait and reload
 //   { ok: true }                                 — clear to proceed to Stripe
 //
-// Fails open on any error so that a network hiccup or Render cold start never
-// blocks a legitimate first purchase. checkout_intents/{uid} is used as a
+// Fails open on any error (including the pending_enrollments lookup) so that
+// a network hiccup or Render cold start never blocks a legitimate first
+// purchase — this makes the pending-purchase guard best-effort, same as the
+// enrolled checks above it: a Firestore error here lets the request through
+// to Stripe rather than blocking it. checkout_intents/{uid} is used as a
 // lightweight in-flight tracker; records are overwritten on each cleared check
 // so stale entries from abandoned carts don't accumulate.
 app.post('/pre-checkout', express.json(), async (req, res) => {
@@ -501,6 +507,21 @@ app.post('/pre-checkout', express.json(), async (req, res) => {
     if (userSnap.exists && userSnap.data().enrolled === true) {
       console.log(`[pre-checkout] Blocked (FS): uid=${uid} already enrolled`);
       return res.json({ ok: false, reason: 'already_enrolled' });
+    }
+
+    // Belt-and-suspenders checks above only catch ENROLLED accounts. A guest
+    // who already paid but hasn't signed up/verified yet is logged in here
+    // with a fresh, unenrolled account and would otherwise sail through to a
+    // second Stripe charge. Same lookup /claim-enrollment already uses
+    // (doc id = lowercased email) — an email with no matching doc (the
+    // common case: a brand-new buyer) falls straight through unaffected.
+    const email = (decoded.email || '').toLowerCase();
+    if (email) {
+      const pendingSnap = await db.collection('pending_enrollments').doc(email).get();
+      if (pendingSnap.exists) {
+        console.log(`[pre-checkout] Blocked (pending): uid=${uid} email=${email}`);
+        return res.json({ ok: false, reason: 'pending_purchase' });
+      }
     }
 
     // Detect a duplicate in-flight checkout (same UID started < 10 min ago).
