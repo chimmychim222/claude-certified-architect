@@ -1600,41 +1600,22 @@ function openPaymentModal() {
   }
 
   if (!currentUser) {
-    // Guest checkout — previously this walled off logged-out buyers behind a
-    // forced signup modal before they could reach Stripe. Recon confirmed the
-    // webhook's pending_enrollments + /claim-enrollment path
-    // (scripts/stripe-webhook.js) already reconciles a purchase made before a
-    // Firebase account exists, keyed by email — so guests can go straight to
-    // Stripe and reconcile after the fact instead of signing up first.
-    //
-    // Guard: block a second guest redirect within GUEST_CHECKOUT_GUARD_MS of
-    // the first, mirroring the sessionStorage pattern used for
-    // cca_checkout_intent (see the pageshow/bfcache handler above). This is
-    // client-only — there is no Firebase UID yet to call the server-side
-    // /pre-checkout guard with — so it's a soft, same-browser-only guard, not
-    // a hard duplicate-charge prevention.
-    const GUEST_CHECKOUT_GUARD_MS = 10 * 60 * 1000; // mirrors /pre-checkout's 10-min window
-    let _guestCheckoutAt = null;
-    try { _guestCheckoutAt = sessionStorage.getItem('cca_guest_checkout_at'); } catch (e) {}
-    if (_guestCheckoutAt && (Date.now() - Number(_guestCheckoutAt)) < GUEST_CHECKOUT_GUARD_MS) {
-      const banner = document.getElementById('success-banner');
-      if (banner) {
-        banner.innerHTML = recentSessionMsg();
-        banner.style.display = 'block';
-      }
-      if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
+    // Require login before checkout — this guarantees a stable Firebase UID
+    // to send Stripe as client_reference_id (below), so the webhook can
+    // enroll the right account even if a different/typo'd email is entered
+    // at Stripe. __pendingCheckout tells onAuthStateChanged to resume
+    // checkout automatically once sign-in/sign-up completes.
+    // Also persist to sessionStorage so the intent survives a same-origin
+    // reload (e.g. Google redirect auth wipes the in-memory flag).
+    window.__pendingCheckout = true;
+    try { sessionStorage.setItem('cca_checkout_intent', '1'); } catch (e) {}
+    openAuthModal('signup');
+    if (typeof gtag !== 'undefined') { gtag('event', 'signup_wall_shown', { had_checkout_intent: true }); }
+    const subtitle = document.getElementById('auth-modal-subtitle');
+    if (subtitle) {
+      subtitle.textContent = "Create a free account (or log in) to continue — we'll link your $49 purchase to it automatically.";
+      subtitle.style.display = 'block';
     }
-    try { sessionStorage.setItem('cca_guest_checkout_at', String(Date.now())); } catch (e) {}
-
-    openAuthModalLoading('Redirecting to secure checkout…');
-    const guestUrl = new URL(STRIPE_PAYMENT_LINK);
-    // Deliberately omit client_reference_id (no Firebase UID yet) and
-    // prefilled_email (no known email yet) — Stripe still collects an email
-    // at checkout, and the webhook's email-keyed pending_enrollments path
-    // reconciles it once this buyer creates/logs into a matching account.
-    if (typeof gtag !== 'undefined') { gtag('event', 'guest_checkout_redirect', {}); }
-    trackCheckoutAndGo(guestUrl.toString());
     return;
   }
 
