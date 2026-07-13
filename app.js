@@ -3906,6 +3906,24 @@ Always test user interactions, not implementation details.</pre>
 // ═══════════════════════════════════════
 // TEST ENGINE
 // ═══════════════════════════════════════
+
+// MR (multiple-response) support. MC questions carry no `type` field, so
+// isMR(q) is false for all 401 existing questions and every helper below
+// collapses to the original MC-only expression.
+function isMR(q) { return q.type === 'mr'; }
+
+function isAnswered(a) { return Array.isArray(a) ? a.length > 0 : a !== -1; }
+
+function isCorrect(q, a) {
+  if (!isMR(q)) return a === q.a;
+  if (!Array.isArray(a) || a.length !== q.a.length) return false;
+  const sortedA = [...a].sort((x, y) => x - y);
+  const sortedCorrect = [...q.a].sort((x, y) => x - y);
+  return sortedA.every((v, i) => v === sortedCorrect[i]);
+}
+
+function isOptionCorrect(q, i) { return isMR(q) ? q.a.includes(i) : i === q.a; }
+
 let currentTest = null;
 let timerInterval = null;
 
@@ -3952,7 +3970,8 @@ async function startTest(type) {
   const selected = shuffled.slice(0, questionCount).map(q => {
     const indices = q.o.map((_, i) => i);
     const shuffledIdx = shuffleArray(indices);
-    return { d:q.d, q:q.q, o:shuffledIdx.map(i => q.o[i]), a:shuffledIdx.indexOf(q.a), e:q.e };
+    const remappedA = isMR(q) ? q.a.map(orig => shuffledIdx.indexOf(orig)) : shuffledIdx.indexOf(q.a);
+    return { d:q.d, q:q.q, o:shuffledIdx.map(i => q.o[i]), a:remappedA, e:q.e, type:q.type };
   });
 
   currentTest = {
@@ -4007,7 +4026,7 @@ function renderQuestion() {
   const t = currentTest;
   const q = t.questions[t.current];
   const total = t.config.questions;
-  const answered = t.answers[t.current] !== -1;
+  const answered = isAnswered(t.answers[t.current]);
 
   document.getElementById('test-progress').textContent = `Question ${t.current+1} of ${total}`;
   document.getElementById('test-progress-bar').style.width = `${((t.current+1)/total)*100}%`;
@@ -4020,15 +4039,21 @@ function renderQuestion() {
     // Show correct/incorrect state — options locked
     q.o.forEach((opt, i) => {
       let cls = '';
-      if (i === q.a) cls = ' correct';
-      else if (i === t.answers[t.current]) cls = ' incorrect';
+      const selected = Array.isArray(t.answers[t.current]) ? t.answers[t.current].includes(i) : i === t.answers[t.current];
+      if (isOptionCorrect(q, i)) cls = ' correct';
+      else if (selected) cls = ' incorrect';
       html += `<button class="option${cls}" disabled>${String.fromCharCode(65+i)}. ${opt}</button>`;
     });
-    const isCorrect = t.answers[t.current] === q.a;
+    const questionCorrect = isCorrect(q, t.answers[t.current]);
     html += `<div class="q-explanation">
-      <div class="q-explanation-label ${isCorrect ? 'correct' : 'incorrect'}">${isCorrect ? '✓ Correct!' : '✗ Incorrect'}</div>
+      <div class="q-explanation-label ${questionCorrect ? 'correct' : 'incorrect'}">${questionCorrect ? '✓ Correct!' : '✗ Incorrect'}</div>
       <p class="q-explanation-text">${q.e}</p>
     </div>`;
+  } else if (isMR(q)) {
+    q.o.forEach((opt, i) => {
+      const sel = Array.isArray(t.answers[t.current]) && t.answers[t.current].includes(i) ? ' selected' : '';
+      html += `<button class="option option-mr${sel}" onclick="toggleAnswer(${i})"><span class="mr-box"></span>${String.fromCharCode(65+i)}. ${opt}</button>`;
+    });
   } else {
     q.o.forEach((opt, i) => {
       const sel = t.answers[t.current] === i ? ' selected' : '';
@@ -4064,6 +4089,16 @@ function selectAnswer(i) {
   renderDots();
 }
 
+function toggleAnswer(i) {
+  const t = currentTest;
+  if (!Array.isArray(t.answers[t.current])) t.answers[t.current] = [];
+  const arr = t.answers[t.current];
+  const pos = arr.indexOf(i);
+  if (pos === -1) arr.push(i); else arr.splice(pos, 1);
+  renderQuestion();
+  renderDots();
+}
+
 function prevQuestion() {
   if (currentTest.current > 0) { currentTest.current--; renderQuestion(); renderDots(); }
 }
@@ -4090,7 +4125,7 @@ function renderDots() {
   for (let i = 0; i < t.config.questions; i++) {
     let cls = '';
     if (i === t.current) cls = 'current';
-    else if (t.answers[i] >= 0) cls = 'answered';
+    else if (isAnswered(t.answers[i])) cls = 'answered';
     html += `<div class="q-dot ${cls}" onclick="jumpToQuestion(${i})" role="button" tabindex="0" aria-label="Question ${i+1}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();jumpToQuestion(${i})}">${i+1}</div>`;
   }
   document.getElementById('question-dots').innerHTML = html;
@@ -4113,7 +4148,7 @@ function finishTest() {
   t.questions.forEach((q, i) => {
     if (!domainScores[q.d]) domainScores[q.d] = {correct:0, total:0};
     domainScores[q.d].total++;
-    if (t.answers[i] === q.a) { correct++; domainScores[q.d].correct++; }
+    if (isCorrect(q, t.answers[i])) { correct++; domainScores[q.d].correct++; }
   });
 
   const pct = Math.round((correct / t.config.questions) * 100);
@@ -4166,14 +4201,15 @@ function reviewTest() {
   let html = '';
   t.questions.forEach((q, i) => {
     const userAns = t.answers[i];
-    const isCorrect = userAns === q.a;
-    html += `<div class="question-card" style="border-color:${isCorrect?'var(--green)':'var(--red)'}">
-      <div class="q-num" style="color:${isCorrect?'var(--green)':'var(--red)'}">${isCorrect?'✓ CORRECT':'✗ INCORRECT'} — ${q.d}</div>
+    const questionCorrect = isCorrect(q, userAns);
+    html += `<div class="question-card" style="border-color:${questionCorrect?'var(--green)':'var(--red)'}">
+      <div class="q-num" style="color:${questionCorrect?'var(--green)':'var(--red)'}">${questionCorrect?'✓ CORRECT':'✗ INCORRECT'} — ${q.d}</div>
       <div class="q-text">${q.q}</div>`;
     q.o.forEach((opt, j) => {
       let cls = '';
-      if (j === q.a) cls = 'correct';
-      else if (j === userAns && !isCorrect) cls = 'incorrect';
+      const selected = Array.isArray(userAns) ? userAns.includes(j) : j === userAns;
+      if (isOptionCorrect(q, j)) cls = 'correct';
+      else if (selected && !questionCorrect) cls = 'incorrect';
       html += `<div class="option ${cls}" style="cursor:default">${String.fromCharCode(65+j)}. ${opt}</div>`;
     });
     html += `<div class="explanation-box show"><h4>Explanation</h4><p>${q.e}</p></div></div>`;
