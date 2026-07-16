@@ -483,11 +483,11 @@ const faqPageQA = [
   },
   {
     q: 'How many questions are on the CCA Foundations exam, and how long do I have?',
-    a: 'The CCA Foundations exam consists of 60 scenario-based multiple choice and multiple response questions with a 120-minute time limit, delivered as a proctored online exam.'
+    a: 'The CCA Foundations exam consists of 60 scenario-based multiple-choice questions with a 120-minute time limit, delivered as a proctored online exam. Each question has one correct answer.'
   },
   {
     q: 'What types of questions appear on the CCA Foundations exam?',
-    a: "All questions are scenario-based — either multiple choice (one best answer) or multiple response (select all that apply). You're placed in a realistic situation and must choose the best architectural decision(s). There are no simple definition or recall questions, which is why hands-on practice matters more than memorizing terminology."
+    a: "All questions are scenario-based multiple choice with one best answer. You're placed in a realistic situation and must choose the best architectural decision. There are no simple definition or recall questions, which is why hands-on practice matters more than memorizing terminology."
   },
   {
     q: 'What is the passing score for the CCA Foundations exam?',
