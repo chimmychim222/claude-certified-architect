@@ -608,6 +608,13 @@ function initAuthListener() {
       // in the `if (user)` branch above and sends them on to Stripe.
       if (window.__pendingCheckout ||
           (function() { try { return !!sessionStorage.getItem('cca_checkout_intent'); } catch(e) { return false; } }())) {
+        // Clear before calling — mirrors the if(user) branch above (508-509).
+        // Without this, a blocked/no-op auto-invoke below leaves the intent
+        // set, and it silently re-fires openPaymentModal() on the next full
+        // page reinit (any reload of any page), re-stamping
+        // cca_guest_checkout_at with no user click involved.
+        window.__pendingCheckout = false;
+        try { sessionStorage.removeItem('cca_checkout_intent'); } catch (e) {}
         openPaymentModal();
       }
       // Static-page header "Log In" / "Sign Up Free" buttons route to
