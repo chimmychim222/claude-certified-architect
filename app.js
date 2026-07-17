@@ -295,6 +295,12 @@ window.addEventListener('pageshow', function(e) {
   // Abandon any pending checkout intent — the user left Stripe voluntarily.
   window.__pendingCheckout = false;
   try { sessionStorage.removeItem('cca_checkout_intent'); } catch (_) {}
+  // Guest equivalent of the line above — clears the guest checkout guard
+  // (app.js openPaymentModal, GUEST_CHECKOUT_GUARD_MS) so a guest who backs
+  // out of Stripe isn't stuck behind the "already in progress" banner for
+  // the rest of the 10-minute window. Runs unconditionally (no currentUser
+  // check) since a guest has no currentUser.
+  try { sessionStorage.removeItem('cca_guest_checkout_at'); } catch (_) {}
   // Unconditionally reset the modal on bfcache restore — don't rely on
   // classList.contains('show') which can be unreliable mid-restore. The
   // page was mid-checkout when it left, so any modal state is stale.
