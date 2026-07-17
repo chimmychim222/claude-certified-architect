@@ -296,9 +296,9 @@ window.addEventListener('pageshow', function(e) {
   window.__pendingCheckout = false;
   try { sessionStorage.removeItem('cca_checkout_intent'); } catch (_) {}
   // Guest equivalent of the line above — clears the guest checkout guard
-  // (app.js openPaymentModal, GUEST_CHECKOUT_GUARD_MS) so a guest who backs
+  // (app.js openPaymentModal, GUEST_CHECKOUT_DEBOUNCE_MS) so a guest who backs
   // out of Stripe isn't stuck behind the "already in progress" banner for
-  // the rest of the 10-minute window. Runs unconditionally (no currentUser
+  // the rest of the debounce window. Runs unconditionally (no currentUser
   // check) since a guest has no currentUser.
   try { sessionStorage.removeItem('cca_guest_checkout_at'); } catch (_) {}
   // Unconditionally reset the modal on bfcache restore — don't rely on
@@ -1261,9 +1261,11 @@ function paymentActivationTimeoutMsg() {
     "with your receipt and we’ll activate manually." + paymentDismissBtn();
 }
 
-// Shown by openPaymentModal when /pre-checkout returns recent_session —
-// the user already started a checkout in the last 10 minutes. Softer tone:
-// reassure that no second charge will happen, and point to support.
+// Renders the "checkout already in progress" banner shown when a recent
+// checkout attempt is still within its guard/debounce window — either the
+// server-side /pre-checkout recent_session check (logged-in) or the
+// client-side guest debounce (openPaymentModal), each on its own window.
+// Softer tone: reassure that no second charge will happen, and point to support.
 function recentSessionMsg() {
   return "<strong>Your checkout is already in progress.</strong> " +
     "Wait a moment and <button onclick=\"window.location.reload()\" style=\"color:var(--green);text-decoration:underline;background:none;border:none;cursor:pointer;font-size:inherit;padding:0;min-height:44px\">reload this page</button> " +
@@ -1677,23 +1679,39 @@ function openPaymentModal() {
     // pending purchase (see the pending_enrollments guard added there) —
     // that guard is what was missing when this path was last shipped.
     //
-    // Guard: block a second guest redirect within GUEST_CHECKOUT_GUARD_MS of
-    // the first, mirroring the sessionStorage pattern used for
+    // Debounce: block a second guest redirect within GUEST_CHECKOUT_DEBOUNCE_MS
+    // of the first, mirroring the sessionStorage pattern used for
     // cca_checkout_intent (see the pageshow/bfcache handler above). This is
     // client-only — there is no Firebase UID yet to call the server-side
     // /pre-checkout guard with — so it's a soft, same-browser-only guard, not
     // a hard duplicate-charge prevention.
-    const GUEST_CHECKOUT_GUARD_MS = 10 * 60 * 1000; // mirrors /pre-checkout's 10-min window
+    //
+    // Age-based self-clear instead of a long fixed window: a real cross-origin
+    // back-nav from Stripe may return via a full reload rather than a bfcache
+    // restore, in which case the pageshow handler's persisted-gated cleanup
+    // never runs (see app.js:294) and this flag would otherwise sit blocking
+    // for the rest of a long window. Checking age here, on every click, means
+    // the gate self-heals regardless of how the browser returned — a flag
+    // older than the debounce is stale (abandoned checkout) and is cleared
+    // rather than trusted.
+    const GUEST_CHECKOUT_DEBOUNCE_MS = 30000; // 30s — genuine double-click window
     let _guestCheckoutAt = null;
     try { _guestCheckoutAt = sessionStorage.getItem('cca_guest_checkout_at'); } catch (e) {}
-    if (_guestCheckoutAt && (Date.now() - Number(_guestCheckoutAt)) < GUEST_CHECKOUT_GUARD_MS) {
-      const banner = document.getElementById('success-banner');
-      if (banner) {
-        banner.innerHTML = recentSessionMsg();
-        banner.style.display = 'block';
+    if (_guestCheckoutAt) {
+      const _guestCheckoutAge = Date.now() - Number(_guestCheckoutAt);
+      if (_guestCheckoutAge < GUEST_CHECKOUT_DEBOUNCE_MS) {
+        const banner = document.getElementById('success-banner');
+        if (banner) {
+          banner.innerHTML = recentSessionMsg();
+          banner.style.display = 'block';
+        }
+        if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
       }
-      if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
+      // Stale — older than the debounce window, so this is an abandoned
+      // checkout rather than a double-click. Clear it and fall through to
+      // start a fresh checkout instead of blocking.
+      try { sessionStorage.removeItem('cca_guest_checkout_at'); } catch (e) {}
     }
     try { sessionStorage.setItem('cca_guest_checkout_at', String(Date.now())); } catch (e) {}
 
