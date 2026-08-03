@@ -1,8 +1,8 @@
-# Claude Certified Architects
+# CCA Practice Platforms
 
 > Independent practice-exam platform and study resource for Anthropic's Claude Certified Architect (CCA) Foundations certification. Not affiliated with, authorized by, or endorsed by Anthropic.
 
-Claude Certified Architects (claudecertifiedarchitects.com) provides unofficial practice materials for the CCA Foundations exam: a 400-question scenario-based question bank, a full-length 60-question/120-minute timed exam simulation, a free 10-question diagnostic quiz, an exam guide, and a blog covering all 5 CCA exam domains (Agentic Architecture & Orchestration, Claude Code Configuration & Workflow, Prompt Engineering & Structured Output, Tool Design & MCP, and Context Management & Reliability). The CCA Foundations exam uses a 100-1,000 scaled score with a passing score of 720. 'Claude' and 'Claude Certified Architect' are trademarks of their respective owner.
+CCA Practice Platforms (claudecertifiedarchitects.com) provides unofficial practice materials for the CCA Foundations exam: a 400-question scenario-based question bank, a full-length 60-question/120-minute timed exam simulation, a free 10-question diagnostic quiz, an exam guide, and a blog covering all 5 CCA exam domains (Agentic Architecture & Orchestration, Claude Code Configuration & Workflow, Prompt Engineering & Structured Output, Tool Design & MCP, and Context Management & Reliability). The CCA Foundations exam uses a 100-1,000 scaled score with a passing score of 720. 'Claude' and 'Claude Certified Architect' are trademarks of their respective owner.
 
 ## Key Pages
 

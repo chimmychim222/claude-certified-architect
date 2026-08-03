@@ -546,19 +546,19 @@ const faqPageQA = [
 /** Schemas for /privacy/, /terms/, /refund/ */
 const privacySchemas = [
   { '@context': 'https://schema.org', '@type': 'WebPage', name: 'Privacy Policy',
-    description: 'Privacy Policy for Claude Certified Architects.',
+    description: 'Privacy Policy for CCA Practice Platforms.',
     url: BASE + '/privacy/', isPartOf: { '@type': 'WebSite', name: schema.course.provider, url: BASE } },
   // BreadcrumbList removed: /privacy/ has no visible breadcrumb — orphaned schema removed.
 ];
 const termsSchemas = [
   { '@context': 'https://schema.org', '@type': 'WebPage', name: 'Terms of Service',
-    description: 'Terms of Service for Claude Certified Architects.',
+    description: 'Terms of Service for CCA Practice Platforms.',
     url: BASE + '/terms/', isPartOf: { '@type': 'WebSite', name: schema.course.provider, url: BASE } },
   // BreadcrumbList removed: /terms/ has no visible breadcrumb — orphaned schema removed.
 ];
 const refundSchemas = [
   { '@context': 'https://schema.org', '@type': 'WebPage', name: 'Refund Policy',
-    description: 'Refund Policy for Claude Certified Architects — 10-day money-back guarantee.',
+    description: 'Refund Policy for CCA Practice Platforms — 10-day money-back guarantee.',
     url: BASE + '/refund/', isPartOf: { '@type': 'WebSite', name: schema.course.provider, url: BASE } },
   // BreadcrumbList removed: /refund/ has no visible breadcrumb — orphaned schema removed.
 ];
@@ -896,9 +896,9 @@ function articleJsonLd(post) {
     datePublished: post.date,
     dateModified: post.updated || post.date,
     image: img,
-    publisher: { '@type': 'Organization', name: 'Claude Certified Architects', url: BASE },
-    author:    { '@type': 'Organization', name: 'Claude Certified Architects', url: BASE },
-    isPartOf:  { '@type': 'WebSite', name: 'Claude Certified Architects', url: BASE }
+    publisher: { '@type': 'Organization', name: 'CCA Practice Platforms', url: BASE },
+    author:    { '@type': 'Organization', name: 'CCA Practice Platforms', url: BASE },
+    isPartOf:  { '@type': 'WebSite', name: 'CCA Practice Platforms', url: BASE }
   };
 }
 
@@ -978,7 +978,7 @@ ${blogNav('/blog/')}
         </ol>
       </div>
       <h1 class="post-title">${escHtml(post.h1 || post.title)}</h1>
-      <p class="post-meta">By Claude Certified Architects · <time datetime="${post.date}">${formatDate(post.date)}</time>${post.updated ? ` · Updated <time datetime="${post.updated}">${formatDate(post.updated)}</time>` : ''}</p>
+      <p class="post-meta">By CCA Practice Platforms · <time datetime="${post.date}">${formatDate(post.date)}</time>${post.updated ? ` · Updated <time datetime="${post.updated}">${formatDate(post.updated)}</time>` : ''}</p>
     </header>
     <div class="post-body">
       ${post.body}
@@ -1121,7 +1121,7 @@ function generate404() {
 <script>(function(w,d,s,i){w.dataLayer=w.dataLayer||[];function gtag(){w.dataLayer.push(arguments);}w.gtag=w.gtag||gtag;gtag('js',new Date());gtag('config',i);function gtagLoad(){var j=d.createElement(s);j.async=true;j.src='https://www.googletagmanager.com/gtag/js?id='+i;d.head.appendChild(j);}if(d.readyState==='complete'){gtagLoad();}else{w.addEventListener('load',gtagLoad);}})(window,document,'script','GT-K8FC4RXW');</script>
 <!-- End Google tag (gtag.js) -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Page Not Found · Claude Certified Architects</title>
+<title>Page Not Found · CCA Practice Platforms</title>
 <meta name="robots" content="noindex,follow">
 ${sharedCSS()}
 </head>
