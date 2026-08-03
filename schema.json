@@ -10,7 +10,7 @@
       "Agentic Architecture & Orchestration (27%) — agent design patterns, orchestration, multi-agent systems, reliability patterns",
       "Claude Code Configuration & Workflows (20%) — CLAUDE.md configuration hierarchy, custom slash commands and skills, path-specific rules, plan mode vs direct execution, CI/CD integration",
       "Prompt Engineering & Structured Output (20%) — designing prompts with explicit criteria, few-shot prompting, enforcing structured output with tool use and JSON schemas, validation-retry loops",
-      "Tool Design & MCP (18%) — tool interface design, structured error responses (isError, error categories, retryable flags), tool distribution and tool_choice configuration, MCP server scoping (.mcp.json vs ~/.claude.json), MCP resources, built-in tools (Read, Write, Edit, Bash, Grep, Glob)",
+      "Tool Design & MCP Integration (18%) — tool interface design, structured error responses (isError, error categories, retryable flags), tool distribution and tool_choice configuration, MCP server scoping (.mcp.json vs ~/.claude.json), MCP resources, built-in tools (Read, Write, Edit, Bash, Grep, Glob)",
       "Context Management & Reliability (15%) — token budgets, progressive summarisation, lost-in-the-middle effects, scratchpad files"
     ],
     "timeRequired": "PT10H",
@@ -21,7 +21,7 @@
   "faq": [
     {
       "q": "What is the Claude Certified Architect (CCA) Foundations exam?",
-      "a": "The CCA Foundations exam itself is Anthropic's official certification, testing knowledge across five domains: Agentic Architecture, Claude Code Configuration, Prompt Engineering, Tool Design & MCP, and Context Management. This website is a separate, independent practice resource — it is not operated by, affiliated with, endorsed by, or sponsored by Anthropic, and it does not administer the official exam."
+      "a": "The CCA Foundations exam itself is Anthropic's official certification, testing knowledge across five domains: Agentic Architecture & Orchestration, Claude Code Configuration & Workflows, Prompt Engineering & Structured Output, Tool Design & MCP Integration, and Context Management & Reliability. This website is a separate, independent practice resource — it is not operated by, affiliated with, endorsed by, or sponsored by Anthropic, and it does not administer the official exam."
     },
     {
       "q": "How many questions are on the CCA Foundations exam?",
@@ -33,7 +33,7 @@
     },
     {
       "q": "Which domain has the most weight on the CCA exam?",
-      "a": "Agentic Architecture carries the highest weight at 27%, followed by Claude Code Configuration and Prompt Engineering at 20% each, Tool Design & MCP at 18%, and Context Management at 15%."
+      "a": "Agentic Architecture & Orchestration carries the highest weight at 27%, followed by Claude Code Configuration & Workflows and Prompt Engineering & Structured Output at 20% each, Tool Design & MCP Integration at 18%, and Context Management & Reliability at 15%."
     },
     {
       "q": "How long does it take to prepare for the CCA Foundations exam?",

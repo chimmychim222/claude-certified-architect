@@ -479,7 +479,7 @@ const studyPlanSchemas = [
 const faqPageQA = [
   {
     q: 'What is the Claude Certified Architect (CCA) Foundations exam?',
-    a: "The CCA Foundations exam is Anthropic's official certification for professionals who design and build production-grade applications with Claude. It tests practical, scenario-based decision-making across five domains: Agentic Architecture, Claude Code Configuration, Prompt Engineering, Tool Design & MCP, and Context Management."
+    a: "The CCA Foundations exam is Anthropic's official certification for professionals who design and build production-grade applications with Claude. It tests practical, scenario-based decision-making across five domains: Agentic Architecture & Orchestration, Claude Code Configuration & Workflows, Prompt Engineering & Structured Output, Tool Design & MCP Integration, and Context Management & Reliability."
   },
   {
     q: 'How many questions are on the CCA Foundations exam, and how long do I have?',
@@ -515,7 +515,7 @@ const faqPageQA = [
   },
   {
     q: 'What are the five CCA Foundations exam domains and how are they weighted?',
-    a: 'The exam covers five domains, each weighted differently: Agentic Architecture (27%), Claude Code Configuration (20%), Prompt Engineering (20%), Tool Design & MCP (18%), and Context Management (15%). Agentic Architecture carries the most weight, so it deserves a proportionally larger share of your study time. Our CCA exam guide breaks down each domain in detail, and our blog covers each one individually, from Domain 1: Agentic Architecture & Orchestration (27%) through to Domain 5: Context Management & Reliability (15%).'
+    a: 'The exam covers five domains, each weighted differently: Agentic Architecture & Orchestration (27%), Claude Code Configuration & Workflows (20%), Prompt Engineering & Structured Output (20%), Tool Design & MCP Integration (18%), and Context Management & Reliability (15%). Agentic Architecture & Orchestration carries the most weight, so it deserves a proportionally larger share of your study time. Our CCA exam guide breaks down each domain in detail, and our blog covers each one individually, from Domain 1: Agentic Architecture & Orchestration (27%) through to Domain 5: Context Management & Reliability (15%).'
   },
   {
     q: 'Is the CCA Foundations certification worth it?',
