@@ -7,11 +7,11 @@
     "price": "49.00",
     "priceCurrency": "USD",
     "teaches": [
-      "Agentic Architecture (27%) — agent design patterns, orchestration, multi-agent systems, reliability patterns",
-      "Claude Code Configuration (20%) — CLAUDE.md, project setup, slash commands, MCP integration",
-      "Prompt Engineering (20%) — system prompts, chain-of-thought, few-shot, PRECISE framework",
-      "Tool Design & MCP (18%) — MCP server architecture, tool schemas, transport layers, security",
-      "Context Management (15%) — token budgets, caching strategies, multi-turn design, CALM framework"
+      "Agentic Architecture & Orchestration (27%) — agent design patterns, orchestration, multi-agent systems, reliability patterns",
+      "Claude Code Configuration & Workflows (20%) — CLAUDE.md configuration hierarchy, custom slash commands and skills, path-specific rules, plan mode vs direct execution, CI/CD integration",
+      "Prompt Engineering & Structured Output (20%) — designing prompts with explicit criteria, few-shot prompting, enforcing structured output with tool use and JSON schemas, validation-retry loops",
+      "Tool Design & MCP (18%) — tool interface design, structured error responses (isError, error categories, retryable flags), tool distribution and tool_choice configuration, MCP server scoping (.mcp.json vs ~/.claude.json), MCP resources, built-in tools (Read, Write, Edit, Bash, Grep, Glob)",
+      "Context Management & Reliability (15%) — token budgets, progressive summarisation, lost-in-the-middle effects, scratchpad files"
     ],
     "timeRequired": "PT10H",
     "courseMode": "online",
@@ -21,11 +21,11 @@
   "faq": [
     {
       "q": "What is the Claude Certified Architect (CCA) Foundations exam?",
-      "a": "The CCA Foundations exam is Anthropic's official certification for professionals who design and build production-grade applications with Claude. It tests knowledge across five domains: Agentic Architecture, Claude Code Configuration, Prompt Engineering, Tool Design & MCP, and Context Management. (Note: this is an independent practice resource — we are not affiliated with, endorsed by, or sponsored by Anthropic.)"
+      "a": "The CCA Foundations exam itself is Anthropic's official certification, testing knowledge across five domains: Agentic Architecture, Claude Code Configuration, Prompt Engineering, Tool Design & MCP, and Context Management. This website is a separate, independent practice resource — it is not operated by, affiliated with, endorsed by, or sponsored by Anthropic, and it does not administer the official exam."
     },
     {
       "q": "How many questions are on the CCA Foundations exam?",
-      "a": "The CCA Foundations exam consists of 60 scenario-based multiple choice questions with a 120-minute time limit. Our practice platform offers 400 independent practice questions across all five domains."
+      "a": "The CCA Foundations exam consists of 60 items made up of multiple-choice and multiple-response questions — each item states how many responses to select — with a 120-minute time limit. Our practice platform offers 400 independent practice questions across all five domains."
     },
     {
       "q": "What is the passing score for the CCA exam?",
@@ -37,27 +37,27 @@
     },
     {
       "q": "How long does it take to prepare for the CCA Foundations exam?",
-      "a": "Most students prepare in 1–2 weeks using daily practice sessions. Our Quick Sprint mode (10 questions, 20 minutes) is ideal for daily practice, while the full 120-minute exam simulation is recommended in the final days before your test."
+      "a": "There's no published data on typical preparation time for the CCA-F exam, so we don't publish a specific timeframe. A practical approach is to review the domain weights in the exam blueprint, assess your own experience against each domain's task statements, and prioritize practice on your weakest areas — starting with Agentic Architecture & Orchestration, the highest-weighted domain at 27%. Our Quick Sprint mode (10 questions, 20 minutes) works well for daily practice, with a full 120-minute exam simulation recommended in the final days before your test."
     },
     {
       "q": "What is the Model Context Protocol (MCP) and why is it on the CCA exam?",
-      "a": "MCP (Model Context Protocol) is Anthropic's open standard for connecting Claude to external tools and data sources. It accounts for 18% of the CCA exam and covers MCP server architecture, tool schema design, transport layers (stdio and SSE), and security considerations."
+      "a": "MCP (Model Context Protocol) is Anthropic's open standard for connecting Claude to external tools and data sources. It accounts for 18% of the CCA exam and covers designing effective tool interfaces, structured error responses (isError, error categories, retryable flags), distributing tools across agents with tool_choice configuration, MCP server scoping (.mcp.json vs ~/.claude.json), MCP resources, and built-in tools (Read, Write, Edit, Bash, Grep, Glob)."
     },
     {
-      "q": "What is the PRECISE framework tested on the CCA exam?",
-      "a": "PRECISE is a prompt engineering framework tested in the Prompt Engineering domain (20% of the exam). It stands for Persona, Role, Explicit instructions, Context, Instructions, Steps, and Examples — a structured approach for designing effective system prompts."
+      "q": "What does the Prompt Engineering & Structured Output domain cover on the CCA Foundations exam?",
+      "a": "This domain accounts for 20% of the exam. It covers designing prompts with explicit criteria to reduce false positives, applying few-shot examples for consistent formatting and judgment on ambiguous cases, enforcing structured output using tool use and JSON schemas, implementing validation-retry loops for extraction quality, and designing batch processing and multi-pass review strategies."
     },
     {
       "q": "What types of questions appear on the CCA practice exam?",
-      "a": "All questions are scenario-based — you are placed in a real-world architectural situation and must choose the best decision. There are no simple recall or definition questions. Topics include agent loop design, tool selection, prompt optimization, and context window management."
+      "a": "All questions are scenario-based — you are placed in a real-world architectural situation and must choose the best decision. Topics include agent loop design, tool selection, prompt optimization, and context window management."
     },
     {
       "q": "How is the CCA Foundations practice exam different from other AI certifications?",
-      "a": "The CCA Foundations exam is specific to Anthropic's Claude and covers Claude-specific capabilities like Constitutional AI, the CLAUDE.md configuration system, Claude Code, and the Model Context Protocol. It focuses on practical architecture decisions rather than general AI theory."
+      "a": "The CCA Foundations exam is specific to Anthropic's Claude and covers Claude-specific capabilities like the CLAUDE.md configuration system, Claude Code, and the Model Context Protocol. It focuses on practical architecture decisions rather than general AI theory."
     },
     {
       "q": "What happens after passing the CCA Foundations exam?",
-      "a": "The CCA Foundations certification demonstrates expertise in building production-grade Claude-powered applications and is recognized by organizations adopting Anthropic's AI in their products and workflows."
+      "a": "The CCA Foundations certification demonstrates expertise in building production-grade Claude-powered applications."
     }
   ]
 }
