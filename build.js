@@ -483,11 +483,11 @@ const faqPageQA = [
   },
   {
     q: 'How many questions are on the CCA Foundations exam, and how long do I have?',
-    a: 'The CCA Foundations exam consists of 60 scenario-based multiple-choice questions with a 120-minute time limit, delivered as a proctored online exam. Each question has one correct answer.'
+    a: 'The CCA Foundations exam consists of 60 scenario-based items, delivered as a proctored online exam with a 120-minute time limit. Items are multiple-choice and multiple-response — each item states how many responses to select.'
   },
   {
     q: 'What types of questions appear on the CCA Foundations exam?',
-    a: "All questions are scenario-based multiple choice with one best answer. You're placed in a realistic situation and must choose the best architectural decision. There are no simple definition or recall questions, which is why hands-on practice matters more than memorizing terminology."
+    a: "All questions are scenario-based and come in two formats: multiple-choice (select one response) and multiple-response (select more than one) — each item states how many responses to select. You're placed in a realistic situation and must choose the best architectural decision. There are no simple definition or recall questions, which is why hands-on practice matters more than memorizing terminology."
   },
   {
     q: 'What is the passing score for the CCA Foundations exam?',
@@ -497,12 +497,9 @@ const faqPageQA = [
     q: 'Is the CCA Foundations exam open-book?',
     a: 'No. The CCA Foundations exam is a proctored, closed-book assessment — you cannot reference documentation, notes, or external resources during the exam. This is why active recall practice, working through questions without looking up the answer first, is the most effective way to prepare.'
   },
-  // TODO(cost-verify): standard fee ($125) and free-for-first-5,000-partner-employees
-  // early-access terms should be periodically re-checked against Anthropic's
-  // registration page — capacity and pricing can change. Last verified 2026-06-12.
   {
     q: 'How much does the CCA Foundations exam cost?',
-    a: "The standard registration fee for the CCA Foundations exam is $125 (USD), paid directly to Anthropic when you schedule your session. Anthropic is also offering free registration to the first 5,000 employees at partner companies through an early-access program — verify current eligibility and pricing on Anthropic's official certification page before you book. Either way, it's worth taking our free 10-question diagnostic quiz first to see where you stand against the 720/1,000 passing standard."
+    a: "The registration fee for the CCA Foundations exam is $125 (USD), paid directly to Anthropic when you schedule your session. It's worth taking our free 10-question diagnostic quiz first to see where you stand against the 720/1,000 passing standard."
   },
   {
     q: 'Where do I register for the official CCA Foundations exam?',
@@ -514,7 +511,7 @@ const faqPageQA = [
   },
   {
     q: 'Can I retake the CCA Foundations exam if I fail?',
-    a: "Yes. Retake waiting periods and attempt limits are set by Anthropic and scheduled through Pearson VUE — check Anthropic's official exam policy and your Pearson VUE scheduling for current details. The most effective retake strategy is to use your score breakdown to find your weakest domain, spend most of your retake preparation there, and run one more full timed simulation before attempting again."
+    a: "Yes. Waiting periods increase with each failed attempt: 14 days after the first, 30 days after the second, and 90 days after the third. You may attempt the exam up to four times within a rolling 12-month period, and the exam fee applies to each attempt. The most effective retake strategy is to use your score breakdown to find your weakest domain, spend most of your retake preparation there, and run one more full timed simulation before attempting again."
   },
   {
     q: 'What are the five CCA Foundations exam domains and how are they weighted?',
@@ -530,7 +527,7 @@ const faqPageQA = [
   },
   {
     q: 'How should I prepare for the CCA Foundations exam?',
-    a: 'Most candidates prepare in 1–2 weeks: work through each of the five domains, take short daily practice sessions to find weak areas, review the explanation for every question (not just the correct answer), use frameworks like SPIDER, CALM, and PRECISE to organize your thinking, and complete at least one full 120-minute timed simulation before exam day. Our CCA practice questions bank and CCA Foundations exam simulator cover all 400 practice questions across the five domains.'
+    a: 'Work through each of the five domains, take short daily practice sessions to find weak areas, review the explanation for every question (not just the correct answer), and complete at least one full 120-minute timed simulation before exam day. Our CCA practice questions bank and CCA Foundations exam simulator cover all 400 practice questions across the five domains.'
   },
   {
     q: 'What does the CCA Practice Platform include?',
@@ -538,7 +535,7 @@ const faqPageQA = [
   },
   {
     q: 'Is this site affiliated with Anthropic?',
-    a: "No. This is an independent study resource. It is not affiliated with, authorized by, or endorsed by Anthropic. 'Claude' and 'Claude Certified Architect' are trademarks of their respective owner. We provide unofficial practice materials — including a free diagnostic quiz, practice questions, and full exam simulations — to help you prepare for the official exam."
+    a: "No. The CCA Foundations exam is Anthropic's official certification. CCA Practice Platforms is an independent exam-preparation resource — we are not affiliated with, endorsed by, sponsored by, or authorized by Anthropic, and we do not administer the official exam or certification. 'Claude', 'Claude Certified Architect', and 'CCA' are trademarks of Anthropic. We provide unofficial practice materials — including a free diagnostic quiz, practice questions, and full exam simulations — to help you prepare for the official exam."
   }
 ];
 
