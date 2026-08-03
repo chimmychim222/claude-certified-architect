@@ -866,7 +866,7 @@ Want to close the gap? The full 400+ question practice bank covers every domain 
 👉 ${nurtureCtaUrl('results')}
 
 Good luck with your studies!
-— Claude Certified Architects`;
+— CCA Practice Platforms`;
 
     await sendViaResend({
       to:      email,
@@ -1023,14 +1023,14 @@ function emailWrap(bodyHtml, unsubUrl) {
 <tr><td align="center">
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;background:#ffffff;border:1px solid #d9d5ca;border-radius:8px;overflow:hidden">
   <tr><td style="background:#c4522c;padding:14px 28px">
-    <span style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.78rem;font-weight:700;color:#ffffff;letter-spacing:.5px;text-transform:uppercase">Claude Certified Architects</span>
+    <span style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.78rem;font-weight:700;color:#ffffff;letter-spacing:.5px;text-transform:uppercase">CCA Practice Platforms</span>
   </td></tr>
   <tr><td style="padding:32px 28px 28px;color:#191918;line-height:1.7">
 ${bodyHtml}
   </td></tr>
   <tr><td style="border-top:1px solid #d9d5ca;padding:16px 28px;background:#f5f3ea">
     <p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.68rem;color:#6f6f66;margin:0 0 5px;line-height:1.5">
-      Claude Certified Architects — independent practice prep, not affiliated with or endorsed by Anthropic.<br>
+      CCA Practice Platforms — independent practice prep, not affiliated with or endorsed by Anthropic.<br>
       Questions? <a href="mailto:support@claudecertifiedarchitects.com" style="color:#6f6f66">support@claudecertifiedarchitects.com</a>
     </p>
     <p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.68rem;color:#6f6f66;margin:0">
@@ -1100,10 +1100,10 @@ function buildEmail1(results, unsubUrl) {
     `Close the gap — $49:\n${cta}`,
     '',
     'Good luck,',
-    '— Claude Certified Architects',
+    '— CCA Practice Platforms',
     '',
     '─────────────────────────────────────────',
-    'Claude Certified Architects — independent practice prep, not affiliated with or endorsed by Anthropic.',
+    'CCA Practice Platforms — independent practice prep, not affiliated with or endorsed by Anthropic.',
     'Reply-To: support@claudecertifiedarchitects.com',
     `To stop receiving these emails: ${unsubUrl}`,
   ].join('\n');
@@ -1177,7 +1177,7 @@ function buildEmail2(results, unsubUrl) {
     '',
     `Unlock access:\n${cta}`,
     '',
-    '— Claude Certified Architects',
+    '— CCA Practice Platforms',
     '',
     '─────────────────────────────────────────',
     'Independent practice prep, not affiliated with or endorsed by Anthropic.',
@@ -1246,7 +1246,7 @@ function buildEmail3(results, unsubUrl) {
     `If you want to close the gap: $49, 10-day money-back guarantee. Try it for a week — if you don’t feel more confident in ${domain}, get a full refund. No risk.`,
     '',
     'Good luck with the exam.',
-    '— Claude Certified Architects',
+    '— CCA Practice Platforms',
     '',
     '─────────────────────────────────────────',
     'Independent practice prep, not affiliated with or endorsed by Anthropic.',
@@ -1310,7 +1310,7 @@ function unsubPage(message, success) {
   const title = success ? 'Unsubscribed' : 'Problem';
   return `<!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>${title} — Claude Certified Architects</title>
+<title>${title} — CCA Practice Platforms</title>
 <style>
 body{margin:0;padding:40px 20px;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;background:#f5f3ea;color:#191918;text-align:center}
 .card{max-width:440px;margin:0 auto;background:#fff;border:1px solid #d9d5ca;border-radius:10px;padding:36px 32px}
@@ -1323,7 +1323,7 @@ a{color:#b04928}
   <div class="icon">${icon}</div>
   <h1>${title}</h1>
   <p>${message}</p>
-  <p><a href="${SITE_URL}/">← Back to Claude Certified Architects</a></p>
+  <p><a href="${SITE_URL}/">← Back to CCA Practice Platforms</a></p>
   <p style="font-size:.72rem;color:#8a8a7f">Independent practice prep — not affiliated with or endorsed by Anthropic.</p>
 </div>
 </body></html>`;
