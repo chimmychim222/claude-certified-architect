@@ -17,3 +17,9 @@ _lighthouse/
 
 # Service account / API keys for local audit scripts (never commit)
 testing keys/
+
+# Local read-only audit output (never commit)
+audit-output/
+
+# Unfinished drafts — never publish (master deploys)
+draft-output/
