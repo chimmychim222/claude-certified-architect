@@ -501,7 +501,14 @@ function shuffle(arr) {
 function buildQuiz() {
   quiz = [];
   DOMAINS.forEach(d => {
-    const pool = shuffle(POOL[d.key]);
+    // Exclude type:'mr' (multiple-response) items — this page's render/select/
+    // grade path (renderDiagQuestion/selectDiagAnswer/showResults) is
+    // single-select only and has no MR support (the real engine — isMR/
+    // isCorrect/toggleAnswer — lives in app.js and is not wired up here).
+    // Do NOT remove this filter without porting that logic first: without it,
+    // an MR question is silently mis-graded as wrong no matter what the
+    // visitor picks (see A15a recon, 2026-08-04).
+    const pool = shuffle(POOL[d.key].filter(q => q.type !== 'mr'));
     pool.slice(0, 2).forEach(q => {
       // Shuffle options while preserving correct answer
       const indices = q.o.map((_, i) => i);
