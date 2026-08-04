@@ -18,7 +18,7 @@ CCA Practice Platforms (claudecertifiedarchitects.com) provides unofficial pract
 
 - [Domain 1: Agentic Architecture & Orchestration (27%)](https://www.claudecertifiedarchitects.com/blog/agentic-architecture-orchestration-cca-domain-1/): The highest-weighted domain — agent design patterns, orchestration, and common exam traps.
 - [Domain 2: Claude Code Configuration & Workflow (20%)](https://www.claudecertifiedarchitects.com/blog/claude-code-config-workflows-cca-domain-2/): CLAUDE.md, project setup, and workflow scenarios.
-- [Domain 3: Prompt Engineering & Structured Output (20%)](https://www.claudecertifiedarchitects.com/blog/prompt-engineering-structured-output-cca-domain-3/): Prompt design, structured output, and the PRECISE framework.
+- [Domain 3: Prompt Engineering & Structured Output (20%)](https://www.claudecertifiedarchitects.com/blog/prompt-engineering-structured-output-cca-domain-3/): Explicit criteria, few-shot prompting, tool_use with JSON schemas, validation-retry loops, and batch processing.
 - [Domain 4: Tool Design & MCP (18%)](https://www.claudecertifiedarchitects.com/blog/tool-design-mcp-cca-domain-4/): MCP server architecture, tool schema design, and tool-granularity scenarios.
 - [Domain 5: Context Management & Reliability (15%)](https://www.claudecertifiedarchitects.com/blog/context-management-reliability-cca-domain-5/): Token budgets, caching strategies, and long-conversation reliability.
 - [The 5 CCA Foundations Exam Domains Explained](https://www.claudecertifiedarchitects.com/blog/cca-foundations-exam-domains-explained/): Domain weights, key topics, and what to study for each domain.
@@ -26,7 +26,7 @@ CCA Practice Platforms (claudecertifiedarchitects.com) provides unofficial pract
 - [CCA Exam Study Schedule: 30-Day Preparation Plan](https://www.claudecertifiedarchitects.com/blog/cca-exam-study-schedule-30-day-plan/): Weekly breakdowns and daily focus areas for a 30-day study plan.
 - [10 Free CCA Practice Questions With Explanations](https://www.claudecertifiedarchitects.com/blog/cca-foundations-exam-practice-questions-free/): Sample questions across all five domains with answer explanations.
 - [CCA Exam Anti-Patterns: 7 Mistakes That Fail Candidates](https://www.claudecertifiedarchitects.com/blog/cca-exam-anti-patterns/): Architectural anti-patterns that commonly appear on the exam.
-- [How Hard Is the Claude Foundations Certification?](https://www.claudecertifiedarchitects.com/blog/how-hard-is-cca-foundations-exam/): A realistic difficulty assessment and where most candidates lose points.
+- [How Hard Is the Claude Foundations Certification?](https://www.claudecertifiedarchitects.com/blog/how-hard-is-cca-foundations-exam/): What makes each domain conceptually difficult, based on the exam's published structure and content depth.
 
 ## Certification Value & Career
 
