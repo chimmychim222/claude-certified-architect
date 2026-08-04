@@ -4256,7 +4256,7 @@ function reviewTest() {
       const selected = Array.isArray(userAns) ? userAns.includes(j) : j === userAns;
       if (isOptionCorrect(q, j)) cls = 'correct';
       else if (selected && !questionCorrect) cls = 'incorrect';
-      html += `<div class="option ${cls}" style="cursor:default">${String.fromCharCode(65+j)}. ${opt}</div>`;
+      html += `<div class="option ${cls}${selected ? ' user-selected' : ''}" style="cursor:default">${String.fromCharCode(65+j)}. ${opt}</div>`;
     });
     html += `<div class="explanation-box show"><h4>Explanation</h4><p>${q.e}</p></div></div>`;
   });
