@@ -3230,10 +3230,21 @@ e:"Subagents should implement local recovery for transient failures they can res
 {d:"Context Management & Reliability",q:"You are architecting a system where Claude must process sensitive user documents. The documents cannot leave your infrastructure. What deployment consideration does this require?",o:["Use a proxy service to anonymise documents before sending to the API","Use Anthropic's Amazon Bedrock or Google Cloud Vertex AI deployments which offer data residency and privacy controls, or use the API with appropriate DPA agreements in place","Store documents locally but send document summaries to the API","This use case is not possible with Claude"],a:1,
 e:"Data residency and privacy requirements for sensitive documents require using cloud deployments with appropriate data processing agreements (Amazon Bedrock, Google Vertex AI) or ensuring the Anthropic API DPA covers your compliance requirements. These deployments provide contractual data residency, processing controls, and audit trails required for regulated document handling."},
 ];
+// ^ END OF QUESTIONS (the graded 401/402-item bank, objects shaped
+// {d,q,o,a,e[,type]}). New question objects — including MR authoring —
+// belong ABOVE this line, inside QUESTIONS, not below in LESSONS. The two
+// arrays are adjacent and neither validates the other's shape, so a
+// question object accidentally added to LESSONS below parses fine and
+// fails completely silently: it's never seen by isMR/renderQuestion/
+// isCorrect, never counted in QUESTIONS.length, and never graded. (This
+// happened once during A15a "select N" authoring — caught only by
+// sandboxed testing, not by any error.)
 
 // ═══════════════════════════════════════
 // LESSON CONTENT
 // ═══════════════════════════════════════
+// ^ START OF LESSONS (study-guide content, objects shaped {title,content}).
+// This is NOT the question bank — do not add question objects here.
 const LESSONS = [
   {
     title: "Agentic Architecture & Orchestration",
@@ -4075,6 +4086,16 @@ function renderQuestion() {
       <p class="q-explanation-text">${q.e}</p>
     </div>`;
   } else if (isMR(q)) {
+    // "Select N." is derived from q.a.length, not authored text, so it can
+    // never desync from what isCorrect() actually grades. n<2 is a data
+    // anomaly for an MR item (multiple-response implies 2+ correct answers)
+    // — omit the line rather than show a confusing "Select one."
+    const mrCount = q.a.length;
+    if (mrCount >= 2) {
+      const MR_COUNT_WORDS = ['zero','one','two','three','four','five','six','seven','eight','nine'];
+      const countWord = MR_COUNT_WORDS[mrCount] || String(mrCount);
+      html += `<p class="mr-select-note" style="margin:0 0 12px;font-size:.85rem;font-weight:600;font-style:italic;color:var(--text3)">Select ${countWord}.</p>`;
+    }
     q.o.forEach((opt, i) => {
       const sel = Array.isArray(t.answers[t.current]) && t.answers[t.current].includes(i) ? ' selected' : '';
       html += `<button class="option option-mr${sel}" onclick="toggleAnswer(${i})"><span class="mr-box"></span>${String.fromCharCode(65+i)}. ${opt}</button>`;
