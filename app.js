@@ -531,6 +531,8 @@ function initAuthListener() {
           const claim = await claimPendingEnrollment(user);
           if (claim.reason === 'unverified_email') {
             showPendingVerificationBanner(user);
+          } else if (claim.enrolled) {
+            showEnrollmentClaimedBanner(user);
           }
         }
         if (!sessionId) {
@@ -946,7 +948,11 @@ async function signInWithGoogle() {
       // claimPendingEnrollment() handles that case; renderAuthWelcome only
       // needs to branch on the still-unverified case.
       const claim = await claimPendingEnrollment(result.user);
-      renderAuthWelcome(claim.reason === 'unverified_email');
+      if (claim.reason === 'unverified_email' || claim.enrolled) {
+        closeAuthModal();
+      } else {
+        renderAuthWelcome(false);
+      }
     } else {
       closeAuthModal();
     }
@@ -1078,7 +1084,11 @@ async function submitAuth() {
       // this is one network round-trip either way, not two.
       loading.style.display = 'none';
       const claim = await claimPendingEnrollment(cred.user);
-      renderAuthWelcome(claim.reason === 'unverified_email');
+      if (claim.reason === 'unverified_email' || claim.enrolled) {
+        closeAuthModal();
+      } else {
+        renderAuthWelcome(false);
+      }
     } else {
       closeAuthModal();
     }
@@ -1386,9 +1396,11 @@ function showPendingVerificationBanner(user) {
   const sendFailed = window.__verificationSendFailed === true;
   const introMsg = sendFailed
     ? 'We found a pending purchase for <strong>' + email + '</strong>, but we weren&rsquo;t able to send the verification email automatically. ' +
-      'Click "Resend verification email" below, then open the link in that email and hit "I&rsquo;ve verified" — no need to reload the page.'
+      'Click "Resend verification email" below, then open the link in that email and hit "I&rsquo;ve verified" — no need to reload the page. ' +
+      'Already verified? Just log in again from any browser or device — it&rsquo;ll unlock automatically.'
     : 'We found a pending purchase for <strong>' + email + '</strong> — verify your email address to unlock it. ' +
-      'Click the link in the verification email, then hit "I&rsquo;ve verified" below — no need to reload the page.';
+      'Click the link in the verification email, then hit "I&rsquo;ve verified" below — no need to reload the page. ' +
+      'Already verified? Just log in again from any browser or device — it&rsquo;ll unlock automatically.';
   banner.innerHTML =
     introMsg +
     ' <button id="unlock-now-btn" ' + btn + '>I&rsquo;ve verified &mdash; unlock now</button>' +
@@ -1478,6 +1490,22 @@ function showPendingVerificationBanner(user) {
         });
     };
   }
+}
+
+// Shown when claimPendingEnrollment() finds and applies a pending purchase
+// during a plain sign-in — the cross-browser/new-device case where the buyer
+// verified their email in one browser and is now logging in fresh in
+// another. Previously silent: markEnrolled() only touches the banner for the
+// unrelated __paymentNeedsManualReview case, so this was the one path with
+// no on-screen confirmation at all. Only reached from the `if (!enrolled)`
+// block in onAuthStateChanged, which is itself skipped once custom claims or
+// the Firestore doc already show the user enrolled — so this fires on the
+// transition only, never on a later page load by an already-enrolled user.
+function showEnrollmentClaimedBanner(user) {
+  const banner = document.getElementById('success-banner');
+  if (!banner) return;
+  banner.innerHTML = "Your purchase is confirmed — you're enrolled. Full access is ready below." + paymentDismissBtn();
+  banner.style.display = 'block';
 }
 
 // Poll server-verified enrollment sources for a short window after returning
