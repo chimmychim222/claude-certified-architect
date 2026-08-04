@@ -295,12 +295,6 @@ window.addEventListener('pageshow', function(e) {
   // Abandon any pending checkout intent — the user left Stripe voluntarily.
   window.__pendingCheckout = false;
   try { sessionStorage.removeItem('cca_checkout_intent'); } catch (_) {}
-  // Guest equivalent of the line above — clears the guest checkout guard
-  // (app.js openPaymentModal, GUEST_CHECKOUT_DEBOUNCE_MS) so a guest who backs
-  // out of Stripe isn't stuck behind the "already in progress" banner for
-  // the rest of the debounce window. Runs unconditionally (no currentUser
-  // check) since a guest has no currentUser.
-  try { sessionStorage.removeItem('cca_guest_checkout_at'); } catch (_) {}
   // Unconditionally reset the modal on bfcache restore — don't rely on
   // classList.contains('show') which can be unreliable mid-restore. The
   // page was mid-checkout when it left, so any modal state is stale.
@@ -611,8 +605,7 @@ function initAuthListener() {
         // Clear before calling — mirrors the if(user) branch above (508-509).
         // Without this, a blocked/no-op auto-invoke below leaves the intent
         // set, and it silently re-fires openPaymentModal() on the next full
-        // page reinit (any reload of any page), re-stamping
-        // cca_guest_checkout_at with no user click involved.
+        // page reinit (any reload of any page).
         window.__pendingCheckout = false;
         try { sessionStorage.removeItem('cca_checkout_intent'); } catch (e) {}
         openPaymentModal();
@@ -1268,19 +1261,6 @@ function paymentActivationTimeoutMsg() {
     "with your receipt and we’ll activate manually." + paymentDismissBtn();
 }
 
-// Renders the "checkout already in progress" banner shown when a recent
-// checkout attempt is still within its guard/debounce window — either the
-// server-side /pre-checkout recent_session check (logged-in) or the
-// client-side guest debounce (openPaymentModal), each on its own window.
-// Softer tone: reassure that no second charge will happen, and point to support.
-function recentSessionMsg() {
-  return "<strong>Your checkout is already in progress.</strong> " +
-    "Wait a moment and <button onclick=\"window.location.reload()\" style=\"color:var(--green);text-decoration:underline;background:none;border:none;cursor:pointer;font-size:inherit;padding:0;min-height:44px\">reload this page</button> " +
-    "— if you completed payment, your account should activate automatically. " +
-    "Email <a href=\"mailto:support@claudecertifiedarchitects.com\" style=\"color:var(--green);text-decoration:underline\">support@claudecertifiedarchitects.com</a> " +
-    "if you need help." + paymentDismissBtn();
-}
-
 // Local-state setter for `enrolled` that funnels through the guarded,
 // fire-once analytics check above. Every place that discovers enrollment
 // calls this instead of assigning `enrolled = true` directly, so the
@@ -1686,42 +1666,11 @@ function openPaymentModal() {
     // pending purchase (see the pending_enrollments guard added there) —
     // that guard is what was missing when this path was last shipped.
     //
-    // Debounce: block a second guest redirect within GUEST_CHECKOUT_DEBOUNCE_MS
-    // of the first, mirroring the sessionStorage pattern used for
-    // cca_checkout_intent (see the pageshow/bfcache handler above). This is
-    // client-only — there is no Firebase UID yet to call the server-side
-    // /pre-checkout guard with — so it's a soft, same-browser-only guard, not
-    // a hard duplicate-charge prevention.
-    //
-    // Age-based self-clear instead of a long fixed window: a real cross-origin
-    // back-nav from Stripe may return via a full reload rather than a bfcache
-    // restore, in which case the pageshow handler's persisted-gated cleanup
-    // never runs (see app.js:294) and this flag would otherwise sit blocking
-    // for the rest of a long window. Checking age here, on every click, means
-    // the gate self-heals regardless of how the browser returned — a flag
-    // older than the debounce is stale (abandoned checkout) and is cleared
-    // rather than trusted.
-    const GUEST_CHECKOUT_DEBOUNCE_MS = 30000; // 30s — genuine double-click window
-    let _guestCheckoutAt = null;
-    try { _guestCheckoutAt = sessionStorage.getItem('cca_guest_checkout_at'); } catch (e) {}
-    if (_guestCheckoutAt) {
-      const _guestCheckoutAge = Date.now() - Number(_guestCheckoutAt);
-      if (_guestCheckoutAge < GUEST_CHECKOUT_DEBOUNCE_MS) {
-        const banner = document.getElementById('success-banner');
-        if (banner) {
-          banner.innerHTML = recentSessionMsg();
-          banner.style.display = 'block';
-        }
-        if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'smooth' });
-        return;
-      }
-      // Stale — older than the debounce window, so this is an abandoned
-      // checkout rather than a double-click. Clear it and fall through to
-      // start a fresh checkout instead of blocking.
-      try { sessionStorage.removeItem('cca_guest_checkout_at'); } catch (e) {}
-    }
-    try { sessionStorage.setItem('cca_guest_checkout_at', String(Date.now())); } catch (e) {}
-
+    // No client-side debounce — mirrors the logged-in path (see the
+    // recent_session branch below), which never blocks a recent/duplicate
+    // attempt either: it just proceeds to Stripe. A guest who abandoned
+    // Stripe and clicks buy again gets a fresh redirect, not a banner that
+    // falsely implies a charge may be in flight.
     openAuthModalLoading('Redirecting to secure checkout…');
     const guestUrl = new URL(STRIPE_PAYMENT_LINK);
     // Deliberately omit client_reference_id (no Firebase UID yet) and
