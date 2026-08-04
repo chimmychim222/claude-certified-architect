@@ -4094,7 +4094,13 @@ function renderQuestion() {
     if (mrCount >= 2) {
       const MR_COUNT_WORDS = ['zero','one','two','three','four','five','six','seven','eight','nine'];
       const countWord = MR_COUNT_WORDS[mrCount] || String(mrCount);
-      html += `<p class="mr-select-note" style="margin:0 0 12px;font-size:.85rem;font-weight:600;font-style:italic;color:var(--text3)">Select ${countWord}.</p>`;
+      const selectedArr = Array.isArray(t.answers[t.current]) ? t.answers[t.current] : [];
+      const selectedCount = selectedArr.length;
+      const atCap = selectedCount >= mrCount;
+      const noteText = atCap
+        ? `Select ${countWord}. (${selectedCount} of ${mrCount} — deselect one to change)`
+        : `Select ${countWord}. (${selectedCount} of ${mrCount} selected)`;
+      html += `<p class="mr-select-note" style="margin:0 0 12px;font-size:.85rem;font-weight:600;font-style:italic;color:var(--text3)">${noteText}</p>`;
     }
     q.o.forEach((opt, i) => {
       const sel = Array.isArray(t.answers[t.current]) && t.answers[t.current].includes(i) ? ' selected' : '';
@@ -4137,10 +4143,17 @@ function selectAnswer(i) {
 
 function toggleAnswer(i) {
   const t = currentTest;
+  const q = t.questions[t.current];
+  if (!Array.isArray(q.a)) return;
   if (!Array.isArray(t.answers[t.current])) t.answers[t.current] = [];
   const arr = t.answers[t.current];
   const pos = arr.indexOf(i);
-  if (pos === -1) arr.push(i); else arr.splice(pos, 1);
+  if (pos === -1) {
+    if (arr.length >= q.a.length) return;
+    arr.push(i);
+  } else {
+    arr.splice(pos, 1);
+  }
   renderQuestion();
   renderDots();
 }
