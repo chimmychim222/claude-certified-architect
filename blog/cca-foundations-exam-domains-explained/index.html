@@ -196,23 +196,23 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 </ul>
 
 <h2>Domain 3 — Prompt Engineering (20%)</h2>
-<p>Tests your ability to write effective system prompts and user turns. The exam focuses on the PRECISE framework and on diagnosing why a prompt underperforms.</p>
+<p>Tests your ability to write effective system prompts and user turns, and to diagnose why a prompt underperforms.</p>
 <p>Key topics to master:</p>
 <ul>
-  <li>PRECISE: Persona, Role, Explicit instructions, Context, Instructions, Steps, Examples</li>
+  <li>Persona and role framing, explicit instructions, and context construction</li>
   <li>Few-shot prompting and example selection</li>
   <li>Chain-of-thought and extended thinking usage</li>
   <li>Avoiding prompt injection in production systems</li>
-  <li>Constitutional AI principles in prompt design</li>
+  <li>Structured output via tool_use and JSON schemas</li>
 </ul>
 
 <h2>Domain 4 — Tool Design &amp; MCP (18%)</h2>
-<p>Covers the Model Context Protocol — how to design tool schemas, choose transport layers, and secure MCP servers in production.</p>
+<p>Covers the Model Context Protocol — how to design tool schemas, decide when to split versus consolidate tools, and secure MCP servers in production.</p>
 <p>Key topics to master:</p>
 <ul>
   <li>MCP server architecture (resources, tools, prompts)</li>
   <li>JSON Schema for tool input definitions</li>
-  <li>stdio vs. SSE transport trade-offs</li>
+  <li>Splitting vs. consolidating tools for clarity and reliability</li>
   <li>Tool naming conventions and description writing for LLM use</li>
   <li>Authentication and authorization in MCP servers</li>
 </ul>
@@ -221,8 +221,8 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 <p>The smallest domain, but one where candidates often leave easy points on the table. It tests knowledge of token budgets, caching strategies, and how to design multi-turn conversations that don't degrade over time.</p>
 <p>Key topics to master:</p>
 <ul>
-  <li>The CALM framework for context-aware LLM management</li>
-  <li>Prompt caching with <code>cache_control</code> breakpoints</li>
+  <li>Progressive summarization and lost-in-the-middle effects</li>
+  <li>Prompt caching for reducing token cost and latency</li>
   <li>Conversation compaction and summarisation patterns</li>
   <li>Context window sizing and token estimation</li>
   <li>Multi-turn state management in agentic systems</li>

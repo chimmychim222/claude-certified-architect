@@ -183,7 +183,7 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
   <thead><tr><th>Detail</th><th>Value</th></tr></thead>
   <tbody>
     <tr><td>Total questions</td><td>60</td></tr>
-    <tr><td>Question format</td><td>Multiple choice, scenario-based (one correct answer)</td></tr>
+    <tr><td>Question format</td><td>Multiple-choice and multiple-response, scenario-based (each item states how many responses to select)</td></tr>
     <tr><td>Time limit</td><td>120 minutes (2 minutes per question)</td></tr>
     <tr><td>Passing score</td><td>720 / 1,000 (scaled score, not a raw percentage)</td></tr>
     <tr><td>Scoring method</td><td>Domain-weighted</td></tr>
@@ -193,7 +193,7 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 </table>
 
 <!-- TODO(cost-verify): standard fee ($125) should be periodically re-checked against Anthropic's registration page -- pricing can change. Last verified 2026-06-12. -->
-<p>Every question places you inside a realistic scenario — a production system under load, a broken agent loop, a poorly scoped tool schema — and asks you to identify the best architectural decision. There are no definition questions. Studying only by reading documentation passively will leave you underprepared; you need active practice with scenario-based questions to calibrate your judgment.</p>
+<p>Every question places you inside a realistic scenario — a production system under load, a broken agent loop, a poorly scoped tool schema — and asks you to identify the best architectural decision. Studying only by reading documentation passively will leave you underprepared; you need active practice with scenario-based questions to calibrate your judgment.</p>
 
 <h2>The 5 CCA Exam Domains and Their Weightings</h2>
 <p>The CCA Foundations exam is divided into five domains. Each carries a specific percentage of your final score. Study time should roughly mirror those percentages — spending equal time on a 15% domain and a 27% domain is an inefficient use of limited preparation hours.</p>
@@ -217,16 +217,16 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 <p>High-priority topics: when to use <code>settings.json</code> vs. <code>settings.local.json</code>, Bash and file tool permission allowlists, connecting and configuring MCP servers inside Claude Code, and writing CLAUDE.md files that steer Claude's behaviour without over-constraining it. Candidates often underestimate this domain because it feels like configuration — but the questions require genuine understanding of how the settings interact at runtime.</p>
 
 <h3>Domain 3: Prompt Engineering (20%)</h3>
-<p>Goes well beyond writing a better system prompt. This domain tests your ability to diagnose why a prompt underperforms and apply structured frameworks to fix it systematically. The PRECISE framework is the cornerstone of this domain.</p>
-<p>High-priority topics: PRECISE (Persona, Role, Explicit instructions, Context, Instructions, Steps, Examples), few-shot example selection and ordering, chain-of-thought and extended thinking usage, Constitutional AI principles, and prompt injection prevention in production systems. Understand not just what each PRECISE component does but what breaks when you omit one.</p>
+<p>Goes well beyond writing a better system prompt. This domain tests your ability to diagnose why a prompt underperforms and apply structured techniques to fix it systematically.</p>
+<p>High-priority topics: persona and role framing, explicit instructions, context construction, few-shot example selection and ordering, chain-of-thought and extended thinking usage, structured output via tool_use and JSON schemas, and prompt injection prevention in production systems. Understand not just what each technique does but what breaks when you omit one.</p>
 
 <h3>Domain 4: Tool Design &amp; MCP (18%)</h3>
-<p>The Model Context Protocol domain tests both conceptual knowledge and practical design skills. You need to be able to read a tool schema, identify what's wrong with it, choose between transport layers, and reason about MCP server security in production contexts.</p>
-<p>High-priority topics: MCP server architecture (resources, tools, and prompts primitives), JSON Schema for tool input definitions, stdio vs. SSE transport trade-offs, writing tool descriptions that Claude can reliably use, and authentication patterns for production MCP deployments. The exam frequently presents broken or suboptimal tool schemas and asks you to identify the flaw.</p>
+<p>The Model Context Protocol domain tests both conceptual knowledge and practical design skills. You need to be able to read a tool schema, identify what's wrong with it, decide when to split versus consolidate tools, and reason about MCP server security in production contexts.</p>
+<p>High-priority topics: MCP server architecture (resources, tools, and prompts primitives), JSON Schema for tool input definitions, writing tool descriptions that Claude can reliably use, tool naming conventions that reduce ambiguity, and authentication patterns for production MCP deployments. The exam frequently presents broken or suboptimal tool schemas and asks you to identify the flaw.</p>
 
 <h3>Domain 5: Context Management (15%)</h3>
 <p>The lightest domain by weight but consistently underestimated. Context management questions are often the easiest marks available once you understand the core concepts — and the easiest to lose if you don't. Study this domain last but never skip it.</p>
-<p>High-priority topics: prompt caching with <code>cache_control</code> breakpoints, conversation compaction and summarisation patterns, token estimation and budget management, and multi-turn conversation design that maintains quality over many turns.</p>
+<p>High-priority topics: prompt caching, conversation compaction and summarisation patterns, token estimation and budget management, and multi-turn conversation design that maintains quality over many turns.</p>
 
 <h2>5 Sample CCA Exam Questions</h2>
 <p>The following questions mirror the scenario-based style used on the CCA Foundations exam. Work through each before reading the answer and explanation.</p>
@@ -252,24 +252,27 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 <p><strong>Correct answer: B.</strong> Project-level <code>.claude/settings.json</code> committed to version control is the correct location for tool permissions that should apply consistently to all project contributors. Global settings (A) apply to every project on that machine, not just this one. <code>CLAUDE.md</code> instructions (C) are behavioural guidance, not enforced tool permissions. <code>settings.local.json</code> (D) is for personal, machine-specific overrides that must not be committed.</p>
 
 <h3>Question 3 — Prompt Engineering</h3>
-<p>A production customer-support system prompt follows the PRECISE framework with a clear Persona, detailed Instructions, and rich Context. Despite this, Claude's responses vary noticeably in tone and length across sessions. A review of the prompt reveals there is no Examples section. What is the most likely root cause of the inconsistency?</p>
+<p>A production customer-support system prompt has a clear persona, detailed instructions, and rich context. Despite this, Claude's responses vary noticeably in tone and length across sessions. The prompt includes no worked examples. What is the most likely root cause of the inconsistency?</p>
 <ul>
-  <li>A. The Persona definition is too broad and needs to be narrowed with more specific attributes</li>
-  <li>B. Without concrete Examples, Claude lacks a calibration anchor for tone, length, and format</li>
-  <li>C. The Instructions section is too long and is causing the model to selectively ignore guidance</li>
-  <li>D. The Context section is conflicting with the Persona and should be shortened</li>
+  <li>A. The persona definition is too broad and needs to be narrowed with more specific attributes</li>
+  <li>B. Without concrete examples, Claude lacks a calibration anchor for tone, length, and format</li>
+  <li>C. The instructions section is too long and is causing the model to selectively ignore guidance</li>
+  <li>D. The context section is conflicting with the persona and should be shortened</li>
 </ul>
-<p><strong>Correct answer: B.</strong> The Examples component of PRECISE functions as a behavioural anchor — it shows Claude precisely what a correct response looks like in terms of length, tone, and structure. Without it, Claude interpolates from pre-training, producing variance. Adding two or three worked examples of ideal responses is the fastest fix for tone and length inconsistency when the rest of the PRECISE structure is already in place.</p>
+<p><strong>Correct answer: B.</strong> Few-shot examples function as a behavioural anchor — they show Claude precisely what a correct response looks like in terms of length, tone, and structure. Without them, Claude interpolates from pre-training, producing variance. Adding two or three worked examples of ideal responses is the fastest fix for tone and length inconsistency when persona, instructions, and context are already solid.</p>
 
 <h3>Question 4 — Tool Design &amp; MCP</h3>
-<p>You are building an MCP server that needs to stream large file contents to Claude in real time during a long-running analysis task running in a cloud environment. Which transport layer should you choose?</p>
+<p>An MCP server exposes two separate tools, <code>get_order_status</code> and <code>get_order_shipping_info</code>, that both query the same orders table and are almost always needed together for a given order. Claude sometimes calls only one when both are actually needed. What is the most effective fix?</p>
 <ul>
-  <li>A. stdio — lower latency for subprocess communication on the same machine</li>
-  <li>B. SSE (Server-Sent Events) — supports real-time streaming over HTTP and works across network boundaries</li>
-  <li>C. WebSocket — provides full bidirectional streaming unavailable in SSE</li>
-  <li>D. stdio — simpler to implement and avoids the overhead of running an HTTP server</li>
+  <li>A. Rename both tools with more distinctive names so Claude can tell them apart more easily</li>
+  <li>B. Consolidate the two tools into a single <code>get_order_details</code> tool that returns both status and shipping information</li>
+  <li>C. Add a note to the system prompt instructing Claude to always call both tools together</li>
+  <li>D. Leave the tools separate but shorten their descriptions to reduce token overhead</li>
 </ul>
-<p><strong>Correct answer: B.</strong> SSE is the MCP transport designed for remote servers and real-time streaming over HTTP. It works across network boundaries, making it the only valid choice for a cloud deployment. stdio (A and D) is limited to local subprocess communication on the same machine — it cannot cross a network boundary. WebSocket (C) is not a supported MCP transport layer. Whenever the deployment is remote or distributed, SSE is the correct answer.</p>
+<p><strong>Correct answer: B.</strong> When two tools are almost always needed together and draw on the same underlying data, consolidating them into a single tool removes the coordination problem entirely — there's no longer a decision for Claude to get wrong. This is the same tool-design judgment tested elsewhere on the exam: match tool granularity to how the data is actually used, rather than mirroring the API or database structure one-to-one.</p>
+<p><strong>Why A is wrong:</strong> Better naming might reduce confusion at the margins, but it doesn't address the root cause — two tools that are almost always called together shouldn't require Claude to remember to call both.</p>
+<p><strong>Why C is wrong:</strong> A prompt instruction is a probabilistic nudge, not a structural guarantee. It can reduce the error rate but won't eliminate it the way consolidating the tools does.</p>
+<p><strong>Why D is wrong:</strong> Shortening descriptions to save tokens doesn't address the coordination problem, and thinner descriptions typically make correct tool selection harder, not easier.</p>
 
 <h3>Question 5 — Context Management</h3>
 <p>A long-running agentic task is approaching the context window limit with approximately 15% of the window remaining. The agent still needs to execute three more tool calls to complete the task. Which strategy best preserves task continuity?</p>

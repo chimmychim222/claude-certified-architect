@@ -169,9 +169,7 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
       <p class="post-meta">By CCA Practice Platforms · <time datetime="2026-04-30">April 30, 2026</time> · Updated <time datetime="2026-06-12">June 12, 2026</time></p>
     </header>
     <div class="post-body">
-      <p>The CCA Foundations exam is 60 scenario-based questions, completed in 120 minutes, scored on a scaled 720/1,000 passing standard. The standard registration fee is $125 (USD), though Anthropic also offers free registration to the first 5,000 employees at partner companies during early access — see our <a href="/blog/cca-exam-cost/">exam cost breakdown</a> for details. Every question puts you inside a production system and asks you to choose between options that both look defensible on the surface. The best preparation is working through that kind of decision-making repeatedly — not reading documentation.</p>
-
-<!-- TODO(cost-verify): standard fee ($125) and free-for-first-5,000-partner-employees early-access terms should be periodically re-checked against Anthropic's registration page -- capacity and pricing can change. Last verified 2026-06-12. -->
+      <p>The CCA Foundations exam is 60 scenario-based questions, completed in 120 minutes, scored on a scaled 720/1,000 passing standard. The standard registration fee is $125 (USD) — see our <a href="/blog/cca-exam-cost/">exam cost breakdown</a> for details. Every question puts you inside a production system and asks you to choose between options that both look defensible on the surface. The best preparation is working through that kind of decision-making repeatedly — not reading documentation.</p>
 
 <p>Below are ten free CCA Foundations exam practice questions spanning all five domains, each with four answer choices and a full explanation covering why the correct answer is right and exactly what is wrong with each alternative. Work through them without looking at the answers first.</p>
 
@@ -246,19 +244,19 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 <hr>
 
 <h2>Question 5 — Claude Code Configuration</h2>
-<p>A team's Claude Code setup connects to a local MCP server binary that provides database query tools. After a teammate upgrades their machine, the MCP server stops connecting. The config in <code>settings.json</code> specifies <code>"transport": "sse"</code> with a <code>localhost</code> URL. What is the most likely cause of the failure?</p>
+<p>A team wants every developer who clones the repository to have <code>npm test</code> and <code>npm run build</code> pre-approved in Claude Code, without a confirmation prompt, while every other Bash command still requires approval. Where should this allowlist be configured?</p>
 <ul>
-  <li><strong>A.</strong> The MCP server binary path changed and needs updating in the config.</li>
-  <li><strong>B.</strong> SSE transport is incorrect for a locally running MCP server — it should use stdio transport with the binary as the command.</li>
-  <li><strong>C.</strong> The database credentials in the MCP server config need to be refreshed.</li>
-  <li><strong>D.</strong> Claude Code does not support MCP servers on Windows.</li>
+  <li><strong>A.</strong> In each developer's global <code>~/.claude/settings.json</code></li>
+  <li><strong>B.</strong> In the project's <code>.claude/settings.json</code>, committed to version control</li>
+  <li><strong>C.</strong> In the project's <code>CLAUDE.md</code> as a natural-language instruction</li>
+  <li><strong>D.</strong> In the project's <code>.claude/settings.local.json</code></li>
 </ul>
 
 <h3>Correct Answer: B</h3>
-<p>SSE (Server-Sent Events) transport is designed for remote MCP servers accessible via HTTP — it connects to an already-running HTTP server. For a local MCP server binary, the correct transport is stdio: Claude Code launches the binary as a subprocess and communicates via stdin/stdout. Using SSE for a local binary requires a separate HTTP server process to be running and listening — a configuration that will fail silently when that HTTP server isn't present.</p>
-<p><strong>Why A is wrong:</strong> A changed binary path is a plausible real-world issue, but the transport misconfiguration is the architectural error the question is testing. An SSE config pointing at localhost will fail even if the binary path is correct, because nothing is running an HTTP server on that port.</p>
-<p><strong>Why C is wrong:</strong> Credential expiry is an operational concern. The question specifically identifies a transport configuration issue (<code>"transport": "sse"</code>), which is the correct focus.</p>
-<p><strong>Why D is wrong:</strong> Claude Code supports MCP on all major platforms. Platform-specific limitations are not the issue here.</p>
+<p>Project-level <code>.claude/settings.json</code>, committed to the repository, is the correct place for tool-permission allowlists that should apply consistently to every contributor. Because it's version-controlled, every developer who clones the repo gets the same allowlist automatically.</p>
+<p><strong>Why A is wrong:</strong> A developer's global settings apply to every project on their machine, not just this one, and don't help teammates who haven't set the same override themselves.</p>
+<p><strong>Why C is wrong:</strong> <code>CLAUDE.md</code> carries natural-language behavioural guidance, not enforced tool permissions. An instruction there can be overridden by conflicting context; a permissions entry cannot.</p>
+<p><strong>Why D is wrong:</strong> <code>settings.local.json</code> is explicitly for personal, machine-specific overrides that are not meant to be committed — it won't propagate the allowlist to the rest of the team.</p>
 
 <hr>
 
@@ -272,7 +270,7 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 </ul>
 
 <h3>Correct Answer: B</h3>
-<p>The failure mode is specific: Claude understands the content correctly but misjudges the appropriate register. "Use plain language" is an abstract instruction — different models and different prompts interpret that instruction differently. Few-shot examples resolve the ambiguity concretely. Showing what an ideal response actually looks like for this specific customer base gives Claude a calibration target that abstract instructions cannot provide. This is the primary use case for examples in the PRECISE framework.</p>
+<p>The failure mode is specific: Claude understands the content correctly but misjudges the appropriate register. "Use plain language" is an abstract instruction — different models and different prompts interpret that instruction differently. Few-shot examples resolve the ambiguity concretely. Showing what an ideal response actually looks like for this specific customer base gives Claude a calibration target that abstract instructions cannot provide.</p>
 <p><strong>Why A is wrong:</strong> The persona definition already exists and is working — Claude understands its role. The gap is not identity but output style calibration, and persona additions don't directly address register at the word and sentence level.</p>
 <p><strong>Why C is wrong:</strong> More product context addresses knowledge gaps, not language register. The problem is not that Claude doesn't know enough about the product; it's that it writes about it at the wrong level for the audience.</p>
 <p><strong>Why D is wrong:</strong> Structural instructions (how to organise a response) don't control vocabulary or register. Claude can follow a perfect response structure while still using jargon throughout each section.</p>
@@ -331,19 +329,19 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 <hr>
 
 <h2>Question 10 — Context Management</h2>
-<p>A legal research assistant sends a 50,000-token system prompt containing a full legal reference database with every API call. Costs are high and response latency is slow. The reference database content never changes between calls. Which strategy best addresses both problems simultaneously?</p>
+<p>A coding agent runs a long session against a large repository. Early tool calls return full file contents and complete test-suite output, some individual results exceeding 10,000 tokens. By turn 30, the context is dominated by old tool output the agent no longer needs, and the agent starts missing instructions that were stated clearly near the beginning of the session. What is the most effective fix?</p>
 <ul>
-  <li><strong>A.</strong> Summarise the legal database into a shorter system prompt to reduce token count.</li>
-  <li><strong>B.</strong> Add <code>cache_control</code> breakpoints after the static reference content to enable prompt caching, so the 50,000-token prefix is processed once and reused across subsequent calls.</li>
-  <li><strong>C.</strong> Split each query into multiple shorter conversations to avoid long context overhead.</li>
-  <li><strong>D.</strong> Route all legal research requests through the Batch API to reduce per-token costs.</li>
+  <li><strong>A.</strong> Increase the context window size so more history fits without truncation.</li>
+  <li><strong>B.</strong> After each tool call, extract only the information still relevant to the task (e.g., the specific failing test names and error messages) and discard the rest, rather than keeping full raw output in context.</li>
+  <li><strong>C.</strong> Move the original instructions to the very end of the conversation so they're closer to the model's current position.</li>
+  <li><strong>D.</strong> Ask the agent to re-read the entire conversation history before every tool call to refresh its memory.</li>
 </ul>
 
 <h3>Correct Answer: B</h3>
-<p>Prompt caching is the correct tool for exactly this pattern: a large, static prefix that is reused across many requests. After the first call, Claude caches the 50,000-token reference database. All subsequent calls reuse that cache — reducing cost significantly (cached input tokens are billed at a reduced rate) and reducing latency (the model does not re-process the full prefix on each call). The <code>cache_control</code> breakpoint tells the API where the stable content ends, enabling the cache to be maintained correctly across calls.</p>
-<p><strong>Why A is wrong:</strong> A legal reference tool's value is its completeness. Summarising the database to reduce tokens trades accuracy for efficiency — a losing trade for a tool where missing a relevant statute or precedent produces wrong legal guidance. The correct answer addresses the cost and latency problem without sacrificing content quality.</p>
-<p><strong>Why C is wrong:</strong> Splitting queries across shorter conversations doesn't reduce the cost or latency of loading the reference database — each new conversation still incurs the full 50,000-token processing cost on its first call. It also fragments context across conversations, making cross-reference queries harder.</p>
-<p><strong>Why D is wrong:</strong> The Batch API reduces cost but processes requests within a 24-hour window. Legal research typically has time requirements — even a 30-minute turnaround may be unacceptable for many queries. Using Batch API for legal research trades the latency problem for a worse one.</p>
+<p>Trimming verbose tool output down to the structured facts still needed, rather than letting full raw output accumulate turn after turn, fixes both problems at once: it reduces the volume of low-value content competing for the model's attention, and it prevents the early instructions from being buried in the middle of a bloated context, where the lost-in-the-middle effect makes them easiest to miss.</p>
+<p><strong>Why A is wrong:</strong> A larger context window doesn't fix the underlying problem, it just delays it. The lost-in-the-middle effect isn't solved by having more room to be lost in — verbose, low-value tool output still crowds out what matters.</p>
+<p><strong>Why C is wrong:</strong> Relocating the instructions treats the symptom, not the cause. The context is still bloated with tool output the agent no longer needs, and nothing stops that output from continuing to accumulate on later turns.</p>
+<p><strong>Why D is wrong:</strong> Re-reading the full history on every turn increases token cost and latency on every call and doesn't remove any of the low-value content — it just reprocesses it more often.</p>
 
 <hr>
 
