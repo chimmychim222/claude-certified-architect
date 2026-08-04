@@ -236,14 +236,14 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 <p>The skills to develop: understanding what information the agent actually needs to maintain across steps (versus what can be discarded once processed), designing context summary mechanisms that preserve the relevant history without the full detail, using prompt caching to reduce the cost of repeated system prompt and tool definition sections, and designing context window usage as an explicit architectural constraint rather than an implementation detail.</p>
 
 <h3>The prompt caching lever</h3>
-<p>If your agent repeats a large system prompt and tool definition block across many API calls (which most agents do), prompt caching can reduce your costs by 85–90% on those repeated sections. The mechanics: mark the repeated prefix with a cache control block, and Anthropic caches it for five minutes. Subsequent requests that share the same prefix pay cache read pricing instead of full pricing. For agents making many sequential API calls, this is the single most impactful cost optimisation available.</p>
+<p>If your agent repeats a large system prompt and tool definition block across many API calls (which most agents do), prompt caching is worth knowing about as a cost-optimisation lever — for agents making many sequential API calls, it's one of the most impactful levers available. The implementation specifics are outside CCA exam scope; consult the Anthropic documentation directly when you're ready to implement it.</p>
 
 <h2>Stage 5: The Model Context Protocol (Week 5–7)</h2>
 
 <h3>What to learn</h3>
 <p>MCP is Anthropic's open protocol for connecting Claude to external tools and data sources in a standardised way. Instead of implementing tool calls as custom code inside your agent, MCP lets you expose tools through a server that any Claude-compatible client can connect to. For production systems — especially Claude Code workflows and multi-team environments — MCP is how you build maintainable, reusable tool integrations.</p>
 
-<p>The key concepts: the client-server architecture (Claude connects to your MCP server as a client), the two transport options (stdio for local processes, SSE for remote/networked servers), the tool and resource primitives, and the security model (MCP servers have specific permission boundaries that need to be designed deliberately).</p>
+<p>The key concepts: the client-server architecture (Claude connects to your MCP server as a client), the tool and resource primitives, and the security model (MCP servers have specific permission boundaries that need to be designed deliberately).</p>
 
 <h3>When MCP matters</h3>
 <p>For a single developer building a personal automation, custom tool functions are fine. For a team building a shared Claude integration that multiple engineers will use, MCP provides the separation of concerns and maintainability that ad-hoc tool definitions don't. For Claude Code specifically, MCP is the primary mechanism for giving Claude access to your organisation's internal systems.</p>

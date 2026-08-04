@@ -173,7 +173,7 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 
 <p>The Model Context Protocol (MCP) represents a fundamental shift in how AI systems interact with external tools and data sources. For Claude Certified Architect candidates, understanding MCP server design isn't just about passing an exam—it's about building production-grade integrations that actually work. Yet even experienced developers consistently make the same design mistakes when implementing MCP servers, leading to brittle integrations, security vulnerabilities, and failed deployments.</p>
 
-<p>After reviewing hundreds of MCP implementations and working with CCA exam candidates, we've identified seven critical design mistakes that appear repeatedly. These errors account for approximately 60% of MCP-related questions on the foundations exam and cause the majority of real-world integration failures. More importantly, they're entirely preventable once you understand the underlying patterns.</p>
+<p>After reviewing hundreds of MCP implementations and working with CCA exam candidates, we've identified seven critical design mistakes that appear repeatedly. These errors cause the majority of real-world integration failures. More importantly, they're entirely preventable once you understand the underlying patterns.</p>
 
 <p>This guide examines each mistake in detail, explains why it matters for both certification and production use, and provides concrete patterns you can implement immediately. Whether you're preparing for the CCA Foundations exam or building actual MCP servers, these insights will save you significant debugging time and help you design more robust integrations.</p>
 
@@ -181,7 +181,7 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 
 <p>The most pervasive mistake developers make is approaching MCP server design with a REST API mindset. This fundamental misunderstanding leads to poorly structured servers that fight against the protocol's design rather than leveraging it.</p>
 
-<p>MCP operates on a client-server architecture where the client (typically Claude Desktop or another AI application) initiates all connections. Unlike REST APIs that respond to individual HTTP requests, MCP servers maintain stateful connections using JSON-RPC 2.0 over stdio or SSE transport layers. This connection model fundamentally changes how you should design your server.</p>
+<p>MCP operates on a client-server architecture where the client (typically Claude Desktop or another AI application) initiates all connections. Unlike REST APIs that respond to individual HTTP requests, MCP servers maintain stateful connections using JSON-RPC 2.0 over stdio transport. This connection model fundamentally changes how you should design your server.</p>
 
 <p><strong>What goes wrong:</strong> Developers create MCP servers with dozens of fine-grained tools that mirror REST endpoint patterns. For example, they'll implement separate tools for "getUserById", "getUserByEmail", "getUserByUsername", "listUsers", and "searchUsers". This approach creates cognitive overload for the AI model, increases token usage unnecessarily, and makes tool selection less reliable.</p>
 
