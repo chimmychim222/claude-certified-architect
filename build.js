@@ -531,7 +531,7 @@ const faqPageQA = [
   },
   {
     q: 'What does the CCA Practice Platform include?',
-    a: 'The platform includes 400 scenario-based practice questions across all five exam domains, full-length 120-minute timed exam simulations, a free 10-question diagnostic quiz that estimates your readiness against the 720/1,000 passing standard, and a complete exam guide covering format, domain weights, and study strategy.'
+    a: 'The platform includes 400 scenario-based practice questions across all five exam domains — multiple-choice and multiple-response, matching the mixed format described in the official exam guide — full-length 120-minute timed exam simulations, a free 10-question diagnostic quiz that estimates your readiness against the 720/1,000 passing standard, and a complete exam guide covering format, domain weights, and study strategy.'
   },
   {
     q: 'Is this site affiliated with Anthropic?',
