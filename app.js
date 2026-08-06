@@ -2961,8 +2961,8 @@ e:"The lost-in-the-middle effect is a well-documented phenomenon: models reliabl
 {d:"Context Management & Reliability",q:"A document-analysis subagent is partway through analyzing a batch of 20 source documents when it hits a permission error on the remaining 6, an error it has no way to resolve on its own. Which three of the following are anti-patterns for how the subagent should report this to the coordinator?",o:["Returning a generic document-access-failed status with no further detail, discarding the fact that 14 of the 20 documents were already analyzed successfully.","Marking the batch as successfully completed and silently omitting the 6 inaccessible documents from the results, leaving the coordinator no way to know coverage is incomplete.","Halting the entire four-agent pipeline the moment the permission error occurs, discarding the other three subagents' completed work along with the 14 documents already analyzed.","Retrying the 6 permission-denied documents immediately with exponential backoff before reporting anything to the coordinator.","Confirming that the tool_choice setting on the document tool automatically routes different error codes to different recovery subagents, so no additional detail needs to be reported.","Having the coordinator route all inter-subagent communication through itself so it can log every message centrally."],a:[0,1,2],type:'mr',
 e:"A, B, and C are the three anti-patterns named across Task Statement 5.3's knowledge bullets: generic error statuses hide valuable context, silently suppressing errors as success hides the failure, and terminating an entire workflow over a single recoverable failure is disproportionate. D misapplies a real technique, retry with backoff, to the wrong problem: permission errors are access failures, not transient ones, so retrying does not help. E misdescribes tool_choice's actual behavior; it controls whether or which tool the model must call, not error-code routing. F is true but belongs to Task Statement 1.2's coordinator hub-and-spoke pattern, not to what a failure report should contain."},
 
-{d:"Context Management & Reliability",q:"Your multi-source research synthesis combines findings from 5 different sources. Two credible sources report conflicting statistics on the same topic. What should the synthesis agent do?",o:["Pick the more recent source's statistic","Annotate the conflict with source attribution rather than arbitrarily selecting one value","Average the two statistics","Omit the conflicting data point entirely"],a:1,
-e:"When credible sources disagree, the synthesis agent should annotate conflicts with source attribution, preserving both values and their sources. This lets downstream consumers (or human reviewers) make informed decisions. Arbitrarily selecting one value, averaging, or omitting data all lose important information."},
+{d:"Context Management & Reliability",q:"Your multi-source research synthesis combines findings from 5 different sources. Two credible sources report conflicting statistics on the same topic. What should the synthesis agent do?",o:["Pick the more recent source's statistic","Keep both values and label each with the source it came from, rather than collapsing them into a single answer","Average the two statistics","Omit the conflicting data point entirely"],a:1,
+e:"When credible sources disagree, the synthesis agent should annotate conflicts with source attribution, preserving both values and their sources. This lets downstream consumers (or human reviewers) make informed decisions. Picking one value over the other, averaging them, or dropping the conflicting point entirely all lose important information."},
 
 {d:"Context Management & Reliability",q:"Your extraction system shows 97% overall accuracy. Your manager wants to fully automate the pipeline and remove human review. Why might this be premature?",o:["97% accuracy always requires human review as a safety net","Aggregate accuracy may mask poor performance on specific document types or fields — validate accuracy by segment before automating","The remaining 3% error rate is too high for any production use","Human review should never be fully removed from any AI system"],a:1,
 e:"Aggregate accuracy metrics can be misleading. 97% overall might include 99.5% on common document types but 70% on rare ones, or high accuracy on most fields but poor accuracy on a critical field like 'total amount.' Always validate accuracy by document type AND field segment before reducing human review."},
@@ -3311,7 +3311,7 @@ while (iterations &lt; MAX_ITERATIONS) {
 <li><strong>Prompt-based guidance:</strong> System prompt instructions that tell the agent the correct order. This is <strong>probabilistic</strong> — the agent may skip steps under certain conditions.</li>
 </ul>
 
-<div class="concept-box"><strong>Key Concept — The Hooks vs. Prompts Decision:</strong> When a specific tool sequence is required for critical business logic (like verifying identity before processing financial transactions), <strong>programmatic enforcement provides deterministic guarantees that prompt-based approaches cannot</strong>. Use hooks when compliance failure has financial or legal consequences. Use prompts when flexibility and nuance are needed.</div>
+<div class="concept-box"><strong>Key Concept — The Hooks vs. Prompts Decision:</strong> A hook is a code-level gate: it either lets the next tool call through or it doesn't, so the ordering it enforces cannot be skipped. A system-prompt instruction is a request the model usually follows — "usually" being the operative word, since nothing stops it from being dropped on some fraction of runs. For workflow steps where a skipped step is a shrug and for steps where a skipped step is a lawsuit, pick accordingly: use a hook for the second kind, and save prompt instructions for cases where you actually want the flexibility to bend the order.</div>
 
 <h3>Structured Handoff Protocols</h3>
 <p>When an agent escalates to a human, it must compile a structured handoff summary including: customer ID, root cause analysis, refund amount, and recommended action. Human agents who receive the escalation lack access to the full conversation transcript, so the handoff must be self-contained.</p>
@@ -3335,7 +3335,7 @@ while (iterations &lt; MAX_ITERATIONS) {
 <li><strong>Dynamic adaptive decomposition:</strong> The agent generates subtasks based on what it discovers at each step. Best for open-ended investigation tasks like "add comprehensive tests to a legacy codebase."</li>
 </ul>
 
-<div class="concept-box"><strong>Key Concept:</strong> For large code reviews, split into <strong>per-file local analysis passes</strong> plus a <strong>separate cross-file integration pass</strong>. This avoids attention dilution when processing many files at once — a critical exam topic.</div>
+<div class="concept-box"><strong>Key Concept:</strong> For large code reviews, split into <strong>per-file local analysis passes</strong> plus a <strong>separate cross-file integration pass</strong>. Reviewing dozens of files in one pass spreads a model's attention too thin to give any single file real scrutiny — a critical exam topic.</div>
 
 <h3>Mnemonic: "LOCAL then GLOBAL"</h3>
 <div class="concept-box"><strong>Our memory aid, not official Anthropic terminology:</strong> Always think <strong>Local first, Global second</strong>. Analyze each file individually (local), then check cross-file interactions (global). This pattern appears in code reviews, testing, and research tasks throughout the exam.</div>
@@ -3393,7 +3393,7 @@ while (iterations &lt; MAX_ITERATIONS) {
 <li><strong>.claude/skills/:</strong> Directory for skills with SKILL.md files supporting frontmatter configuration including <code>context: fork</code>, <code>allowed-tools</code>, and <code>argument-hint</code>.</li>
 <li><strong>Plan mode:</strong> Claude Code first creates a plan for review before executing. Used for complex, multi-file tasks with architectural implications.</li>
 <li><strong>Direct execution:</strong> Claude Code immediately begins making changes. Used for simple, well-scoped tasks.</li>
-<li><strong>-p flag:</strong> The <code>-p</code> (or <code>--print</code>) flag runs Claude Code in non-interactive mode for CI/CD pipelines.</li>
+<li><strong>-p flag:</strong> Puts Claude Code into non-interactive mode — one instruction in, one response out, no prompt loop waiting on you. It's what makes running Claude Code from a CI/CD pipeline possible at all.</li>
 </ul>
 
 <h3>Mnemonic: "UPD" — The CLAUDE.md Hierarchy</h3>
@@ -3451,12 +3451,12 @@ Always test user interactions, not implementation details.</pre>
 <li>Use glob patterns like <code>**/*.test.tsx</code> for all test files, <code>src/api/**/*</code> for API code, <code>terraform/**/*</code> for infrastructure.</li>
 </ul>
 
-<div class="example-box"><strong>Example Exam Question Pattern:</strong> "Test files are spread throughout the codebase next to the code they test. You want consistent testing conventions everywhere. What's the most maintainable approach?" Answer: <code>.claude/rules/</code> with glob patterns, NOT directory-level CLAUDE.md files (which are directory-bound and can't span locations).</div>
+<div class="example-box"><strong>Worked Scenario:</strong> A monorepo runs Terraform files under a dozen different top-level directories — one per service team, none of them named consistently. Every one of those Terraform files needs the same tagging and state-locking conventions, and a new one can show up under any directory at any time. A directory-level CLAUDE.md can't reach across a dozen unrelated locations, and it can't catch a file that lands somewhere nobody set one up. A rule file in <code>.claude/rules/</code> with a glob pattern like <code>paths: ["**/*.tf"]</code> matches by file type instead, so it applies no matter which directory the file lands in — including ones that don't exist yet.</div>
 
 <h3>Plan Mode vs. Direct Execution (Task 3.4)</h3>
 <p>This is a frequently tested decision framework:</p>
 <ul>
-<li><strong>Use plan mode when:</strong> Tasks have architectural implications (microservice restructuring), involve multiple valid approaches (choosing between integration strategies), affect 45+ files (library migrations), or require safe codebase exploration before committing to changes.</li>
+<li><strong>Use plan mode when:</strong> Tasks have architectural implications (microservice restructuring), involve multiple valid approaches (choosing between integration strategies), affect 45+ files (library migrations), or call for looking around the codebase and sketching an approach before any file gets touched.</li>
 <li><strong>Use direct execution when:</strong> Changes are well-understood with clear scope (single-file bug fix, adding a date validation conditional), the approach is obvious and doesn't need exploration.</li>
 <li><strong>Combine both:</strong> Use plan mode for investigation, then switch to direct execution for implementation. Example: plan a library migration first, then execute the planned approach.</li>
 </ul>
@@ -3479,7 +3479,7 @@ Always test user interactions, not implementation details.</pre>
 <h3>CI/CD Integration (Task 3.6)</h3>
 <p>Running Claude Code in automated pipelines requires specific configuration:</p>
 <ul>
-<li><strong><code>-p</code> flag (or <code>--print</code>):</strong> Runs Claude Code in non-interactive mode. It processes the prompt, outputs the result, and exits without waiting for user input. This is the ONLY correct way to run Claude Code in CI.</li>
+<li><strong><code>-p</code> flag (or <code>--print</code>):</strong> This is what switches Claude Code into non-interactive mode: hand it one instruction, it hands back one answer, and the process ends there — no interactive loop hanging around for a reply nobody's going to send. It's the mechanism CI/CD needs, since a pipeline step can't type a keystroke.</li>
 <li><strong><code>--output-format json</code> with <code>--json-schema</code>:</strong> Produces machine-parseable structured output for automated posting as inline PR comments.</li>
 <li><strong>Session context isolation:</strong> The same Claude session that generated code is less effective at reviewing it because it retains reasoning context from generation. Use a separate, independent review instance.</li>
 <li><strong>CLAUDE.md for CI context:</strong> Provide testing standards, fixture conventions, and review criteria in CLAUDE.md so CI-invoked Claude Code has project context.</li>
@@ -3553,7 +3553,7 @@ Always test user interactions, not implementation details.</pre>
 <li>Create 2-4 targeted examples for <strong>ambiguous scenarios</strong> that show reasoning for why one action was chosen over plausible alternatives.</li>
 <li>Include examples that demonstrate specific desired output format (location, issue, severity, suggested fix) to achieve consistency.</li>
 <li>Provide examples distinguishing <strong>acceptable code patterns from genuine issues</strong> to reduce false positives while enabling generalization to novel patterns.</li>
-<li>For extraction tasks, include examples showing correct handling of <strong>varied document structures</strong> (inline citations vs. bibliographies, narrative vs. structured tables).</li>
+<li>For extraction tasks, include examples showing correct handling of <strong>varied document structures</strong> (a scanned invoice with a line-item table vs. a plain-text email confirmation, a PDF with footnoted sources vs. a spreadsheet with no citations at all).</li>
 </ul>
 
 <div class="example-box"><strong>Example:</strong> For a code review tool, include examples showing: (1) A comment mismatch that IS an issue, with reasoning. (2) A comment that's technically imprecise but acceptable, with reasoning for NOT flagging it. (3) A security issue at high severity. This teaches Claude the decision boundary, not just the format.</div>
@@ -3614,7 +3614,7 @@ Always test user interactions, not implementation details.</pre>
 <li><strong>Synchronous:</strong> Blocking workflows — pre-merge checks where developers wait for results, real-time user interactions.</li>
 </ul>
 
-<div class="example-box"><strong>Example Exam Question:</strong> "Your manager wants to move both pre-merge checks and overnight reports to batch for cost savings." Answer: Only move overnight reports to batch. Pre-merge checks are blocking workflows that need real-time responses — batch has no latency guarantee.</div>
+<div class="example-box"><strong>Worked Scenario:</strong> A support team runs two Claude-backed jobs: one drafts a reply to each inbound ticket the moment it arrives, and a separate one re-summarizes the week's closed tickets into a Friday digest for management. Moving both to the Batches API would cut the bill in half — but only one of them can tolerate that. The ticket-reply job blocks a real person waiting on a response right now; the Friday digest doesn't block anyone until Friday. Batch the digest, leave the ticket replies on synchronous calls, and the savings land only where nobody is left waiting on them.</div>
 
 <h3>Mnemonic: "BATCH = Big Async Tasks, Cheap, Hours-Long"</h3>
 <div class="concept-box"><strong>Our memory aid, not official Anthropic terminology:</strong> BATCH processing is: <strong>B</strong>ig volumes, <strong>A</strong>sync (non-blocking), <strong>T</strong>olerant of latency, <strong>C</strong>heap (50% off), <strong>H</strong>ours-long wait with no guaranteed SLA. If ANY of these don't fit, use synchronous.</div>
@@ -3720,7 +3720,7 @@ Always test user interactions, not implementation details.</pre>
 <p>A critical principle: giving an agent too many tools (e.g., 18 instead of 4-5) degrades tool selection reliability. Strategies:</p>
 <ul>
 <li><strong>Scoped tool access:</strong> Give each subagent only the tools needed for its role. A search agent gets search tools. A synthesis agent gets writing tools. Don't cross-pollinate.</li>
-<li><strong>Cross-role tools:</strong> Provide limited, scoped cross-role tools for high-frequency needs. Example: give the synthesis agent a <code>verify_fact</code> tool for simple lookups while routing complex verifications through the coordinator.</li>
+<li><strong>Cross-role tools:</strong> Provide limited, scoped cross-role tools for high-frequency needs. Example: a synthesis agent that needs quick fact checks constantly can be handed a narrow <code>verify_fact</code> tool of its own for exactly that — anything beyond a simple lookup still goes back through the coordinator to whichever agent is built for deeper verification.</li>
 <li><strong>Constrained alternatives:</strong> Replace generic tools with constrained versions. Example: replace <code>fetch_url</code> with <code>load_document</code> that validates document URLs, preventing misuse.</li>
 </ul>
 
@@ -3829,7 +3829,7 @@ Always test user interactions, not implementation details.</pre>
 <li><strong>Escalate on ambiguity:</strong> When policy is ambiguous or silent on the customer's specific request (e.g., competitor price matching when policy only addresses own-site adjustments).</li>
 </ul>
 
-<div class="concept-box"><strong>Key Concept:</strong> Sentiment-based escalation and self-reported confidence scores are <strong>unreliable</strong> proxies for actual case complexity. The agent is already incorrectly confident on hard cases — adding confidence scores doesn't help. Instead, use <strong>explicit escalation criteria with few-shot examples</strong> demonstrating when to escalate vs. resolve.</div>
+<div class="concept-box"><strong>Key Concept:</strong> Two tempting shortcuts for tuning when an agent escalates both fail for the same underlying reason: they ask the model to grade its own difficulty. A frustrated-sounding customer isn't necessarily on a hard case, and a model that's confident enough to answer isn't necessarily right — confidence and correctness come apart exactly on the cases where it matters. Fix miscalibrated escalation by writing down what should trigger it, in concrete terms, and showing a few worked examples of the boundary, rather than asking the agent to self-assess something it has no reliable signal for.</div>
 
 <h3>Mnemonic: "PHIG" — When to Escalate</h3>
 <div class="concept-box"><strong>Our memory aid, not official Anthropic terminology:</strong> <strong>P</strong>erson requests it, <strong>H</strong>ole in policy, <strong>I</strong>mpossible to progress, <strong>G</strong>ray area (ambiguous). If any of these are true, escalate. If none apply, resolve.</div>
@@ -3837,13 +3837,13 @@ Always test user interactions, not implementation details.</pre>
 <h3>Error Propagation in Multi-Agent Systems (Task 5.3)</h3>
 <p>When subagents encounter errors, propagation design determines system resilience:</p>
 <ul>
-<li><strong>Return structured error context:</strong> Include failure type, attempted query, any partial results, and potential alternative approaches. This gives the coordinator enough information for intelligent recovery.</li>
+<li><strong>Return structured error context:</strong> Package what went wrong, what was being tried when it broke, whatever partial output exists so far, and what else could reasonably be tried next. A coordinator handed that much can decide for itself whether to retry, redirect, or move on — a coordinator handed only "it failed" can't.</li>
 <li><strong>Local recovery first:</strong> Subagents should implement local recovery for transient failures (retry with backoff). Only propagate errors they cannot resolve, including what was attempted and partial results.</li>
 <li><strong>Never suppress errors:</strong> Returning empty results as "success" hides failures. Never mark errors as successful — the coordinator needs accurate information.</li>
-<li><strong>Never terminate on single failures:</strong> Don't halt the entire workflow when one subagent fails. The coordinator should proceed with partial results and annotate coverage gaps.</li>
+<li><strong>Never terminate on single failures:</strong> Don't halt the entire workflow when one subagent fails. Let the coordinator finish with whatever came back from the agents that succeeded, and note in the output which areas that one failure left uncovered.</li>
 </ul>
 
-<div class="example-box"><strong>Example:</strong> A web search subagent times out. BAD: Return generic "search unavailable" status. GOOD: Return structured context: {failureType: "timeout", attemptedQuery: "AI in healthcare 2026", partialResults: [...first 3 results before timeout...], alternatives: ["try narrower query", "use cached results"]}. The coordinator can now make an informed recovery decision.</div>
+<div class="example-box"><strong>Example:</strong> A database-lookup subagent hits a connection timeout mid-query. BAD: Return a bare "lookup failed" status and nothing else. GOOD: Return {failureType: "timeout", query: "customer_id=48213", partialRows: [...rows fetched before the connection dropped...], alternatives: ["retry with a shorter timeout window", "fall back to the read replica"]}. The coordinator now has enough to decide whether a retry is worth it or whether to route around the problem entirely.</div>
 
 <h3>Mnemonic: "SPARE" — Error Propagation Protocol</h3>
 <div class="concept-box"><strong>Our memory aid, not official Anthropic terminology:</strong> <strong>S</strong>tructured context, <strong>P</strong>artial results included, <strong>A</strong>lternatives suggested, <strong>R</strong>ecovery attempted locally, <strong>E</strong>scalate only what can't be resolved. Every error should carry enough context for the coordinator to decide: retry, alternative approach, or proceed with partial results.</div>
@@ -3872,8 +3872,8 @@ Always test user interactions, not implementation details.</pre>
 <h3>Information Provenance & Multi-Source Synthesis (Task 5.6)</h3>
 <p>When combining findings from multiple sources, provenance tracking is essential:</p>
 <ul>
-<li><strong>Claim-source mappings:</strong> Require subagents to output structured associations: claim + evidence excerpt + source URL/document name + publication date. The synthesis agent must preserve these through combination.</li>
-<li><strong>Handle conflicting statistics:</strong> When credible sources disagree, annotate conflicts with source attribution rather than arbitrarily selecting one value. Let the coordinator decide how to reconcile.</li>
+<li><strong>Claim-source mappings:</strong> Require subagents to output structured associations tying each claim to where it came from — the supporting excerpt, the document or URL it was pulled from, and when it was published. The synthesis agent must preserve these through combination.</li>
+<li><strong>Handle conflicting statistics:</strong> When credible sources disagree, keep both numbers and note which source each came from instead of picking a winner yourself. Let the coordinator decide how to reconcile.</li>
 <li><strong>Temporal data:</strong> Require publication/collection dates in structured outputs to prevent temporal differences from being misinterpreted as contradictions.</li>
 <li><strong>Coverage gap reporting:</strong> Structure synthesis output with annotations indicating which findings are well-supported vs. which topic areas have gaps due to unavailable sources.</li>
 </ul>
