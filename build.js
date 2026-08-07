@@ -9,6 +9,8 @@
  * Run:  node build.js
  *
  * Idempotent — safe to run multiple times.
+ *
+ * Last content update: 2026-08-06 — MR question format copy
  */
 
 'use strict';
