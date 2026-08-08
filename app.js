@@ -211,6 +211,24 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   } catch(e) {}
 
+  // Restore the guest "create a free account to unlock your purchase" banner
+  // across reloads — see the anonymous-branch ?paid=true handling and
+  // PENDING_PURCHASE_KEY. Runs before Firebase loads, same as the
+  // manual-review restore above. Guarded explicitly against
+  // PAYMENT_NEEDS_REVIEW_KEY so precedence holds regardless of block order: a
+  // payment that failed to match must keep showing "don't pay again," never
+  // "create an account."
+  try {
+    if (localStorage.getItem(PENDING_PURCHASE_KEY) === '1' && localStorage.getItem(PAYMENT_NEEDS_REVIEW_KEY) !== '1') {
+      window.__pendingPurchaseShown = true;
+      const banner = document.getElementById('success-banner');
+      if (banner) {
+        banner.innerHTML = pendingPurchaseMsg();
+        banner.style.display = 'block';
+      }
+    }
+  } catch(e) {}
+
   function loadFirebase() {
   (async function() {
   try {
@@ -648,11 +666,11 @@ function initAuthListener() {
       const anonParams = new URLSearchParams(window.location.search);
       if (anonParams.get('paid') === 'true') {
         window.history.replaceState({}, '', window.location.pathname);
+        window.__pendingPurchaseShown = true;
+        try { localStorage.setItem(PENDING_PURCHASE_KEY, '1'); } catch(e) {}
         const banner = document.getElementById('success-banner');
         if (banner) {
-          banner.innerHTML = 'Payment received! Create a free account using <strong>the same email you checked out with</strong> to unlock your purchase. ' +
-            '<button onclick="openAuthModal(\'signup\')" style="margin-left:8px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px">Create my account</button>' +
-            '<button onclick="document.getElementById(\'success-banner\').style.display=\'none\'" style="margin-left:16px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px">Dismiss</button>';
+          banner.innerHTML = pendingPurchaseMsg();
           banner.style.display = 'block';
         }
       }
@@ -1247,9 +1265,26 @@ async function maybeFireExamPurchaseEvent(user) {
 // the checkout CTA. Cleared again the moment enrollment is ever confirmed,
 // by markEnrolled below.
 const PAYMENT_NEEDS_REVIEW_KEY = 'cca_payment_needs_review';
+const PENDING_PURCHASE_KEY = 'cca_pending_purchase';
 
 function paymentDismissBtn() {
   return "<button onclick=\"document.getElementById('success-banner').style.display='none'\" style=\"margin-left:16px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px\">Dismiss</button>";
+}
+
+// Shown once enrollment is confirmed — see markEnrolled. Extracted because it
+// was duplicated in both the manual-review and pending-purchase branches there.
+function paymentSuccessMsg() {
+  return 'Payment successful! Welcome to the Claude Certified Architect course.' + paymentDismissBtn();
+}
+
+// Shown to a guest (no account) returning from Stripe checkout — see the
+// anonymous-branch ?paid=true handling and PENDING_PURCHASE_KEY. Extracted so
+// the boot-time restore and the original guest branch render byte-identical
+// markup instead of duplicating the string.
+function pendingPurchaseMsg() {
+  return 'Payment received! Create a free account using <strong>the same email you checked out with</strong> to unlock your purchase. ' +
+    '<button onclick="openAuthModal(\'signup\')" style="margin-left:8px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px">Create my account</button>' +
+    paymentDismissBtn();
 }
 
 function unmatchedPaymentMsg() {
@@ -1281,13 +1316,33 @@ function markEnrolled(user) {
   // Persist enrollment state so nav-auth.js can show it on static pages
   // without a Firestore round-trip.
   try { localStorage.setItem('cca_enrolled', 'true'); } catch(e) {}
+  let bannerRewritten = false;
   if (window.__paymentNeedsManualReview) {
     window.__paymentNeedsManualReview = false;
     try { localStorage.removeItem(PAYMENT_NEEDS_REVIEW_KEY); } catch(e) {}
     const banner = document.getElementById('success-banner');
     if (banner) {
-      banner.innerHTML = 'Payment successful! Welcome to the Claude Certified Architect course.' + paymentDismissBtn();
+      banner.innerHTML = paymentSuccessMsg();
       banner.style.display = 'block';
+    }
+    bannerRewritten = true;
+  }
+  // Not nested in the manual-review branch above: a guest who was NEVER
+  // flagged for manual review is the normal case, and may still have the
+  // "create an account" banner up (or persisted in localStorage) that needs
+  // to flip to the success message now that enrollment is confirmed. The
+  // bannerRewritten guard stops this from overwriting the manual-review
+  // branch's write if both flags were somehow set in the same call — the key
+  // and flag still clear either way.
+  try { localStorage.removeItem(PENDING_PURCHASE_KEY); } catch(e) {}
+  if (window.__pendingPurchaseShown) {
+    window.__pendingPurchaseShown = false;
+    if (!bannerRewritten) {
+      const banner = document.getElementById('success-banner');
+      if (banner) {
+        banner.innerHTML = paymentSuccessMsg();
+        banner.style.display = 'block';
+      }
     }
   }
   maybeFireExamPurchaseEvent(user);
