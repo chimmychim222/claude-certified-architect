@@ -1405,6 +1405,21 @@ function markEnrolled(user) {
       }
     }
   }
+  // Refresh nav badge + dashboard cards here so enrollment always renders
+  // immediately, regardless of which call site reached us. Two call sites
+  // previously left the UI stale after granting access: the Firestore
+  // fallback (docSnap.data().enrolled, ~line 579) and the webhook-claim path
+  // inside claimPendingEnrollment() (~line 1449) — neither was followed by a
+  // refresh, so an enrolled user could sit on a page still showing FREE/
+  // LOCKED until something else happened to re-render. Both functions are
+  // assignment-only and idempotent (see updateNavUI/updateDashCards), so
+  // calling them here is safe even for callers that already refresh
+  // themselves right after markEnrolled() — the external calls at
+  // onAuthStateChanged (521-523), attemptPendingClaim (1516-1517),
+  // confirmPaymentAndUnlock (1748-1749) and startTest (4126-4127) become
+  // redundant but harmless, and are left in place rather than edited.
+  updateNavUI();
+  updateDashCards();
   maybeFireExamPurchaseEvent(user);
 }
 
