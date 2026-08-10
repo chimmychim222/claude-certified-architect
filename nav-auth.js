@@ -93,6 +93,16 @@
       var app     = defApp || navApp || initializeApp(FIREBASE_CONFIG, 'nav-auth');
       var auth    = getAuth(app);
 
+      // Record which app instance this page ended up using. onAuthStateChanged
+      // below needs this: a null result is only authoritative when it comes from
+      // the [DEFAULT] app (the same instance app.js signs in/out on). A null from
+      // a freshly-created 'nav-auth' app means nothing — that instance has no
+      // persisted session under its own name (Firebase's IndexedDB persistence
+      // key is scoped by app name), so it will report null even when the visitor
+      // has a real, logged-in [DEFAULT] session app.js just hasn't started yet.
+      var appName = app.name;
+      window.__navAuthAppName = appName; // exposed for debugging/inspection only
+
       // Expose signOut for the "Log out" button (set before onAuthStateChanged
       // fires so a quick click on the instant-hint logout button still works).
       window.__navSO = function () {
@@ -107,12 +117,16 @@
 
       // onAuthStateChanged is the authoritative cross-browser auth check.
       // It reads from IndexedDB on Safari/iOS and works where localStorage
-      // persistence would silently fail.
+      // persistence would silently fail. A non-null user is always applied —
+      // it's real regardless of which app instance produced it. A null result
+      // is only trustworthy from the [DEFAULT] app; see appName comment above.
       onAuthStateChanged(auth, function (user) {
         if (user) {
           applyLoggedIn(user.email);
           try { localStorage.setItem(LS_EMAIL, user.email); } catch (e) {}
-        } else {
+        } else if (appName === '[DEFAULT]') {
+          // Authoritative: this is the same app instance app.js signs in/out
+          // on, so null here means the visitor is genuinely not logged in.
           // Clear the hint flags so the next page load shows logged-out state.
           try {
             localStorage.removeItem(LS_EMAIL);
@@ -122,6 +136,9 @@
           // correct it now that we have the authoritative answer.
           applyLoggedOut();
         }
+        // else: appName === 'nav-auth' — a fresh, separately-named app with no
+        // persisted session under that name. This null is not evidence of
+        // logged-out; do nothing and leave whatever the inline hint rendered.
       });
     }).catch(function (e) {
       console.warn('[nav-auth] Firebase load failed:', e);
