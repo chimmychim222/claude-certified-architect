@@ -1836,6 +1836,32 @@ function flagPaymentNeedsReview(banner, msg) {
 // without it, GA4 would log two begin_checkout events for a single click,
 // making the funnel's drop-off numbers look better than reality.
 let checkoutEventSent = false;
+
+// stripe_arrived: fires on pagehide if a Stripe redirect was initiated but
+// the tab is being torn down before we can otherwise confirm the browser
+// actually left for Stripe (ad blocker, dead network, backgrounded tab).
+// Re-armed per redirect attempt inside go(). stripeRedirectWasGuest is
+// captured there too, not read fresh in the handler, because
+// openPaymentModal() re-runs via onAuthStateChanged's pendingCheckout-resume
+// after a logged-out buyer authenticates — currentUser differs between the
+// guest call and the resumed call for the same checkout attempt.
+let stripeRedirectAt = 0;
+let stripeArrivedFired = false;
+let stripeRedirectWasGuest = false;
+
+function onStripePagehide() {
+  if (stripeArrivedFired) return;
+  if (stripeRedirectAt === 0) return;
+  if (Date.now() - stripeRedirectAt > 10000) return;
+  if (typeof gtag === 'undefined') return;
+  stripeArrivedFired = true;
+  gtag('event', 'stripe_arrived', {
+    page_path:      location.pathname,
+    is_guest:       stripeRedirectWasGuest,
+    transport_type: 'beacon',
+  });
+}
+
 function trackCheckoutAndGo(url) {
   // Clear the checkout intent the moment we commit to the Stripe redirect.
   // This ensures that on ANY return path — bfcache restore OR full reload —
@@ -1846,6 +1872,10 @@ function trackCheckoutAndGo(url) {
   const go = () => {
     if (navigated) return;
     navigated = true;
+    stripeRedirectAt = Date.now();
+    stripeArrivedFired = false;
+    stripeRedirectWasGuest = !currentUser;
+    window.addEventListener('pagehide', onStripePagehide, { once: true });
     // Navigate via a real <a> click rather than location.href= so GA4's
     // cross-domain linker (configured for buy.stripe.com/checkout.stripe.com
     // in <head>) can decorate this navigation with its session-stitching
@@ -1861,7 +1891,7 @@ function trackCheckoutAndGo(url) {
   if (checkoutEventSent) { go(); return; }
   checkoutEventSent = true;
   if (typeof gtag !== 'undefined') {
-    gtag('event', 'begin_checkout', { value: 49, currency: 'USD', event_callback: go, event_timeout: 1000 });
+    gtag('event', 'begin_checkout', { value: 49, currency: 'USD', transport_type: 'beacon', event_callback: go, event_timeout: 1000 });
     setTimeout(go, 1000);
   } else {
     go();
