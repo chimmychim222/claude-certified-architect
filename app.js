@@ -399,30 +399,60 @@ function updateNavUI() {
   const loggedOut = document.getElementById('nav-logged-out');
   const loggedIn = document.getElementById('nav-logged-in');
   // Pages without the full site nav (e.g. /diagnostic/, which only loads
-  // app.js for its checkout/auth modal) don't have these elements — nothing
-  // to update there.
-  if (!loggedOut || !loggedIn) return;
-  if (currentUser) {
-    loggedOut.style.display = 'none';
-    loggedIn.style.display = 'flex';
-    document.getElementById('nav-user-email').textContent = currentUser.email;
-    const badge = document.getElementById('nav-user-badge');
-    if (enrolled) {
-      badge.textContent = 'ENROLLED';
-      badge.className = 'user-badge enrolled';
+  // app.js for its checkout/auth modal) don't have these elements. Guarded
+  // here, not with an early return, so the Lessons/Progress and mobile-dropdown
+  // blocks below still run on a page that has some but not all of this markup.
+  if (loggedOut && loggedIn) {
+    if (currentUser) {
+      loggedOut.style.display = 'none';
+      loggedIn.style.display = 'flex';
+      document.getElementById('nav-user-email').textContent = currentUser.email;
+      const badge = document.getElementById('nav-user-badge');
+      if (enrolled) {
+        badge.textContent = 'ENROLLED';
+        badge.className = 'user-badge enrolled';
+      } else {
+        badge.textContent = 'FREE';
+        badge.className = 'user-badge free';
+      }
     } else {
-      badge.textContent = 'FREE';
-      badge.className = 'user-badge free';
+      loggedOut.style.display = 'flex';
+      loggedIn.style.display = 'none';
     }
-  } else {
-    loggedOut.style.display = 'flex';
-    loggedIn.style.display = 'none';
   }
   // Lessons and Progress nav links are enrolled-only — hide from public nav.
   const lessonsLink  = document.getElementById('nav-lessons-link');
   const progressLink = document.getElementById('nav-progress-link');
   if (lessonsLink)  lessonsLink.style.display  = (currentUser && enrolled) ? '' : 'none';
   if (progressLink) progressLink.style.display = (currentUser && enrolled) ? '' : 'none';
+
+  // Mobile-dropdown equivalent of the desktop cluster above. #mobile-nav-user
+  // lives inside #nav-links (see index.html), unlike #nav-logged-in/out, so
+  // it needs its own guard, independent of the loggedOut/loggedIn check above:
+  // each element is null-checked individually, so this runs (and safely
+  // no-ops) even on a page that has neither, only one, or all of this markup.
+  const mobileLogin  = document.getElementById('mobile-nav-login');
+  const mobileSignup = document.getElementById('mobile-nav-signup');
+  const mobileUser   = document.getElementById('mobile-nav-user');
+  if (mobileLogin)  mobileLogin.style.display  = currentUser ? 'none' : '';
+  if (mobileSignup) mobileSignup.style.display = currentUser ? 'none' : '';
+  if (mobileUser) {
+    mobileUser.classList.toggle('nav-signed-in', !!currentUser);
+    if (currentUser) {
+      const mobileEmail = document.getElementById('mobile-nav-user-email');
+      if (mobileEmail) mobileEmail.textContent = currentUser.email;
+      const mobileBadge = document.getElementById('mobile-nav-user-badge');
+      if (mobileBadge) {
+        if (enrolled) {
+          mobileBadge.textContent = 'ENROLLED';
+          mobileBadge.className = 'user-badge enrolled';
+        } else {
+          mobileBadge.textContent = 'FREE';
+          mobileBadge.className = 'user-badge free';
+        }
+      }
+    }
+  }
 }
 
 // Listen for auth state changes
