@@ -104,6 +104,13 @@ const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/cNi28k2GE7LngeRcc03ks00';
 // onAuthStateChanged automatically re-checks (and claims) the pending
 // enrollment with the now-verified token — no extra wiring needed.
 const VERIFY_ACTION_CODE_SETTINGS = { url: 'https://www.claudecertifiedarchitects.com/', handleCodeInApp: false };
+// Same as above but with ?claim=1 appended — used when submitAuth detects a
+// likely pending purchase for this signup (see mayHavePendingPurchase there)
+// and unconditionally by the "Resend verification email" button in
+// showPendingVerificationBanner, which by definition only shows once a
+// pending purchase is already confirmed server-side. Both want the
+// verification link's landing page to auto-attempt claiming it.
+const VERIFY_ACTION_CODE_SETTINGS_CLAIM = Object.assign({}, VERIFY_ACTION_CODE_SETTINGS, { url: VERIFY_ACTION_CODE_SETTINGS.url + '?claim=1' });
 
 // Initialize Firebase
 let firebaseReady = false;
@@ -190,6 +197,24 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
       if (new URLSearchParams(window.location.search).get('signup') === 'true') {
         window.__pendingSignup = true;
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    } catch(e) {}
+  })();
+
+  // Capture ?claim=1 synchronously — same pattern as ?checkout=/?login=/
+  // ?signup= above. Arrives via the email-verification continueUrl (see
+  // VERIFY_ACTION_CODE_SETTINGS_CLAIM / submitAuth's mayHavePendingPurchase
+  // check, and the resend button in showPendingVerificationBanner) — this
+  // account may have a pending_enrollments record waiting on email
+  // verification. Consumed once auth state resolves and a user is present
+  // (onAuthStateChanged below). No sessionStorage mirror needed, unlike
+  // __pendingCheckout — this is consumed on the same page load it lands on,
+  // not across a later reload.
+  (function() {
+    try {
+      if (new URLSearchParams(window.location.search).get('claim') === '1') {
+        window.__pendingClaim = true;
         window.history.replaceState({}, '', window.location.pathname);
       }
     } catch(e) {}
@@ -498,6 +523,19 @@ function initAuthListener() {
           updateDashCards();
         }
       } catch(e) { console.warn('[Auth] Token refresh error:', e.message); }
+
+      // ?claim=1 — this account may have a pending_enrollments record
+      // waiting on email verification (see the capture above). Attempt it
+      // automatically now that this is a fresh sign-in following the
+      // verification link. Silent on failure (no pending record, still
+      // unverified, network error) — the banner / "I've verified" button
+      // stays the visible fallback either way.
+      if (window.__pendingClaim) {
+        window.__pendingClaim = false;
+        if (!enrolled) {
+          try { await attemptPendingClaim(user); } catch (e) {}
+        }
+      }
 
       // "Enroll Now" while signed out opens this auth modal instead of going
       // straight to Stripe (see openPaymentModal) and sets __pendingCheckout
@@ -1057,9 +1095,25 @@ async function submitAuth() {
       // verification email" button in showPendingVerificationBanner — used to
       // claim an *existing* purchase, not start a new one — stays on the plain
       // URL and never re-enters checkout.
+      // Carry a claim signal through the verification link's continueUrl only
+      // when THIS browser has local evidence of an unclaimed Stripe purchase
+      // for a logged-out visitor (window.__pendingPurchaseShown /
+      // PENDING_PURCHASE_KEY — set only by the ?paid=true anonymous-return
+      // path, see the DOMContentLoaded restore block and the anonParams
+      // handling in onAuthStateChanged). Narrower than "every signup": a free
+      // diagnostic signup with no Stripe visit never carries this, so it
+      // never causes a landing-time hit to /claim-enrollment (unrate-limited).
+      // A buyer with no local trace of their purchase (different browser/
+      // session) still gets served correctly — see the visibilitychange
+      // listener in showPendingVerificationBanner, which keys off
+      // window.__pendingVerification, not this param.
+      const mayHavePendingPurchase = window.__pendingPurchaseShown ||
+        (function() { try { return localStorage.getItem(PENDING_PURCHASE_KEY) === '1'; } catch(e) { return false; } }());
       const verifySettings = wasPendingCheckout
         ? Object.assign({}, VERIFY_ACTION_CODE_SETTINGS, { url: VERIFY_ACTION_CODE_SETTINGS.url + '?checkout=resume' })
-        : VERIFY_ACTION_CODE_SETTINGS;
+        : mayHavePendingPurchase
+          ? VERIFY_ACTION_CODE_SETTINGS_CLAIM
+          : VERIFY_ACTION_CODE_SETTINGS;
       fbAuth.sendEmailVerification(cred.user, verifySettings).catch(e => {
         console.warn('Verification email failed:', e.message);
         window.__verificationSendFailed = true;
@@ -1316,6 +1370,12 @@ function markEnrolled(user) {
   // Persist enrollment state so nav-auth.js can show it on static pages
   // without a Firestore round-trip.
   try { localStorage.setItem('cca_enrolled', 'true'); } catch(e) {}
+  // Not nested in the manual-review branch below — a guest who was never
+  // flagged for manual review is the normal case, and the visibilitychange
+  // listener (see attemptPendingClaim) needs this cleared the moment
+  // enrollment is actually confirmed, or it keeps re-attempting the claim
+  // forever.
+  window.__pendingVerification = false;
   let bannerRewritten = false;
   if (window.__paymentNeedsManualReview) {
     window.__paymentNeedsManualReview = false;
@@ -1433,6 +1493,38 @@ function renderAuthWelcome(pendingUnverified) {
   panel.style.display = 'block';
 }
 
+// Extracted from unlock-now-btn's click handler below. Also used by the
+// ?claim=1 landing path (onAuthStateChanged) and the visibilitychange
+// listener below so all three trigger the identical unlock sequence.
+// opts.navigate (default true) lets the caller skip showSection('dashboard')
+// — the visibilitychange listener passes navigate:false since it can fire
+// while the user is mid-read on a different section; the button and the
+// ?claim=1 landing both want the original unconditional-navigate behavior
+// and pass nothing. Deliberately does NOT touch button-specific UI (disabled
+// state, textContent, statusEl) — those stay in the click handler, the only
+// caller that renders a status message on failure. fbAuth.reload/getIdToken
+// CAN throw (network failure) and are left uncaught here, same as before
+// this was extracted — callers that must stay silent on failure (?claim=1
+// landing, visibilitychange) wrap this call in their own try/catch.
+async function attemptPendingClaim(user, opts) {
+  const navigate = !opts || opts.navigate !== false;
+  await fbAuth.reload(user);
+  await fbAuth.getIdToken(user, true);
+  const claim = await claimPendingEnrollment(user);
+  if (claim.enrolled) {
+    markEnrolled(user);
+    updateNavUI();
+    updateDashCards();
+    if (navigate) showSection('dashboard');
+    const banner = document.getElementById('success-banner');
+    if (banner) {
+      banner.innerHTML = paymentSuccessMsg();
+      banner.style.display = 'block';
+    }
+  }
+  return claim;
+}
+
 // Shown when a pending Stripe purchase exists for this account's email but
 // the account hasn't verified ownership of that inbox yet. This is the
 // user-facing side of the email_verified gate in /claim-enrollment: without
@@ -1441,6 +1533,7 @@ function renderAuthWelcome(pendingUnverified) {
 function showPendingVerificationBanner(user) {
   const banner = document.getElementById('success-banner');
   if (!banner || !user) return;
+  window.__pendingVerification = true;
   const email = user.email || 'your email address';
   const btn = "style=\"margin-left:8px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px\"";
   const dismissBtn = "<button onclick=\"document.getElementById('success-banner').style.display='none'\" style=\"margin-left:16px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px\">Dismiss</button>";
@@ -1486,34 +1579,17 @@ function showPendingVerificationBanner(user) {
       unlockBtn.textContent = 'Checking…';
       if (statusEl) statusEl.textContent = '';
       try {
-        await fbAuth.reload(user);
-        await fbAuth.getIdToken(user, true);
-        const claim = await claimPendingEnrollment(user);
+        const claim = await attemptPendingClaim(user);
         if (claim.enrolled) {
-          markEnrolled(user);
-          updateNavUI();
-          updateDashCards();
-          showSection('dashboard');
-          banner.innerHTML = 'Payment successful! Welcome to the Claude Certified Architect course.' + dismissBtn;
-          banner.style.display = 'block';
           return;
         }
         if (statusEl) {
-          // The previous "contact support" copy pointed nowhere — there is no
-          // support email, contact form, or other channel anywhere on this
-          // site (verified by audit). For someone who genuinely paid, that
-          // dead end is the difference between "minor friction" and "I paid
-          // $49 and have no way to ever get help." The single most likely
-          // real cause when a verified account finds no pending record is an
-          // email mismatch between checkout and sign-up (pending records are
-          // looked up by exact, lowercased email — see claimPendingEnrollment/
-          // /claim-enrollment) — so name that directly and give a concrete,
-          // self-serve next step instead of a channel that doesn't exist.
           statusEl.textContent = (claim.reason === 'unverified_email')
             ? "Still showing as unverified — make sure you clicked the link in the email (check spam too), then try again."
             : "No pending purchase matches " + (user.email || 'this account') + ". This usually means you checked out with a " +
               "different email address. Try logging out and creating (or logging into) an account using the exact email " +
-              "address you entered at Stripe checkout — that's the email your purchase is linked to.";
+              "address you entered at Stripe checkout — that's the email your purchase is linked to. Still stuck? Email " +
+              "support@claudecertifiedarchitects.com with your payment receipt and we'll sort it out manually.";
         }
       } catch (e) {
         console.warn('[Enrollment] manual unlock check failed:', e.message);
@@ -1531,7 +1607,7 @@ function showPendingVerificationBanner(user) {
     resendBtn.onclick = () => {
       resendBtn.disabled = true;
       resendBtn.textContent = 'Sending…';
-      fbAuth.sendEmailVerification(user, VERIFY_ACTION_CODE_SETTINGS)
+      fbAuth.sendEmailVerification(user, VERIFY_ACTION_CODE_SETTINGS_CLAIM)
         .then(() => {
           window.__verificationSendFailed = false;
           resendBtn.textContent = 'Sent — check your inbox';
@@ -1546,6 +1622,30 @@ function showPendingVerificationBanner(user) {
     };
   }
 }
+
+// The verification link opens the OS default browser, which may not be the
+// browser/tab holding this session (observed live). The ?claim=1 landing
+// path above only covers coming back on the same tab; this covers verifying
+// in a different tab of the same browser and switching back to this one.
+// Debounced with a single in-flight boolean — no retry loop. Silent on
+// failure, same as the ?claim=1 path: the banner / button stays the visible
+// fallback. navigate:false — this can fire while the user is mid-read on a
+// different section; only the button and the ?claim=1 landing jump to the
+// dashboard.
+let _pendingClaimAttemptInFlight = false;
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState !== 'visible') return;
+  if (!window.__pendingVerification) return;
+  if (_pendingClaimAttemptInFlight) return;
+  if (!currentUser) return;
+  _pendingClaimAttemptInFlight = true;
+  try {
+    await attemptPendingClaim(currentUser, { navigate: false });
+  } catch (e) {
+  } finally {
+    _pendingClaimAttemptInFlight = false;
+  }
+});
 
 // Shown when claimPendingEnrollment() finds and applies a pending purchase
 // during a plain sign-in — the cross-browser/new-device case where the buyer
