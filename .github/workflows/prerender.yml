@@ -2,11 +2,40 @@
 #
 # Why: this workflow propagated corrupted content into blog posts. 7401937 was the
 # damaging commit; b5a91ef ("revert: undo prerender-bot re-poisoning") restored 16 files
-# by hand. The word "re-poisoning" indicates it had happened at least once before.
+# by hand. The word "re-poisoning" indicates it had happened at least once before, and
+# it had — see the two-workflow note below.
 #
-# The root cause was never diagnosed. No commit fixes build.js, and this workflow's last
-# run succeeded, so the same code that produced the corruption is still on disk. Turning
-# the workflow off stopped it happening unattended; it did not fix anything.
+# CORRECTED 2026-08-15. The two paragraphs previously here said "the root cause was never
+# diagnosed" and "no commit fixes build.js". BOTH ARE WRONG, and 2a2b68f — committed
+# 2026-07-09 15:03 UTC, five hours after the second poisoning and a month before those
+# lines were written in 0f326b2 — is the proof.
+#
+# Root cause, identified and fixed at source the same day in 2a2b68f: stale hardcoded
+# exam-format strings in build.js itself, in schema.json, and in 15 posts/*.json. build.js
+# asserted an all-multiple-choice exam and a $99 fee. The morning of 2026-07-09, exam-fact
+# corrections were hand-applied to the built HTML (5fc968f and six follow-ups); the build
+# then regenerated those pages from its own stale strings and put the old claims back.
+# This is the documented "a build discards hand edits not backed by source" behaviour,
+# not mysterious corruption. 2a2b68f touches build.js (16 lines), schema.json and 15
+# post JSONs to bring source into line with the corrected content.
+#
+# WHAT IS STILL UNVERIFIED, AND IT IS THE LIVE REASON FOR THE QUARANTINE: whether that
+# re-sync was exhaustive. 2a2b68f fixed 17 files. Nobody has checked that the remaining
+# source data agrees with the live site, and the inventory of hand-edits to built HTML
+# with no JSON backing is explicitly incomplete (71b289c is a confirmed case). The
+# re-entry test below is therefore a DIFF against live, not a hunt for an unknown defect.
+#
+# TWO WORKFLOWS WERE DISABLED ON 2026-07-09, NOT ONE, AND BOTH RAN node build.js.
+# auto-blog.yml ("Auto-publish blog post", id 289089528, Mon/Thu 09:00 UTC) caused the
+# FIRST poisoning at 11:57 UTC (1cfc0fa) and was disabled at 12:15 UTC; this workflow
+# caused the second at 13:07 UTC (7401937) and was disabled at 13:30 UTC. Both were
+# switched off in the GitHub UI with no commit, so neither file records its own state.
+# Both also run scripts/indexnow-submit.js, which is why IndexNow submissions stopped.
+#
+# auto-blog.yml has a SECOND, INDEPENDENT BLOCKER and must not be re-enabled alongside
+# this one: it publishes LLM-generated posts unreviewed, and one was fabricated (deleted
+# in e4fe85a). Its generator was repaired in 9230729 on 2026-08-03, which has never run
+# in CI. Re-enabling this workflow does not clear that one.
 #
 # Consequence: posts/*.json is the source and blog/<slug>/index.html is what a visitor
 # loads, so publishing normally depends on this build. With it off, articles are
