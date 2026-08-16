@@ -3617,7 +3617,7 @@ while (iterations &lt; MAX_ITERATIONS) {
 <h3>Key Definitions</h3>
 <ul>
 <li><strong>CLAUDE.md:</strong> The primary configuration file for Claude Code that acts as persistent global context loaded into every conversation. Functions like a "tech lead" defining coding conventions and project knowledge.</li>
-<li><strong>@import:</strong> Syntax within CLAUDE.md for referencing external files to keep configuration modular (e.g., importing specific standards files relevant to each package).</li>
+<li><strong>@ path imports:</strong> Syntax within CLAUDE.md for referencing external files to keep configuration modular — an <code>@</code> followed by the file path (e.g., importing specific standards files relevant to each package).</li>
 <li><strong>.claude/rules/:</strong> Directory for topic-specific rule files as an alternative to a monolithic CLAUDE.md. Supports YAML frontmatter with <code>paths</code> fields for conditional rule activation.</li>
 <li><strong>.claude/commands/:</strong> Project-scoped directory for custom slash commands, shared via version control.</li>
 <li><strong>.claude/skills/:</strong> Directory for skills with SKILL.md files supporting frontmatter configuration including <code>context: fork</code>, <code>allowed-tools</code>, and <code>argument-hint</code>.</li>
@@ -3638,7 +3638,7 @@ while (iterations &lt; MAX_ITERATIONS) {
 <ul>
 <li>User-level settings (<code>~/.claude/CLAUDE.md</code>) apply only to that user and are NOT shared with teammates via version control.</li>
 <li>Project-level (<code>CLAUDE.md</code> or <code>.claude/CLAUDE.md</code> in root) is shared across the team.</li>
-<li>Use <strong><code>@import</code></strong> to reference external files and keep CLAUDE.md modular. Example: <code>@import standards/api-conventions.md</code> in a package-specific CLAUDE.md.</li>
+<li>Use an <strong><code>@</code> followed by the path</strong> to reference external files and keep CLAUDE.md modular. Example: <code>@standards/api-conventions.md</code> in a package-specific CLAUDE.md.</li>
 <li>Use <strong><code>.claude/rules/</code></strong> directory for topic-specific rule files (e.g., <code>testing.md</code>, <code>api-conventions.md</code>, <code>deployment.md</code>) as an alternative to one large CLAUDE.md.</li>
 </ul>
 
