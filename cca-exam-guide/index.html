@@ -230,12 +230,12 @@ footer a:hover{color:var(--accent-text)}
     <h3>Sample Question — Agentic Architecture &amp; Orchestration</h3>
     <p>An orchestrator agent spawns four subagents in parallel to process different sections of a large document. One subagent encounters a permission error on a file system tool and halts. What is the correct response from the orchestrator?</p>
     <ul>
-      <li>A. Immediately terminate all remaining subagents and return a top-level error to the user</li>
-      <li>B. Ignore the failed subagent and silently return results from the three successful ones</li>
+      <li>A. Reassign the failed section to one of the three subagents that completed successfully, since their file system access is evidently working</li>
+      <li>B. Have the failed subagent write its own error into the shared document context so the other subagents can route around it</li>
       <li>C. Surface the partial failure to the user, return results from successful subagents, and request clarification before retrying</li>
-      <li>D. Automatically retry the failed subagent with elevated permissions to resolve the error autonomously</li>
+      <li>D. Grant the subagent broader file system permissions and re-run it so the job finishes without interrupting the user</li>
     </ul>
-    <p><strong>Correct answer: C.</strong> The minimal-footprint and human-in-the-loop principles require permission errors to be surfaced to the user rather than resolved autonomously. Escalating permissions (D) violates minimal-footprint. Silently returning incomplete results (B) is deceptive. Terminating everything (A) is unnecessarily destructive when most of the task already succeeded.</p>
+    <p><strong>Correct answer: C.</strong> A permission error is not a transient failure, so retrying it unchanged does not resolve it, and the published exam guide treats escalation as the right move when an agent cannot progress on its own. Widening the subagent’s permissions has the agent grant itself a capability it was never given. Reassigning the section to a subagent that happens to be working retries an error that fails the same way. Letting the failed subagent post its error into shared context bypasses the coordinator, which in a hub-and-spoke design owns error handling and information routing.</p>
     <p>That's one of 400 scenario-based questions across all five domains in our <a href="/cca-practice-questions/">CCA practice questions</a> bank — work through the rest to build the pattern recognition the real exam rewards.</p>
 
     <h2>Study Timeline</h2>

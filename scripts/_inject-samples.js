@@ -51,10 +51,10 @@ const QS = [
     domain: 'Agentic Architecture &amp; Orchestration (27%)',
     q: 'A coding agent calls tools inside a loop. A developer needs to decide when to terminate the loop. Which is the correct, robust termination signal?',
     opts: [
-      'Stop when the assistant’s text no longer contains a completion word like “done.”',
-      'Stop after a fixed maximum of 10 iterations, regardless of state.',
+      'Scan each assistant message for a completion phrase such as “done” or “task complete” and stop the first time one appears.',
+      'Treat a ceiling of ten iterations as the loop’s primary stopping condition, whatever state the run is in when it is reached.',
       'Keep executing tools and looping while the response’s <code>stop_reason</code> is <code>tool_use</code>; stop when <code>stop_reason</code> is <code>end_turn</code>.',
-      'Stop as soon as any tool returns an error.',
+      'End the loop as soon as any tool returns an error, since a failed call leaves nothing worth appending.',
     ],
     correct: 2,
     explanation: 'The API reports why generation stopped via <code>stop_reason</code>. <code>tool_use</code> means run the tools, append results, and loop back; <code>end_turn</code> means Claude is finished, so the loop ends. Parsing text for completion words is a brittle anti-pattern. A fixed iteration cap is a safety backstop, not the main control. Stopping on the first tool error prevents the agent from recovering.',
@@ -75,13 +75,13 @@ const QS = [
     domain: 'Tool Design &amp; MCP Integration (18%)',
     q: 'You’re designing a tool that queries an external inventory API for an agent. The API sometimes returns “item not found” or rate-limit errors. How should the tool handle these to maximise the agent’s ability to recover?',
     opts: [
-      'Raise an exception that terminates the agent loop so a human can intervene.',
+      'Write the failure to the server’s own error log with a category and a request ID, so operators can see it while the tool returns nothing to the agent.',
       'Return a structured result describing the error (clear message and error type) as the tool result, so Claude can read it and decide how to proceed.',
-      'Return an empty string so Claude assumes there’s no data.',
-      'Retry silently inside the tool until the API eventually succeeds.',
+      'Set the MCP <code>isError</code> flag and pass the provider’s raw exception text through as the message, since the flag already marks the call as failed.',
+      'Retry the call inside the tool on a fixed interval until it succeeds, so the agent only ever sees a completed lookup.',
     ],
     correct: 1,
-    explanation: 'Tool results are fed back to Claude, so a clear structured error lets it retry, try an alternative, or report back. Terminating on every error removes self-correction. An empty string hides the failure and invites hallucination. Silent infinite retries can hang the agent and hammer a rate-limited API.',
+    explanation: 'Tool results are fed back to Claude, so an error the model can actually read is what keeps the loop recoverable. A rate limit is worth waiting out; an item that does not exist never will be, and the agent can only tell those apart if the tool says which it is. A server-side log records the failure for operators and returns nothing the agent can act on. A raw exception dump beside the <code>isError</code> flag says something failed without saying what kind of failure it was or whether a retry has any chance. Retrying on a fixed interval until it succeeds never terminates on a missing item and hammers a rate-limited API.',
   },
 ];
 

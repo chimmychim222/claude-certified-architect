@@ -903,10 +903,10 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
         <span class="sq-domain">Agentic Architecture &amp; Orchestration (27%)</span>
         <p class="sq-question">A coding agent calls tools inside a loop. A developer needs to decide when to terminate the loop. Which is the correct, robust termination signal?</p>
         <ul class="sq-options">
-        <li onclick="selectSampleAnswer(this)"><span class="opt-label">A</span><span class="opt-text">Stop when the assistant’s text no longer contains a completion word like “done.”</span></li>
-        <li onclick="selectSampleAnswer(this)"><span class="opt-label">B</span><span class="opt-text">Stop after a fixed maximum of 10 iterations, regardless of state.</span></li>
+        <li onclick="selectSampleAnswer(this)"><span class="opt-label">A</span><span class="opt-text">Scan each assistant message for a completion phrase such as “done” or “task complete” and stop the first time one appears.</span></li>
+        <li onclick="selectSampleAnswer(this)"><span class="opt-label">B</span><span class="opt-text">Treat a ceiling of ten iterations as the loop’s primary stopping condition, whatever state the run is in when it is reached.</span></li>
         <li class="sq-correct" onclick="selectSampleAnswer(this)"><span class="opt-label">C</span><span class="opt-text">Keep executing tools and looping while the response’s <code>stop_reason</code> is <code>tool_use</code>; stop when <code>stop_reason</code> is <code>end_turn</code>.</span></li>
-        <li onclick="selectSampleAnswer(this)"><span class="opt-label">D</span><span class="opt-text">Stop as soon as any tool returns an error.</span></li>
+        <li onclick="selectSampleAnswer(this)"><span class="opt-label">D</span><span class="opt-text">End the loop as soon as any tool returns an error, since a failed call leaves nothing worth appending.</span></li>
         </ul>
         <button class="sq-toggle" onclick="toggleSampleQ(this)" aria-expanded="false">
           <span class="sq-toggle-text">Show answer</span>
@@ -939,10 +939,10 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
         <span class="sq-domain">Tool Design &amp; MCP Integration (18%)</span>
         <p class="sq-question">You’re designing a tool that queries an external inventory API for an agent. The API sometimes returns “item not found” or rate-limit errors. How should the tool handle these to maximise the agent’s ability to recover?</p>
         <ul class="sq-options">
-        <li onclick="selectSampleAnswer(this)"><span class="opt-label">A</span><span class="opt-text">Raise an exception that terminates the agent loop so a human can intervene.</span></li>
+        <li onclick="selectSampleAnswer(this)"><span class="opt-label">A</span><span class="opt-text">Write the failure to the server’s own error log with a category and a request ID, so operators can see it while the tool returns nothing to the agent.</span></li>
         <li class="sq-correct" onclick="selectSampleAnswer(this)"><span class="opt-label">B</span><span class="opt-text">Return a structured result describing the error (clear message and error type) as the tool result, so Claude can read it and decide how to proceed.</span></li>
-        <li onclick="selectSampleAnswer(this)"><span class="opt-label">C</span><span class="opt-text">Return an empty string so Claude assumes there’s no data.</span></li>
-        <li onclick="selectSampleAnswer(this)"><span class="opt-label">D</span><span class="opt-text">Retry silently inside the tool until the API eventually succeeds.</span></li>
+        <li onclick="selectSampleAnswer(this)"><span class="opt-label">C</span><span class="opt-text">Set the MCP <code>isError</code> flag and pass the provider’s raw exception text through as the message, since the flag already marks the call as failed.</span></li>
+        <li onclick="selectSampleAnswer(this)"><span class="opt-label">D</span><span class="opt-text">Retry the call inside the tool on a fixed interval until it succeeds, so the agent only ever sees a completed lookup.</span></li>
         </ul>
         <button class="sq-toggle" onclick="toggleSampleQ(this)" aria-expanded="false">
           <span class="sq-toggle-text">Show answer</span>
@@ -950,7 +950,7 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
         </button>
         <div class="sq-answer" aria-hidden="true">
           <div class="sq-answer-label">&#x2713;&nbsp;Correct: B</div>
-          <p class="sq-explanation">Tool results are fed back to Claude, so a clear structured error lets it retry, try an alternative, or report back. Terminating on every error removes self-correction. An empty string hides the failure and invites hallucination. Silent infinite retries can hang the agent and hammer a rate-limited API.</p>
+          <p class="sq-explanation">Tool results are fed back to Claude, so an error the model can actually read is what keeps the loop recoverable. A rate limit is worth waiting out; an item that does not exist never will be, and the agent can only tell those apart if the tool says which it is. A server-side log records the failure for operators and returns nothing the agent can act on. A raw exception dump beside the <code>isError</code> flag says something failed without saying what kind of failure it was or whether a retry has any chance. Retrying on a fixed interval until it succeeds never terminates on a missing item and hammers a rate-limited API.</p>
         </div>
       </div>
     </div>
