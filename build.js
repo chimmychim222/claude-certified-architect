@@ -41,22 +41,33 @@ const NAV_END    = '<!-- cca:nav:end -->';
 const NAV_RE     = /<!-- cca:nav:start -->[\s\S]*?<!-- cca:nav:end -->/;
 const NAV_DIV_RE = /<div class="nav-links" id="nav-links">[\s\S]*?<\/div>/;
 
+// Rendered order. The null entry is the group separator: the five product
+// surfaces sit above it, the four information pages below. Home was removed on
+// Aug 22 2026 - the logo is an <a href="/"> on every page and already does that
+// job, and dropping it buys back a slot in a row that cannot wrap.
 const NAV_PAGES = [
-  ['/',                       'Home'          ],
-  ['/cca-foundations-exam/',  'Exam'          ],
+  ['/cca-foundations-exam/',  'Full Mock Exam'],
   ['/?hub=practice-tests',    'Practice Tests'],
   ['/cca-practice-questions/','Question Bank' ],
-  ['/cca-exam-guide/',        'Guide'         ],
   ['/diagnostic/',            'Diagnostic'    ],
   ['/study-plan-generator/',  'Study Plan'    ],
+  null,
+  ['/cca-exam-guide/',        'Guide'         ],
   ['/blog/',                  'Blog'          ],
   ['/faq/',                   'FAQ'           ],
 ];
 
+// Orientation-agnostic hairline. flex-basis 1px sizes it on the MAIN axis while
+// align-self:stretch sizes it on the CROSS axis, so the same element is a
+// vertical rule in the desktop row and a horizontal rule in the <=640px
+// dropdown column - no media query, no per-page CSS to ship.
+const NAV_SEP =
+  '<span class="nav-sep" aria-hidden="true"' +
+  ' style="flex:0 0 1px;align-self:stretch;background:var(--border);margin:4px 6px"></span>';
+
 const OFFICIAL_EXAM_LINK =
   '<a href="/register/"' +
   ' aria-label="Official Claude Certified Architect exam registration on Anthropic\'s site"' +
-  ' style="font-family:-apple-system,system-ui,\'Segoe UI\',sans-serif;padding:5px 10px;border-radius:6px;font-size:.85rem;font-weight:600;color:var(--accent-text);background:transparent;border:1px solid var(--accent-text);transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:4px;white-space:nowrap"' +
   ' onclick="closeNav()">Exam Info</a>';
 
 const REGISTER_CTA_LINK =
@@ -65,7 +76,9 @@ const REGISTER_CTA_LINK =
   ' onclick="closeNav()">Register</a>';
 
 function renderNav(activePage) {
-  const items = NAV_PAGES.map(([href, label]) => {
+  const items = NAV_PAGES.map(entry => {
+    if (!entry) return NAV_SEP;
+    const [href, label] = entry;
     const active = href === activePage ? ' class="active" aria-current="page"' : '';
     return `<a href="${href}" onclick="closeNav()"${active}>${label}</a>`;
   });
@@ -103,7 +116,7 @@ const FOOTER_EL_RE   = /<footer[^>]*>[\s\S]*?<\/footer>/;
 
 const FOOTER_NAV_PAGES = [
   ['/',                       'Home'          ],
-  ['/cca-foundations-exam/',  'Exam'          ],
+  ['/cca-foundations-exam/',  'Full Mock Exam'],
   ['/?hub=practice-tests',    'Practice Tests'],
   ['/cca-practice-questions/','Question Bank' ],
   ['/cca-exam-guide/',        'Guide'         ],
@@ -843,15 +856,7 @@ function blogNav(activePage) {
   <div class="inner">
     ${LOGO_START}${LOGO_HTML}${LOGO_END}
     <div class="nav-links" id="blog-nav-links">
-      ${link('/', 'Home')}
-      ${link('/cca-foundations-exam/', 'Exam')}
-      ${link('/?hub=practice-tests', 'Practice Tests')}
-      ${link('/cca-practice-questions/', 'Question Bank')}
-      ${link('/cca-exam-guide/', 'Guide')}
-      ${link('/diagnostic/', 'Diagnostic')}
-      ${link('/study-plan-generator/', 'Study Plan')}
-      ${link('/blog/', 'Blog')}
-      ${link('/faq/', 'FAQ')}
+      ${NAV_PAGES.map(e => e ? link(e[0], e[1]) : NAV_SEP).join('\n      ')}
       <a href="/register/" aria-label="Official Claude Certified Architect exam registration on Anthropic's site">Exam Info</a>
       <div id="nav-auth-static"><a href="/?login=true" class="nav-auth-login">Log In</a><a href="/?signup=true" class="nav-auth-signup">Sign Up Free</a></div>
       ${NAV_HINT_SCRIPT}

@@ -2104,11 +2104,9 @@ function showSection(id) {
     if (sqSection) sqSection.style.display = 'block';
     document.getElementById('testimonials-section').style.display = 'block';
     document.getElementById('pricing-section').style.display = 'block';
-    document.querySelector('[data-nav="home"]').classList.add('active');
   } else if (id === 'pricing') {
     document.getElementById('testimonials-section').style.display = 'block';
     document.getElementById('pricing-section').style.display = 'block';
-    document.querySelector('[data-nav="home"]').classList.add('active');
     document.getElementById('pricing-section').scrollIntoView({behavior:'smooth'});
   } else if (id === 'dashboard') {
     document.getElementById('dashboard-section').style.display = 'block';
