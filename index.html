@@ -919,20 +919,20 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
       </div>
       <div class="sq-card reveal">
         <span class="sq-domain">Claude Code Configuration &amp; Workflows (20%)</span>
-        <p class="sq-question">A team adds Claude Code to a CI pipeline to auto-review pull requests. The job hangs indefinitely and times out instead of producing output. Which fix resolves it?</p>
+        <p class="sq-question">A team’s codebase-analysis skill returns a long structural report every time it runs. By the third invocation the main session can no longer answer questions about the modules it mapped on the first run, and falls back on generic description of how a service of that kind is usually laid out instead of what this codebase actually contains. Which change addresses the cause?</p>
         <ul class="sq-options">
-        <li onclick="selectSampleAnswer(this)"><span class="opt-label">A</span><span class="opt-text">Set <code>CLAUDE_HEADLESS=true</code>.</span></li>
-        <li class="sq-correct" onclick="selectSampleAnswer(this)"><span class="opt-label">B</span><span class="opt-text">Run <code>claude</code> with the <code>-p</code> (print) flag and pass the prompt as an argument.</span></li>
-        <li onclick="selectSampleAnswer(this)"><span class="opt-label">C</span><span class="opt-text">Add the <code>--batch</code> flag.</span></li>
-        <li onclick="selectSampleAnswer(this)"><span class="opt-label">D</span><span class="opt-text">Redirect stdin from <code>/dev/null</code>.</span></li>
+        <li class="sq-correct" onclick="selectSampleAnswer(this)"><span class="opt-label">A</span><span class="opt-text">Add <code>context: fork</code> to the skill’s <code>SKILL.md</code> frontmatter so it runs in an isolated subagent context and returns only its summary to the main session.</span></li>
+        <li onclick="selectSampleAnswer(this)"><span class="opt-label">B</span><span class="opt-text">Add an instruction to the skill’s <code>SKILL.md</code> body telling it to summarise its findings and keep every report short, so less of it lands in the conversation.</span></li>
+        <li onclick="selectSampleAnswer(this)"><span class="opt-label">C</span><span class="opt-text">Run <code>/compact</code> after each invocation so the accumulated reports are summarised and the session’s token budget is reclaimed before the next run.</span></li>
+        <li onclick="selectSampleAnswer(this)"><span class="opt-label">D</span><span class="opt-text">Move the skill to <code>~/.claude/skills/</code> so it becomes a personal variant and its output is scoped to your own session rather than to the project.</span></li>
         </ul>
         <button class="sq-toggle" onclick="toggleSampleQ(this)" aria-expanded="false">
           <span class="sq-toggle-text">Show answer</span>
           <span class="sq-toggle-arrow" aria-hidden="true">&#x25BE;</span>
         </button>
         <div class="sq-answer" aria-hidden="true">
-          <div class="sq-answer-label">&#x2713;&nbsp;Correct: B</div>
-          <p class="sq-explanation">Without <code>-p</code>, <code>claude</code> starts an interactive session and waits on stdin for input that never comes, so it hangs. The <code>-p</code> / <code>--print</code> flag runs headless: take the prompt, print the result to stdout, exit. <code>CLAUDE_HEADLESS</code> and <code>--batch</code> are not real flags. Redirecting stdin from <code>/dev/null</code> is a hack that doesn’t give the print-and-exit behaviour you actually want.</p>
+          <div class="sq-answer-label">&#x2713;&nbsp;Correct: A</div>
+          <p class="sq-explanation">The skill’s verbose output is accumulating in the main conversation and crowding out what the earlier runs actually found. <code>context: fork</code> runs the skill in an isolated subagent context, so the exploration happens elsewhere and only the result comes back. Telling the skill to be brief relies on the model complying with a length instruction, which does nothing about output that is legitimately long. <code>/compact</code> is a real command and it does reduce context usage, but it acts after the pollution has happened and compresses the specifics along with everything else. Moving the skill to <code>~/.claude/skills/</code> changes who can invoke it, not where its output lands.</p>
         </div>
       </div>
       <div class="sq-card reveal">

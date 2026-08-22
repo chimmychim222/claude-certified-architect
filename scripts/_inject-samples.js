@@ -61,15 +61,15 @@ const QS = [
   },
   {
     domain: 'Claude Code Configuration &amp; Workflows (20%)',
-    q: 'A team adds Claude Code to a CI pipeline to auto-review pull requests. The job hangs indefinitely and times out instead of producing output. Which fix resolves it?',
+    q: 'A team’s codebase-analysis skill returns a long structural report every time it runs. By the third invocation the main session can no longer answer questions about the modules it mapped on the first run, and falls back on generic description of how a service of that kind is usually laid out instead of what this codebase actually contains. Which change addresses the cause?',
     opts: [
-      'Set <code>CLAUDE_HEADLESS=true</code>.',
-      'Run <code>claude</code> with the <code>-p</code> (print) flag and pass the prompt as an argument.',
-      'Add the <code>--batch</code> flag.',
-      'Redirect stdin from <code>/dev/null</code>.',
+      'Add <code>context: fork</code> to the skill’s <code>SKILL.md</code> frontmatter so it runs in an isolated subagent context and returns only its summary to the main session.',
+      'Add an instruction to the skill’s <code>SKILL.md</code> body telling it to summarise its findings and keep every report short, so less of it lands in the conversation.',
+      'Run <code>/compact</code> after each invocation so the accumulated reports are summarised and the session’s token budget is reclaimed before the next run.',
+      'Move the skill to <code>~/.claude/skills/</code> so it becomes a personal variant and its output is scoped to your own session rather than to the project.',
     ],
-    correct: 1,
-    explanation: 'Without <code>-p</code>, <code>claude</code> starts an interactive session and waits on stdin for input that never comes, so it hangs. The <code>-p</code> / <code>--print</code> flag runs headless: take the prompt, print the result to stdout, exit. <code>CLAUDE_HEADLESS</code> and <code>--batch</code> are not real flags. Redirecting stdin from <code>/dev/null</code> is a hack that doesn’t give the print-and-exit behaviour you actually want.',
+    correct: 0,
+    explanation: 'The skill’s verbose output is accumulating in the main conversation and crowding out what the earlier runs actually found. <code>context: fork</code> runs the skill in an isolated subagent context, so the exploration happens elsewhere and only the result comes back. Telling the skill to be brief relies on the model complying with a length instruction, which does nothing about output that is legitimately long. <code>/compact</code> is a real command and it does reduce context usage, but it acts after the pollution has happened and compresses the specifics along with everything else. Moving the skill to <code>~/.claude/skills/</code> changes who can invoke it, not where its output lands.',
   },
   {
     domain: 'Tool Design &amp; MCP Integration (18%)',
@@ -168,7 +168,7 @@ const checks = [
   'Agentic Architecture',
   'Claude Code Configuration',
   'Tool Design',
-  '--print',
+  'context: fork',
   'structured result describing the error',
 ];
 let ok = true;
