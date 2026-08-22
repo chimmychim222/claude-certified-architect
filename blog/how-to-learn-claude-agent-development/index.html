@@ -217,7 +217,7 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 <h3>What to learn</h3>
 <p>Once you can build a basic tool-using agent, you need to learn the patterns that make agents reliable at scale. This is the hardest stage and the one most people under-invest in.</p>
 
-<p><strong>Minimal footprint principle:</strong> Give the agent access to exactly the tools it needs for the task and nothing more. An agent with read access to a database that also has write access will eventually write when it shouldn't. The principle applies to file system access, API permissions, external system access — everything. Design for the minimum capability that completes the task.</p>
+<p><strong>Scoped tool access:</strong> Give the agent access to exactly the tools it needs for the task and nothing more. An agent with read access to a database that also has write access will eventually write when it shouldn't. The principle applies to file system access, API permissions, external system access — everything. Design for the minimum capability that completes the task.</p>
 
 <p><strong>Human-in-the-loop checkpoints:</strong> Not all agent actions are equal. Reading a file, querying a database, drafting an email — these are reversible or have no external effect. Sending the email, executing a payment, modifying production data — these are irreversible or have external effects. Irreversible actions require a human checkpoint before execution. Designing where those checkpoints belong is an architectural decision, not an afterthought.</p>
 
