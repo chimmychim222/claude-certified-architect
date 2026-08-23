@@ -894,6 +894,10 @@ function openAuthModal(mode) {
   // before the form area below takes over.
   var welcomePanel = document.getElementById('auth-welcome');
   if (welcomePanel) welcomePanel.style.display = 'none';
+  // Same reason: a payment-block message left in the modal by showPaymentBlock()
+  // must not sit above the login form the next time this opens.
+  var blockPanel = document.getElementById('payment-block-msg');
+  if (blockPanel) blockPanel.style.display = 'none';
   var submitBtn = document.getElementById('auth-submit-btn');
   if (submitBtn) submitBtn.disabled = false;
   // Clear fields
@@ -941,6 +945,8 @@ function openAuthModalLoading(message) {
   document.getElementById('auth-form-area').style.display = 'none';
   const welcomePanel = document.getElementById('auth-welcome');
   if (welcomePanel) welcomePanel.style.display = 'none';
+  const blockPanel = document.getElementById('payment-block-msg');
+  if (blockPanel) blockPanel.style.display = 'none';
   document.getElementById('auth-loading').style.display = 'block';
   const loadingText = document.getElementById('auth-loading-text');
   if (loadingText) loadingText.textContent = message;
@@ -1355,10 +1361,57 @@ function paymentDismissBtn() {
   return "<button onclick=\"document.getElementById('success-banner').style.display='none'\" style=\"margin-left:16px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px\">Dismiss</button>";
 }
 
+// #success-banner exists in index.html only. /diagnostic/ loads app.js but has
+// no such element, so every `if (banner)` guard in this file silently no-ops
+// there — which is the page the buy button lives on and the page view_offer
+// fires from. This returns something to render payment-block copy into: the
+// banner where there is one, otherwise a panel inside the auth modal, which was
+// ported onto /diagnostic/ verbatim (same ids, same styling, its own close
+// button). Nothing is added to either HTML file — the panel is created here on
+// first use and reused after that.
+function paymentBlockHost() {
+  const banner = document.getElementById('success-banner');
+  if (banner) return banner;
+  const modal = document.getElementById('auth-modal');
+  const shell = modal && modal.querySelector('.modal');
+  if (!shell) return null;
+  let panel = document.getElementById('payment-block-msg');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'payment-block-msg';
+    panel.style.cssText = 'display:none;font-size:.9rem;line-height:1.6;color:var(--text2)';
+    shell.appendChild(panel);
+  }
+  return panel;
+}
+
+// Reveal whatever paymentBlockHost() handed back. For #success-banner this is
+// exactly what every existing call site already does, so behaviour on / is
+// unchanged. For the modal panel it also clears the form, spinner and welcome
+// panels so the message is the only thing showing, and opens the modal.
+function showPaymentBlock(host, title) {
+  if (!host) return;
+  if (host.id === 'success-banner') { host.style.display = 'block'; return; }
+  ['auth-form-area', 'auth-loading', 'auth-welcome', 'auth-error', 'auth-modal-subtitle'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  const titleEl = document.getElementById('auth-modal-title');
+  if (titleEl && title) titleEl.textContent = title;
+  host.style.display = 'block';
+  const modal = document.getElementById('auth-modal');
+  if (modal) modal.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
 // Shown once enrollment is confirmed — see markEnrolled. Extracted because it
 // was duplicated in both the manual-review and pending-purchase branches there.
+function paymentSuccessBody() {
+  return 'Payment successful! Welcome to the Claude Certified Architect course.';
+}
+
 function paymentSuccessMsg() {
-  return 'Payment successful! Welcome to the Claude Certified Architect course.' + paymentDismissBtn();
+  return paymentSuccessBody() + paymentDismissBtn();
 }
 
 // Shown to a guest (no account) returning from Stripe checkout — see the
@@ -1371,10 +1424,17 @@ function pendingPurchaseMsg() {
     paymentDismissBtn();
 }
 
-function unmatchedPaymentMsg() {
+// Body split out from the message so the modal fallback can render the same
+// copy without paymentDismissBtn(), whose onclick hardcodes #success-banner and
+// would throw on a page that has none. / renders byte-identical markup.
+function unmatchedPaymentBody() {
   return "We couldn't automatically match this payment to your account. <strong>Please don't pay again</strong> — " +
     "email <a href=\"mailto:support@claudecertifiedarchitects.com\" style=\"color:var(--green);text-decoration:underline\">support@claudecertifiedarchitects.com</a> " +
-    "with your payment receipt and we'll sort it out manually." + paymentDismissBtn();
+    "with your payment receipt and we'll sort it out manually.";
+}
+
+function unmatchedPaymentMsg() {
+  return unmatchedPaymentBody() + paymentDismissBtn();
 }
 
 // Shown when the post-checkout poll times out before enrollment confirms —
@@ -1561,10 +1621,14 @@ async function attemptPendingClaim(user, opts) {
     updateNavUI();
     updateDashCards();
     if (navigate) showSection('dashboard');
-    const banner = document.getElementById('success-banner');
-    if (banner) {
-      banner.innerHTML = paymentSuccessMsg();
-      banner.style.display = 'block';
+    // Host rather than #success-banner: this is the success end of the
+    // pending-verification flow, and on /diagnostic/ that flow now runs in the
+    // modal (see showPendingVerificationBanner). Without this the unlock button
+    // there would confirm nothing on the one page it was just made to work on.
+    const host = paymentBlockHost();
+    if (host) {
+      host.innerHTML = host.id === 'success-banner' ? paymentSuccessMsg() : paymentSuccessBody();
+      showPaymentBlock(host, 'You are enrolled');
     }
   }
   return claim;
@@ -1576,12 +1640,26 @@ async function attemptPendingClaim(user, opts) {
 // it, legitimate pre-signup purchasers would see their claim silently fail
 // and have no idea why or what to do about it.
 function showPendingVerificationBanner(user) {
-  const banner = document.getElementById('success-banner');
-  if (!banner || !user) return;
+  if (!user) return;
+  // Was `const banner = ...; if (!banner || !user) return;`. #success-banner
+  // exists in index.html only, so on /diagnostic/ this returned immediately and
+  // /pre-checkout's pending_purchase exit rendered nothing at all. The button
+  // wiring below looks its controls up by id, so it runs unchanged in either
+  // host. INTENTIONAL BEHAVIOUR CHANGE: __pendingVerification is now set on the
+  // fallback path too, which arms the visibilitychange auto-claim listener for
+  // /diagnostic/ buyers — without it someone who verifies in another tab never
+  // unlocks, which is a worse outcome than the dead button.
+  const host = paymentBlockHost();
+  if (!host) return;
+  const onBanner = host.id === 'success-banner';
   window.__pendingVerification = true;
   const email = user.email || 'your email address';
   const btn = "style=\"margin-left:8px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px\"";
-  const dismissBtn = "<button onclick=\"document.getElementById('success-banner').style.display='none'\" style=\"margin-left:16px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px\">Dismiss</button>";
+  // Dismiss only in the banner: the modal has its own close button, and this
+  // onclick hardcodes #success-banner.
+  const dismissBtn = onBanner
+    ? "<button onclick=\"document.getElementById('success-banner').style.display='none'\" style=\"margin-left:16px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px\">Dismiss</button>"
+    : '';
   // If the original sendEmailVerification() call (fired at signup) failed,
   // telling this person to "click the link in the email" sends them to wait
   // on a message that was never sent. Lead with the resend action instead so
@@ -1594,13 +1672,13 @@ function showPendingVerificationBanner(user) {
     : 'We found a pending purchase for <strong>' + email + '</strong> — verify your email address to unlock it. ' +
       'Click the link in the verification email, then hit "I&rsquo;ve verified" below — no need to reload the page. ' +
       'Already verified? Just log in again from any browser or device — it&rsquo;ll unlock automatically.';
-  banner.innerHTML =
+  host.innerHTML =
     introMsg +
     ' <button id="unlock-now-btn" ' + btn + '>I&rsquo;ve verified &mdash; unlock now</button>' +
     ' <button id="resend-verify-btn" ' + btn + '>Resend verification email</button>' +
     ' <span id="verify-status-msg" style="display:block;margin-top:6px;font-size:.85rem;opacity:.85"></span>' +
     dismissBtn;
-  banner.style.display = 'block';
+  showPaymentBlock(host, 'Verify your email to unlock');
 
   const statusEl  = document.getElementById('verify-status-msg');
   const unlockBtn = document.getElementById('unlock-now-btn');
@@ -1729,6 +1807,10 @@ async function confirmPaymentAndUnlock(user) {
   if (_confirmingPayment || !user) return;
   _confirmingPayment = true;
 
+  // May be null: #success-banner exists in index.html only, and this function
+  // runs on any page loading app.js that sees ?paid=true — /diagnostic/
+  // included. Every use below is guarded, and flagPaymentNeedsReview()
+  // tolerates null.
   const banner     = document.getElementById('success-banner');
   const dismissBtn = paymentDismissBtn();
   // Cleared in finally whether the poll succeeds, times out, or throws.
@@ -1737,8 +1819,10 @@ async function confirmPaymentAndUnlock(user) {
   try {
     await ensureFirestore();
 
-    banner.innerHTML = 'Payment received — activating your account&hellip; this can take up to 3 minutes on first access.' + dismissBtn;
-    banner.style.display = 'block';
+    if (banner) {
+      banner.innerHTML = 'Payment received — activating your account&hellip; this can take up to 3 minutes on first access.' + dismissBtn;
+      banner.style.display = 'block';
+    }
 
     // 180 s covers a Render cold start (~30–60 s boot) plus full webhook
     // processing time. Median observed delay is ~72 s; worst case ~300 s on
@@ -1750,7 +1834,7 @@ async function confirmPaymentAndUnlock(user) {
     // At the old 75 s threshold, swap to a reassuring mid-wait message so
     // users who see the spinner past one minute don't think something failed.
     midwayUpdate = setTimeout(() => {
-      if (!confirmed && banner.style.display !== 'none') {
+      if (banner && !confirmed && banner.style.display !== 'none') {
         banner.innerHTML = 'Still activating — almost there&hellip; (server may be warming up)' + dismissBtn;
       }
     }, 80000);
@@ -1789,7 +1873,7 @@ async function confirmPaymentAndUnlock(user) {
       // markEnrolled() also (idempotently, durably-guarded) fires the
       // one-time "exam_purchase" conversion event — see maybeFireExamPurchaseEvent.
       markEnrolled(user);
-      banner.innerHTML = 'Payment successful! Welcome to the Claude Certified Architect course.' + dismissBtn;
+      if (banner) banner.innerHTML = 'Payment successful! Welcome to the Claude Certified Architect course.' + dismissBtn;
       updateNavUI();
       updateDashCards();
       showSection('dashboard');
@@ -1821,6 +1905,12 @@ async function confirmPaymentAndUnlock(user) {
 function flagPaymentNeedsReview(banner, msg) {
   window.__paymentNeedsManualReview = true;
   try { localStorage.setItem(PAYMENT_NEEDS_REVIEW_KEY, '1'); } catch(e) {}
+  // banner is null on any page without #success-banner. Both call sites sit in
+  // confirmPaymentAndUnlock's catch block, so the throw was unhandled and took
+  // the rest of that handler with it — after the flag and the localStorage
+  // write above had already landed. That silently and permanently gated the
+  // browser on the one page where the gate then shows nothing.
+  if (!banner) return;
   banner.innerHTML = msg !== undefined ? msg : unmatchedPaymentMsg();
   banner.style.display = 'block';
 }
@@ -1909,6 +1999,16 @@ function openPaymentModal() {
     // making it visible is enough — no scrolling needed. If the visitor is
     // scrolled down, bring them to the top so they actually see it.
     if (banner) banner.style.display = 'block';
+    else {
+      // No banner on this page (/diagnostic/), so the line above no-ops and
+      // this exit rendered nothing at all: the visitor clicked buy and the
+      // button was dead. Same copy in the modal, minus Dismiss.
+      const host = paymentBlockHost();
+      if (host) {
+        host.innerHTML = unmatchedPaymentBody();
+        showPaymentBlock(host, 'Payment already received');
+      }
+    }
     if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'smooth' });
     // This gate has never been sized. banner_shown separates the homepage case
     // from /diagnostic/, where #success-banner does not exist and the guard above
