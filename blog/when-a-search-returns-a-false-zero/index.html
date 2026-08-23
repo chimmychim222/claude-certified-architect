@@ -203,6 +203,8 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 
 <p><strong>And this is where it interacts badly with agents.</strong> I do a lot of this work with a coding agent, and an agent that runs a search and gets no output will tell you, accurately and confidently, that it found no occurrences. It is not wrong about what it observed. It is reporting a zero it has no way to distinguish from a broken detector — and it will report it in a clear declarative sentence that reads exactly like a finding.</p>
 
+<p>This is not a quirk of one tool. Designing systems that can distinguish a real result from a failed instrument is a named competency — the CCAR-F exam's <a href="/blog/cca-study-tips-domain-5-context-management-reliability/">Context Management &amp; Reliability</a> domain covers it directly, down to building a taxonomy that separates transient failures worth retrying from permanent ones that need different handling.</p>
+
 <p>I have written about this before, in a different form: <a href="/blog/coding-agent-summary-not-evidence/">your coding agent's summary of its own work is not evidence</a>. This is the narrower case. <strong>A zero that an agent reports is not evidence of absence. It is evidence that a command produced no output, and those are only the same thing when the command ran.</strong></p>
 
 <h2>The rule, which is one extra line</h2>
@@ -224,6 +226,8 @@ grep -rn -- '--flag-that-remains' .   # the control: expect hits</code></pre>
 
 <p>There is a second half, for when the zero is real but the claim is bigger than the search: <strong>state the property you are claiming, then name the detector that tests that property.</strong> If your detector only tests the specific instance that made you look, you have closed an instance. Say so. Do not write down that the class is closed, because in three weeks somebody — possibly you — will read that sentence and stop looking.</p>
 
+<p>The same distinction matters one level up, in <a href="/blog/agentic-architecture-orchestration-cca-domain-1/">orchestrator and subagent designs</a>: a subagent returning "no results" and a subagent that failed to run are different states, and every extra handoff is one more place that difference can be lost.</p>
+
 <p>And a third, which caught me on a different question the same week: <strong>before attributing a change to a commit, check that the code actually differed.</strong> I had a metric that dropped in a particular week and a new event that appeared in the same week, and the fit was so tight that I built a whole explanation on it. The event was new. The behaviour was not — the file was byte-identical across both periods, and the event had simply started measuring something that had been there for a month. Two blob hashes would have killed it in five minutes. <strong>A new event is not a new behaviour.</strong></p>
 
 <h2>What I actually changed</h2>
@@ -233,6 +237,8 @@ grep -rn -- '--flag-that-remains' .   # the control: expect hits</code></pre>
 <p>The list is worth more than any individual fix on it, because the entries are not really about <code>xargs</code> or <code>git grep</code>. They are about a category of result that looks identical whether it is true or whether the machinery failed — and that category is much larger than six commands. It includes every empty search, every clean test run that did not actually execute, every green check on a job that skipped, and every confident report from an agent that a thing does not exist.</p>
 
 <p>A zero is a measurement. Measurements have instruments. Check the instrument.</p>
+
+<p>If you build production systems with Claude and want to know whether that judgement is exam-ready, our <a href="/diagnostic/">free readiness diagnostic</a> scores you across all five domains in about five minutes, and the <a href="/cca-foundations-exam/">full 60-question exam simulation</a> runs to the 120-minute limit the published guide specifies.</p>
 
 <hr>
 
