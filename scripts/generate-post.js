@@ -50,10 +50,10 @@ Return ONLY a raw JSON object — no markdown fences, no explanation — with ex
   slug        — string, lowercase, hyphens only, URL-safe
   h1          — string, same as or a slightly longer version of title
 
-The title and description must never contain: pass-rate or outcome guarantees, salary or hiring-demand claims, ROI superlatives, any named study framework, mnemonic, acronym, or methodology attributed to the exam that does not appear in Anthropic's official CCA-F exam guide ("SPIDER", "CALM", and "PRECISE" are examples already found fabricated on this site — this is not an exhaustive list), unsourced negative claims about the exam, or any claim that the exam is single-answer multiple choice only.
+The title and description must never contain: pass-rate or outcome guarantees, salary or hiring-demand claims, ROI superlatives, any named study framework, mnemonic, acronym, or methodology attributed to the exam that does not appear in Anthropic's official CCAR-F exam guide ("SPIDER", "CALM", and "PRECISE" are examples already found fabricated on this site — this is not an exhaustive list), unsourced negative claims about the exam, or any claim that the exam is single-answer multiple choice only.
 
 VERIFIED FACTS — these are the only exam facts you may assert. Any other factual claim about the exam must be omitted rather than guessed, inferred, estimated, or reasoned out from context.
-- Exam: Claude Certified Architect – Foundations (CCA-F); official exam code CCAR-F
+- Exam: Claude Certified Architect – Foundations; official exam code CCAR-F (also written CCA-F)
 - Fee: $125 USD
 - Items: 60
 - Time limit: 120 minutes
@@ -111,12 +111,12 @@ Never state or imply any of the following, even as a passing remark or example:
 - Salary figures or hiring-demand claims for CCA-certified professionals
 - ROI superlatives ("massive ROI", "guaranteed return", "in high demand")
 - Testimonials, quotes, or anecdotes from named or unnamed candidates — do not invent people
-- Any named study framework, mnemonic, acronym, or methodology attributed to the exam that does not appear in Anthropic's official CCA-F exam guide. "SPIDER", "CALM", and "PRECISE" are examples already found fabricated on this site — this is not an exhaustive list; only reference material actually defined in the guide
+- Any named study framework, mnemonic, acronym, or methodology attributed to the exam that does not appear in Anthropic's official CCAR-F exam guide. "SPIDER", "CALM", and "PRECISE" are examples already found fabricated on this site — this is not an exhaustive list; only reference material actually defined in the guide
 - Unsourced negative claims about the exam's content or format (e.g. "there are no X questions", "the exam never covers Y")
 - That the exam is single-answer multiple choice only — the official guide states items are multiple-choice AND multiple-response, and each item states how many responses to select
 
 VERIFIED FACTS — these are the only exam facts you may assert. Any other factual claim about the exam must be omitted rather than guessed, inferred, estimated, or reasoned out from context.
-- Exam: Claude Certified Architect – Foundations (CCA-F); official exam code CCAR-F
+- Exam: Claude Certified Architect – Foundations; official exam code CCAR-F (also written CCA-F)
 - Fee: $125 USD
 - Items: 60
 - Time limit: 120 minutes
