@@ -1910,6 +1910,15 @@ function openPaymentModal() {
     // scrolled down, bring them to the top so they actually see it.
     if (banner) banner.style.display = 'block';
     if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'smooth' });
+    // This gate has never been sized. banner_shown separates the homepage case
+    // from /diagnostic/, where #success-banner does not exist and the guard above
+    // no-ops, leaving a completely dead buy button.
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'payment_review_blocked', {
+        banner_shown: !!banner,
+        page_path:    location.pathname,
+      });
+    }
     return;
   }
 
@@ -1945,6 +1954,14 @@ function openPaymentModal() {
   // /diagnostic/, which has no dashboard section) go to the homepage, which
   // will show it.
   if (enrolled) {
+    // Fired before the branch below because the no-dashboard path navigates away;
+    // beacon for the same reason (precedent: stripe_arrived).
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'already_enrolled_click', {
+        page_path:      location.pathname,
+        transport_type: 'beacon',
+      });
+    }
     if (document.getElementById('dashboard-section')) {
       closeAuthModal();
       showSection('dashboard');
@@ -2034,6 +2051,14 @@ function openPaymentModal() {
         // email; sending them to Stripe again would double-charge them.
         // Same "verify to unlock" guidance claimPendingEnrollment's
         // unverified_email path already shows elsewhere, not a new UI.
+        //
+        // Sizes the second invisible block. Unlike the localStorage gate this
+        // one is server-side and account-keyed, so it follows the buyer across
+        // browsers; and on /diagnostic/ showPendingVerificationBanner() returns
+        // immediately (no #success-banner), leaving this exit completely dead.
+        if (typeof gtag !== 'undefined') {
+          gtag('event', 'payment_blocked_pending', { page_path: location.pathname });
+        }
         closeAuthModal();
         showPendingVerificationBanner(currentUser);
       } else if (result.reason === 'recent_session') {
