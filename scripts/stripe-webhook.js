@@ -1549,7 +1549,7 @@ function buildEmail2(results, unsubUrl) {
     '',
     '400 questions exactly like this, across all five exam domains. Every answer includes a full explanation — not just what’s right, but why each wrong option is wrong.',
     '',
-    '$49. 10-day money-back guarantee. No risk.',
+    '$49. 10-day money-back guarantee: if you are not satisfied, email us for a full refund.',
     '',
     `Unlock access:\n${cta}`,
     '',
@@ -1588,7 +1588,7 @@ function buildEmail2(results, unsubUrl) {
     eP('$49 for 400 practice questions is the straightforward hedge. Here’s a taste:') +
     questionBlock +
     eP('400 questions like this, across all five domains. Every answer fully explained — not just what’s right, but why each wrong option is wrong.') +
-    eP('$49. 10-day money-back guarantee. No risk.', 'font-weight:700') +
+    eP('$49. 10-day money-back guarantee: if you are not satisfied, email us for a full refund.', 'font-weight:700') +
     eBtn('Unlock access — $49', cta);
 
   return { subject, text, html: emailWrap(bodyHtml, unsubUrl) };
@@ -1619,7 +1619,7 @@ function buildEmail3(results, unsubUrl) {
     '',
     `If now isn’t the right time, that’s fine. Come back when you’re ready:\n${cta}`,
     '',
-    `If you want to close the gap: $49, 10-day money-back guarantee. Try it for a week — if you don’t feel more confident in ${domain}, get a full refund. No risk.`,
+    `If you want to close the gap: $49, 10-day money-back guarantee. Try it for a week — if you don’t feel more confident in ${domain}, email us within 10 days of purchase for a full refund.`,
     '',
     'Good luck with the exam.',
     '— CCA Practice Platforms',
@@ -1640,7 +1640,7 @@ function buildEmail3(results, unsubUrl) {
     `<div style="background:#f0fdf4;border:1.5px solid #a7f3d0;border-radius:8px;padding:18px 20px;margin:20px 0">` +
     `<p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.88rem;color:#191918;line-height:1.65;margin:0">` +
     `<strong style="color:#1a4d3a">10-day money-back guarantee.</strong> Try the full 400-question bank for a week. ` +
-    `If you don’t feel more confident in ${domain}, get a full refund — no questions asked.</p>` +
+    `If you don’t feel more confident in ${domain}, get a full refund: email us within 10 days of purchase.</p>` +
     `</div>`;
 
   const bodyHtml =
@@ -1648,7 +1648,7 @@ function buildEmail3(results, unsubUrl) {
     eP('The full practice bank is the best thing you can add at this stage: 400 scenario-based questions, domain-weighted exactly like the real exam, every answer fully explained.') +
     riskBlock +
     eP('If now isn’t the right time, come back when you’re ready. Good luck with the exam.') +
-    eBtn('Close the gap — $49, risk-free', cta);
+    eBtn('Close the gap — $49', cta);
 
   return { subject, text, html: emailWrap(bodyHtml, unsubUrl) };
 }
