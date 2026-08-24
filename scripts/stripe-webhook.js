@@ -463,6 +463,13 @@ app.post('/claim-enrollment', async (req, res) => {
 });
 
 // ── Purchase link request ───────────────────────────────────────────────
+// Lifecycle: unreviewed -> linked (a human found the payment and enrolled them)
+// or rejected (no matching payment, or not actionable). Mirrors
+// PENDING_TERMINAL_STATUSES below deliberately rather than inventing a second
+// vocabulary. Terminal states are reached only by a human decision — nothing in
+// the request path writes one, and the route below no longer overwrites one.
+const PURCHASE_LINK_TERMINAL_STATUSES = ['linked', 'rejected'];
+
 // POST /link-purchase-request
 // Header: Authorization: Bearer <Firebase ID token>
 // Body:   { checkoutEmail: string }
@@ -506,19 +513,93 @@ app.post('/link-purchase-request', express.json(), async (req, res) => {
   // one capture that survives a Firestore or Resend failure.
   console.log('PURCHASE_LINK_REQUEST', JSON.stringify({ uid, accountEmail, checkoutEmail }));
 
+  const emailVerified = decoded.email_verified === true;
+  const ref           = db.collection('purchase_link_requests').doc(uid);
+
+  // Read before write, because two decisions below both need the prior state:
+  // whether this record already carries a status a human set, and whether it has
+  // already alerted inside the cooldown window. A read failure leaves both
+  // unknown, and both unknowns resolve the same way — toward writing and toward
+  // alerting, on the same "rather over-report than miss a paid buyer" rule
+  // findStalePendingEnrollments runs on.
+  let prior           = null;
+  let priorReadFailed = false;
+  try {
+    const snap = await ref.get();
+    prior = snap.exists ? snap.data() : null;
+  } catch (err) {
+    priorReadFailed = true;
+    console.warn('[link-request] prior-record read failed, treating as new:', err.message);
+  }
+
+  // STATUS IS WRITTEN ON CREATION ONLY. It used to be set unconditionally under
+  // {merge:true}, so a resubmission silently reset a record a human had already
+  // actioned back to 'unreviewed'. That is 4f1cfa1's terminal-state problem in
+  // the sibling collection, reintroduced here in the commit before it. An
+  // existing value — terminal or not — is now left exactly as the human left it.
+  // A record written before this field existed reads as unreviewed, which is
+  // what it is.
+  //
+  // AND NOT WHEN THE READ FAILED. priorReadFailed means the prior state is
+  // unknown, not absent — treating unknown as new would write 'unreviewed' over
+  // a human's 'linked' and rebuild the whole defect on the error path, where a
+  // clean dataset would never show it. Omitting the field is safe in both
+  // directions: an existing status survives untouched, and a doc created without
+  // one reads as unreviewed everywhere it is consumed.
+  const writeStatus = !priorReadFailed && (!prior || prior.status == null);
+
+  // createdAt IS A DIFFERENT CONDITION FROM writeStatus, AND DELIBERATELY SO.
+  // status is a lifecycle field: a record written before it existed genuinely has
+  // no lifecycle state, so setting it to its true opening value invents nothing.
+  // createdAt is a HISTORICAL FACT. Writing it onto a document that already
+  // exists would stamp "now" onto a record that first appeared weeks ago, which
+  // is a fabricated timestamp, not a backfill. So this is gated on the document
+  // being absent (!prior), not on the field being absent — the one live record
+  // predates this commit and must keep no createdAt rather than acquire a false
+  // one. Nothing sorts or filters on it, so its absence costs visibility nowhere.
+  //
+  // Why it is needed at all: requestedAt is overwritten on every submission and
+  // status is now write-once, so without this nothing records when a record first
+  // appeared, and the admin listing could show an open request without being able
+  // to say whether it is an hour or three weeks old. That is precisely the
+  // distinction 4f1cfa1 inverted the stale window to capture — stranded now
+  // versus stranded long ago — and it would have been blind here.
+  const writeCreatedAt = !priorReadFailed && !prior;
+
+  // PER-DOCUMENT ALERT COOLDOWN, reusing the mechanism sendStaleEnrollmentAlert
+  // already runs on: the same STALE_PENDING_ALERT_COOLDOWN_MS window and the
+  // same lastAlertedAt field. Without it, N submissions against one document
+  // produced N emails into the one channel that has already been trained into
+  // being ignored once. (The constant is declared further down this file;
+  // module evaluation completes long before any request runs.)
+  //
+  // A CHANGED ADDRESS ALWAYS ALERTS. The cooldown suppresses a repeat of the
+  // same claim and never a new one — the write comment below already says a
+  // second, different address is itself a signal, and swallowing a corrected
+  // address would lose the single most useful thing this form collects.
+  const lastAlertedMs =
+    (prior && prior.lastAlertedAt && typeof prior.lastAlertedAt.toMillis === 'function')
+      ? prior.lastAlertedAt.toMillis()
+      : null;
+  const sameClaim   = !!prior && prior.checkoutEmail === checkoutEmail;
+  const inCooldown  = lastAlertedMs !== null &&
+                      lastAlertedMs > Date.now() - STALE_PENDING_ALERT_COOLDOWN_MS;
+  const shouldAlert = priorReadFailed || !sameClaim || !inCooldown;
+
   try {
     // Doc id = uid, so someone who submits twice overwrites their own record
     // instead of adding a second to the queue. attempts still counts the
     // submissions, because a second, different address is itself a signal.
-    await db.collection('purchase_link_requests').doc(uid).set(
+    await ref.set(
       {
         uid,
         accountEmail,
         checkoutEmail,
-        emailVerified: decoded.email_verified === true,
-        status:        'unreviewed',
-        requestedAt:   admin.firestore.FieldValue.serverTimestamp(),
-        attempts:      admin.firestore.FieldValue.increment(1),
+        emailVerified,
+        requestedAt: admin.firestore.FieldValue.serverTimestamp(),
+        attempts:    admin.firestore.FieldValue.increment(1),
+        ...(writeStatus    ? { status:    'unreviewed' } : {}),
+        ...(writeCreatedAt ? { createdAt: admin.firestore.FieldValue.serverTimestamp() } : {}),
       },
       { merge: true }
     );
@@ -529,8 +610,18 @@ app.post('/link-purchase-request', express.json(), async (req, res) => {
     console.error('[link-request] Firestore write failed (still logged):', err.message);
   }
 
-  sendPurchaseLinkAlert({ uid, accountEmail, checkoutEmail })
-    .catch(err => console.error('[link-request] alert failed:', err.message));
+  if (shouldAlert) {
+    // Stamped after the send resolves, the same order checkStalePendingEnrollments
+    // AndAlert uses. sendPurchaseLinkAlert never throws on a delivery failure, so
+    // this stamps on attempt rather than on confirmed delivery — identical to the
+    // stale path, and the console line above is the capture either way.
+    sendPurchaseLinkAlert({ uid, accountEmail, checkoutEmail, emailVerified })
+      .then(() => ref.update({ lastAlertedAt: admin.firestore.FieldValue.serverTimestamp() })
+        .catch(err => console.warn('[link-request] lastAlertedAt update failed for', uid, ':', err.message)))
+      .catch(err => console.error('[link-request] alert failed:', err.message));
+  } else {
+    console.log(`[link-request] alert suppressed (same address, within cooldown): uid=${uid}`);
+  }
 
   return res.json({ ok: true });
 });
@@ -542,7 +633,7 @@ app.post('/link-purchase-request', express.json(), async (req, res) => {
 // digest was refactored underneath it. Same fallback contract as that function:
 // if no channel is configured, or every configured channel fails, the data still
 // lands in the Render log rather than disappearing.
-async function sendPurchaseLinkAlert({ uid, accountEmail, checkoutEmail }) {
+async function sendPurchaseLinkAlert({ uid, accountEmail, checkoutEmail, emailVerified }) {
   const subject = '[CCA] Buyer says they paid under a different email';
   const summary = [
     'Someone signed up and told us they already paid under another address.',
@@ -551,6 +642,10 @@ async function sendPurchaseLinkAlert({ uid, accountEmail, checkoutEmail }) {
     '',
     '  Account email:       ' + (accountEmail || '(none on token)'),
     '  Claimed at checkout: ' + checkoutEmail,
+    // Captured to Firestore since this endpoint shipped and left out of the
+    // message, which is the field that lets a human weigh the claim: an
+    // unverified account is one anybody can create under any address.
+    '  Account verified:    ' + (emailVerified === true ? 'yes' : 'NO — inbox not proven'),
     '  Firebase uid:        ' + uid,
   ].join('\n');
 
@@ -583,6 +678,88 @@ async function sendPurchaseLinkAlert({ uid, accountEmail, checkoutEmail }) {
     console.warn('[link-request] no alert channel delivered — see PURCHASE_LINK_REQUEST above');
   }
 }
+
+// GET /admin/purchase-link-requests
+// Header: x-admin-key: <ADMIN_API_KEY>
+//
+// The read path this collection shipped without. purchase_link_requests was
+// written by the route above and read by NOTHING — one occurrence of the
+// collection name across every tracked file in the repository — so a missed
+// alert email left a paying customer's message invisible outside the Firestore
+// console. pending_enrollments has GET /admin/stale-pending-enrollments; this is
+// its counterpart, on the same ADMIN_API_KEY header, with an unset key returning
+// 401 so the route cannot be hit with an empty or guessable value. Point the
+// same external scheduler at it (see the box above that route).
+//
+// LISTS EVERYTHING, AND THE COOLDOWN NEVER DECIDES VISIBILITY. 4f1cfa1 put its
+// aged bucket below its alert-cooldown guard, so a record alerted that morning
+// fell out of every bucket and vanished from /admin — invisible on a clean
+// dataset and caught only against live data. Nothing here reads lastAlertedAt,
+// and a terminal status changes which list a record lands in, never whether it
+// is listed at all.
+//
+// SENDS NOTHING. Unlike the stale route this is a listing, not a trigger: the
+// alert for this collection fires at submission time, so a scheduler polling
+// here must not be able to re-notify.
+//
+// Reads the whole collection rather than an ordered query on purpose. It holds
+// one document per user who has ever submitted, and an orderBy would silently
+// drop any document missing the sort field — the same "vanished from /admin"
+// failure by a different route. Sorting happens in memory.
+app.get('/admin/purchase-link-requests', async (req, res) => {
+  if (!process.env.ADMIN_API_KEY || req.headers['x-admin-key'] !== process.env.ADMIN_API_KEY) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  try {
+    const snap = await db.collection('purchase_link_requests').get();
+    const rows = snap.docs.map(doc => {
+      const d  = doc.data();
+      const ms = (d.requestedAt && typeof d.requestedAt.toMillis === 'function')
+        ? d.requestedAt.toMillis()
+        : null;
+      // First-seen, reported alongside most-recent as a separate fact. Null for
+      // any record written before this field existed, and null is reported as
+      // null — never inferred from requestedAt, which is overwritten on every
+      // submission and would read as "first seen today" for a three-week-old
+      // request. Nothing filters or sorts on it.
+      const cms = (d.createdAt && typeof d.createdAt.toMillis === 'function')
+        ? d.createdAt.toMillis()
+        : null;
+      return {
+        uid:           doc.id,
+        accountEmail:  d.accountEmail  || null,
+        checkoutEmail: d.checkoutEmail || null,
+        emailVerified: d.emailVerified === true,
+        // Both addresses identical means the visitor named their own account
+        // address. Surfaced rather than filtered: it says more about how the
+        // prompt reads than about the buyer, and it is the shape of the only
+        // submission this endpoint has ever received.
+        sameAddress:   !!d.accountEmail && d.accountEmail === d.checkoutEmail,
+        status:        d.status || 'unreviewed',
+        attempts:      d.attempts || 1,
+        createdAt:     cms === null ? null : new Date(cms).toISOString(),
+        firstSeenHours: cms === null ? null : Math.round((Date.now() - cms) / 3600000),
+        requestedAt:   ms === null ? null : new Date(ms).toISOString(),
+        ageHours:      ms === null ? null : Math.round((Date.now() - ms) / 3600000),
+      };
+    });
+    // Newest first; a missing timestamp sorts last rather than disappearing.
+    rows.sort((a, b) => (b.requestedAt || '').localeCompare(a.requestedAt || ''));
+
+    const open   = rows.filter(r => !PURCHASE_LINK_TERMINAL_STATUSES.includes(r.status));
+    const closed = rows.filter(r =>  PURCHASE_LINK_TERMINAL_STATUSES.includes(r.status));
+    return res.json({
+      ok:          true,
+      count:       open.length,
+      open,
+      closedCount: closed.length,
+      closed,
+    });
+  } catch (err) {
+    console.error('[link-request] admin listing failed:', err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
 
 // ── Pre-checkout enrollment guard ────────────────────────────────────────────
 // POST /pre-checkout
