@@ -1240,14 +1240,31 @@ app.get('/', (req, res) => res.send('Webhook server running.'));
 // go via the existing sendViaResend() helper above.
 // ══════════════════════════════════════════════════════════════════════════════
 
-// Per-domain question counts (must match DOMAIN_Q_COUNT in diagnostic/index.html)
+// Per-domain question counts. THE BANK IS THE SOURCE: q.d in app.js's QUESTIONS
+// and in diagnostic/index.html's POOL, both 109/80/79/72/60 = 400 at HEAD, and
+// diagnostic/index.html's DOMAIN_Q_COUNT mirrors them. Prompt Engineering read
+// 80 here for three weeks after ed21c55 corrected the two Pages surfaces: this
+// file was out of that commit's scope because it deploys to Render, not Pages.
 const NURTURE_DOMAIN_Q_COUNT = {
   'Agentic Architecture & Orchestration':  109,
   'Claude Code Configuration':              80,
-  'Prompt Engineering & Structured Output': 80,
+  'Prompt Engineering & Structured Output': 79,
   'Tool Design & MCP Integration':          72,
   'Context Management & Reliability':       60,
 };
+
+// The sequence reads back diagnostic_leads' stored `weakestDomain`, which
+// diagnostic/index.html writes as the DOMAINS *label* rather than the bank key,
+// and one label is not its key. Resolve it so no domain depends on a fallback.
+// Scoped to the count lookup only — SAMPLE_QUESTIONS has the same miss and is
+// deliberately left alone; see the session report.
+const NURTURE_DOMAIN_ALIASES = {
+  'Claude Code Configuration & Workflows': 'Claude Code Configuration',
+};
+const nurtureDomainKey = d => NURTURE_DOMAIN_ALIASES[d] || d;
+
+// Derived, so correcting one figure can never leave the total contradicting it.
+const NURTURE_BANK_TOTAL = Object.values(NURTURE_DOMAIN_Q_COUNT).reduce((a, b) => a + b, 0);
 
 // One specific, actionable study tip per domain
 const STUDY_TIPS = {
@@ -1418,7 +1435,13 @@ function buildEmail1(results, unsubUrl) {
   const above  = gap <= 0;
   const domain = results.weakestDomain       || 'Agentic Architecture & Orchestration';
   const weight = results.weakestDomainWeight || 27;
-  const N      = NURTURE_DOMAIN_Q_COUNT[domain] || 80;
+  const N      = NURTURE_DOMAIN_Q_COUNT[nurtureDomainKey(domain)] || null;
+  // An unresolved domain publishes the bank total, not a guessed per-domain
+  // count. The old `|| 80` was exact for one domain and wrong for the other four.
+  const bankPhrase     = N ? `${N} questions in ${domain} alone`
+                           : `${NURTURE_BANK_TOTAL} questions across all five domains`;
+  const bankPhraseHtml = N ? `<strong>${N} questions in ${domain}</strong> alone`
+                           : `<strong>${NURTURE_BANK_TOTAL} questions</strong> across all five domains`;
   const tip    = STUDY_TIPS[domain] || STUDY_TIPS['Agentic Architecture & Orchestration'];
   const cta    = nurtureCtaUrl('d1');
 
@@ -1432,8 +1455,8 @@ function buildEmail1(results, unsubUrl) {
     ? `\nThe real exam is 60 questions drawn from a much larger pool, covering harder scenarios than a short sample can surface. Your weakest area — ${domain} (${weight}% of the exam) — is where the full exam will probe hardest.\n`
     : `\n${domain} accounts for ${weight}% of your actual exam score. Closing that domain first gives you the biggest return on your study time.\n`;
   const ctaCopy = above
-    ? `The full bank has ${N} questions in ${domain} alone — run a timed simulation and confirm your readiness before you book.`
-    : `The full bank has ${N} questions in ${domain} alone, every answer fully explained. That’s where the gap closes — not from rereading docs, but from scenario-based practice exactly like the real exam.`;
+    ? `The full bank has ${bankPhrase} — run a timed simulation and confirm your readiness before you book.`
+    : `The full bank has ${bankPhrase}, every answer fully explained. That’s where the gap closes — not from rereading docs, but from scenario-based practice exactly like the real exam.`;
 
   const text = [
     'Hi,',
@@ -1474,8 +1497,8 @@ function buildEmail1(results, unsubUrl) {
     `<p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.88rem;color:#191918;line-height:1.65;margin:0">${tip}</p>` +
     `</div>`;
   const ctaHtml = above
-    ? eP(`The full bank has <strong>${N} questions in ${domain}</strong> alone — run a timed simulation before you book.`)
-    : eP(`The full bank has <strong>${N} questions in ${domain}</strong> alone, every answer fully explained. That’s where this gap closes.`);
+    ? eP(`The full bank has ${bankPhraseHtml} — run a timed simulation before you book.`)
+    : eP(`The full bank has ${bankPhraseHtml}, every answer fully explained. That’s where this gap closes.`);
 
   const bodyHtml =
     eP('Hi,') +
