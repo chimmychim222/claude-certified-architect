@@ -1037,7 +1037,7 @@ ${domainRows}
 
 Weakest area: ${results.weakestDomain} (${results.weakestDomainWeight}% of the real exam)
 
-Want to close the gap? The full 400+ question practice bank covers every domain at real exam weightings, with detailed explanations for every answer.
+Want to close the gap? The full 400-question practice bank covers every domain at real exam weightings, with detailed explanations for every answer.
 
 👉 ${nurtureCtaUrl('results')}
 
