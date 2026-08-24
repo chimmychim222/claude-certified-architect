@@ -296,6 +296,11 @@ app.post(
               email:           customerEmail,
               stripeSessionId: session.id,
               createdAt:       admin.firestore.FieldValue.serverTimestamp(),
+              // Lifecycle: unclaimed -> contacted (a human emailed them) ->
+              // abandoned. Terminal states stop the alert; nothing is ever
+              // deleted, so a buyer turning up in six months still claims.
+              // Records written before this field existed read as unclaimed.
+              status:          'unclaimed',
             },
             { merge: true }
           );
@@ -689,8 +694,23 @@ app.post('/pre-checkout', express.json(), async (req, res) => {
 // counterpart: point an external uptime monitor at it on a daily schedule
 // (which has the side benefit of keeping the instance warm) for a check that
 // doesn't depend on this process's uptime.
-const STALE_PENDING_THRESHOLD_MS    = 48 * 60 * 60 * 1000; // 48 hours
+// THE ALERT WINDOW, INVERTED. It used to report that a record was OLD, which
+// stops being news: three records alerted daily for 130 days, were emailed
+// twice, and none replied. An alert that is correct and useless trains the
+// owner to ignore the channel, which is the state the next genuinely stranded
+// buyer arrives in. It now reports a record that is NEW — someone stranded
+// in the last 48 hours, while they are still reachable and before they dispute.
+//
+// The 2h floor matters as much as the 48h ceiling. "No Firebase account yet"
+// is the NORMAL state for a guest who is about to sign up, so alerting from
+// minute zero is the same noise problem inverted. Two hours is long enough
+// that the ordinary reconciliation path has visibly stalled.
+const NEW_STRANDED_MIN_AGE_MS       = 2  * 60 * 60 * 1000; // too new to act on
+const STALE_PENDING_THRESHOLD_MS    = 48 * 60 * 60 * 1000; // past this, not news
 const STALE_PENDING_ALERT_COOLDOWN_MS = 24 * 60 * 60 * 1000; // min gap between alerts per doc
+// Reached only by a human decision (scripts/mark-pending-contacted.js, or a
+// future admin control). Nothing in the request path ever writes these.
+const PENDING_TERMINAL_STATUSES = ['contacted', 'abandoned'];
 
 // ── Alert delivery ────────────────────────────────────────────────────────
 // Pure console.warn logging is easy to miss — Render's free tier doesn't
@@ -717,8 +737,9 @@ async function sendStaleEnrollmentAlert(stale) {
     (s.ageHours === null ? 'age unknown (missing timestamp)' : `${s.ageHours}h old`)
   );
   const summary =
-    `${stale.length} unclaimed Stripe purchase${plural} pending enrollment for more than 48 hours. ` +
-    `These customers paid but may not have course access yet:\n\n` + lines.join('\n');
+    `${stale.length} NEW stranded buyer${plural} — paid in the last 48 hours and ` +
+    `still has no course access. Reach them now, before they give up or ` +
+    `dispute:\n\n` + lines.join('\n');
 
   let delivered = false;
 
@@ -726,7 +747,7 @@ async function sendStaleEnrollmentAlert(stale) {
     try {
       const ok = await sendViaResend({
         to:      process.env.ALERT_EMAIL_TO,
-        subject: `[CCA] ${stale.length} stale pending enrollment${plural} need review`,
+        subject: `[CCA] ${stale.length} NEW stranded buyer${plural} — paid, no access`,
         text:    summary,
       });
       delivered = delivered || ok;
@@ -765,22 +786,34 @@ async function sendStaleEnrollmentAlert(stale) {
 }
 
 async function findStalePendingEnrollments() {
-  const cutoff      = Date.now() - STALE_PENDING_THRESHOLD_MS;
-  const alertCutoff = Date.now() - STALE_PENDING_ALERT_COOLDOWN_MS;
+  const now         = Date.now();
+  const youngest    = now - NEW_STRANDED_MIN_AGE_MS;    // newer than this: too soon
+  const oldest      = now - STALE_PENDING_THRESHOLD_MS; // older than this: not news
+  const alertCutoff = now - STALE_PENDING_ALERT_COOLDOWN_MS;
   const snap        = await db.collection('pending_enrollments').get();
   const stale   = []; // records that need a fresh alert
   const docRefs = []; // parallel Firestore refs for stale[] (for lastAlertedAt writes)
+  const aged    = []; // non-terminal, past 48h: listed by /admin, never alerted
   const orphans = []; // zombie docs: enrolled user exists, pending record is dead weight
 
   for (const doc of snap.docs) {
     const data = doc.data();
+
+    // ── Guard 0: terminal state ────────────────────────────────────────
+    // A human has already acted on this record. Checked before everything
+    // else so a contacted/abandoned doc costs no getUserByEmail and no users
+    // read. An absent status means a doc written before the field existed —
+    // read as unclaimed, which is what it is.
+    if (PENDING_TERMINAL_STATUSES.includes(data.status)) continue;
+
     const createdAtMs = (data.createdAt && typeof data.createdAt.toMillis === 'function')
       ? data.createdAt.toMillis()
       : null;
 
-    // Only consider docs older than the staleness threshold (or missing
-    // timestamp — better to over-report than silently miss one).
-    if (createdAtMs !== null && createdAtMs > cutoff) continue;
+    // A missing timestamp still falls through to the alert set: better to
+    // over-report one record than silently miss a paid buyer.
+    if (createdAtMs !== null && createdAtMs > youngest) continue; // too new to act on
+    const tooOld = createdAtMs !== null && createdAtMs < oldest;
 
     const email = (data.email || doc.id).toLowerCase();
 
@@ -810,7 +843,25 @@ async function findStalePendingEnrollments() {
       // auth/user-not-found is the normal case: no account exists yet.
     }
 
-    // ── Guard 2: Per-doc alert dedup (24 h cooldown) ───────────────────
+    // ── Guard 2: past the window ───────────────────────────────────────
+    // Still real, still visible to /admin, but it stops generating email.
+    // ABOVE the cooldown guard deliberately: aged never sends anything, so a
+    // 24h alert cooldown must not decide whether it is listed. With this
+    // below the cooldown, a record alerted in the last 24h fell through both
+    // branches and vanished from /admin entirely -- caught by the dry run,
+    // where two of the three live records had been alerted two hours earlier.
+    // This is the line that quiets the long-standing records even if nobody
+    // marks them contacted.
+    if (tooOld) {
+      aged.push({
+        email,
+        stripeSessionId: data.stripeSessionId || null,
+        ageHours:        createdAtMs === null ? null : Math.round((now - createdAtMs) / 3600000),
+      });
+      continue;
+    }
+
+    // ── Guard 3: Per-doc alert dedup (24 h cooldown) ───────────────────
     // Skip if an alert was already sent for this doc within the last 24 h.
     // Prevents the 6-hourly setInterval AND any external daily cron from
     // each firing independent alerts for the same unresolved record.
@@ -823,12 +874,12 @@ async function findStalePendingEnrollments() {
       continue; // alerted within the last 24 h — skip this cycle
     }
 
-    // ── Guard 3: Genuinely stale, unenrolled, not alerted recently ──────
-    // This customer paid but has no course access — include in the digest.
+    // ── Guard 4: a NEW stranded buyer, unenrolled, not alerted recently ─
+    // They paid in the last 48h and have no course access. Reachable now.
     stale.push({
       email,
       stripeSessionId: data.stripeSessionId || null,
-      ageHours:        createdAtMs === null ? null : Math.round((Date.now() - createdAtMs) / 3600000),
+      ageHours:        createdAtMs === null ? null : Math.round((now - createdAtMs) / 3600000),
     });
     docRefs.push(doc.ref);
   }
@@ -840,7 +891,7 @@ async function findStalePendingEnrollments() {
     console.warn('[pending_enrollments] orphan cleanup failed for', ref.id, ':', err.message)
   ));
 
-  return { stale, docRefs };
+  return { stale, aged, docRefs };
 }
 
 async function checkStalePendingEnrollmentsAndAlert() {
@@ -902,7 +953,7 @@ app.get('/admin/stale-pending-enrollments', async (req, res) => {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   try {
-    const { stale, docRefs } = await findStalePendingEnrollments();
+    const { stale, aged, docRefs } = await findStalePendingEnrollments();
     if (stale.length) {
       // Awaited rather than fire-and-forget: this route is called by an
       // infrequent external scheduler — better to spend a moment ensuring
@@ -914,7 +965,10 @@ app.get('/admin/stale-pending-enrollments', async (req, res) => {
         console.warn('[pending_enrollments] lastAlertedAt update failed for', ref.id, ':', err.message)
       ));
     }
-    return res.json({ ok: true, count: stale.length, stale });
+    // aged is reported but never alerted on: the authoritative listing must
+    // still show a stranded buyer who slipped past the window, otherwise
+    // inverting the alert would lose them rather than quiet them.
+    return res.json({ ok: true, count: stale.length, stale, agedCount: aged.length, aged });
   } catch (err) {
     console.error('[pending_enrollments] admin listing failed:', err.message);
     return res.status(500).json({ error: err.message });
