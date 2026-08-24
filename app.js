@@ -4411,6 +4411,19 @@ function isMR(q) { return q.type === 'mr'; }
 
 function isAnswered(a) { return Array.isArray(a) ? a.length > 0 : a !== -1; }
 
+// The free preview reveals an answer as soon as the question is answered, and
+// isAnswered() is true at ONE selection — which graded and locked a two- or
+// three-key MR item on the candidate's first click. Reveal an MR item only once
+// the selection is COMPLETE. The required count comes from q.a.length, never a
+// hardcoded 2 or 3 (31 MR items carry two keys, 12 carry three). An mr-typed
+// item with a scalar q.a is a data anomaly that toggleAnswer()'s own
+// Array.isArray(q.a) guard already refuses to touch, so fall through to
+// isAnswered() and leave that path exactly as it is.
+function isSelectionComplete(q, a) {
+  if (!isMR(q) || !Array.isArray(q.a)) return isAnswered(a);
+  return Array.isArray(a) && a.length === q.a.length;
+}
+
 function isCorrect(q, a) {
   if (!isMR(q)) return a === q.a;
   if (!Array.isArray(a) || a.length !== q.a.length) return false;
@@ -4523,7 +4536,7 @@ function renderQuestion() {
   const t = currentTest;
   const q = t.questions[t.current];
   const total = t.config.questions;
-  const answered = isAnswered(t.answers[t.current]);
+  const revealed = isSelectionComplete(q, t.answers[t.current]);
 
   document.getElementById('test-progress').textContent = `Question ${t.current+1} of ${total}`;
   document.getElementById('test-progress-bar').style.width = `${((t.current+1)/total)*100}%`;
@@ -4532,7 +4545,7 @@ function renderQuestion() {
     <div class="q-num">${q.d} — Question ${t.current+1}</div>
     <div class="q-text">${q.q}</div>`;
 
-  if (t.freePreview && answered) {
+  if (t.freePreview && revealed) {
     // Show correct/incorrect state — options locked
     q.o.forEach((opt, i) => {
       let cls = '';
@@ -4582,7 +4595,7 @@ function renderQuestion() {
 
   if (t.freePreview) {
     prevBtn.style.visibility = 'hidden';
-    if (answered) {
+    if (revealed) {
       nextBtn.style.visibility = 'visible';
       const isLast = t.current === total - 1;
       nextBtn.textContent = isLast ? 'See full access →' : 'Next question →';
