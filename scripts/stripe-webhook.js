@@ -457,6 +457,128 @@ app.post('/claim-enrollment', async (req, res) => {
   }
 });
 
+// ── Purchase link request ───────────────────────────────────────────────
+// POST /link-purchase-request
+// Header: Authorization: Bearer <Firebase ID token>
+// Body:   { checkoutEmail: string }
+//
+// The gap this exists to close. Every reconciliation path on this product joins
+// a Stripe purchase to a Firebase account ON THE EMAIL ADDRESS: the webhook
+// stashes pending_enrollments keyed by it, /claim-enrollment looks it up by it,
+// and /pre-checkout blocks on the same key. When a guest checks out under one
+// address and signs up under another, all three miss at once and nothing on the
+// site ever acknowledges the payment. Four buyers in four months, every one this
+// shape. Asking Stripe rather than Firestore does not help: it is the same
+// string, so it misses too.
+//
+// The account holder is the only party who knows the other address. This
+// collects it. GRANTS NOTHING — it writes one record for a human to act on and
+// notifies the alert channel. Enrollment stays behind the manual review it has
+// always been behind: a self-serve version would hand a paid product to anyone
+// willing to name a stranger's address, and email_verified cannot help when both
+// parties control their own inbox.
+app.post('/link-purchase-request', express.json(), async (req, res) => {
+  const authHeader = req.headers.authorization || '';
+  const m = authHeader.match(/^Bearer (.+)$/);
+  if (!m) return res.status(401).json({ error: 'Missing bearer token' });
+
+  let decoded;
+  try {
+    decoded = await auth.verifyIdToken(m[1]);
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+
+  const checkoutEmail = String((req.body || {}).checkoutEmail || '').trim().toLowerCase();
+  if (!checkoutEmail || !checkoutEmail.includes('@') || checkoutEmail.length > 320) {
+    return res.status(400).json({ error: 'Invalid email' });
+  }
+
+  const uid          = decoded.uid;
+  const accountEmail = (decoded.email || '').toLowerCase();
+
+  // Console first, same order as /diagnostic-email below: the Render log is the
+  // one capture that survives a Firestore or Resend failure.
+  console.log('PURCHASE_LINK_REQUEST', JSON.stringify({ uid, accountEmail, checkoutEmail }));
+
+  try {
+    // Doc id = uid, so someone who submits twice overwrites their own record
+    // instead of adding a second to the queue. attempts still counts the
+    // submissions, because a second, different address is itself a signal.
+    await db.collection('purchase_link_requests').doc(uid).set(
+      {
+        uid,
+        accountEmail,
+        checkoutEmail,
+        emailVerified: decoded.email_verified === true,
+        status:        'unreviewed',
+        requestedAt:   admin.firestore.FieldValue.serverTimestamp(),
+        attempts:      admin.firestore.FieldValue.increment(1),
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    // Already logged above, so the request is not lost. Still reported as ok to
+    // the visitor: telling someone who has already paid once that their message
+    // failed is how they decide to pay again.
+    console.error('[link-request] Firestore write failed (still logged):', err.message);
+  }
+
+  sendPurchaseLinkAlert({ uid, accountEmail, checkoutEmail })
+    .catch(err => console.error('[link-request] alert failed:', err.message));
+
+  return res.json({ ok: true });
+});
+
+// Deliberately self-contained rather than sharing a helper with
+// sendStaleEnrollmentAlert below. The two read the same env vars and that is
+// duplication, but this is the one message that means "a paying customer is
+// stuck right now", and it should not be able to break because the stale-alert
+// digest was refactored underneath it. Same fallback contract as that function:
+// if no channel is configured, or every configured channel fails, the data still
+// lands in the Render log rather than disappearing.
+async function sendPurchaseLinkAlert({ uid, accountEmail, checkoutEmail }) {
+  const subject = '[CCA] Buyer says they paid under a different email';
+  const summary = [
+    'Someone signed up and told us they already paid under another address.',
+    'Nothing has been granted — this needs a human to check Stripe and enroll',
+    'them manually if it checks out.',
+    '',
+    '  Account email:       ' + (accountEmail || '(none on token)'),
+    '  Claimed at checkout: ' + checkoutEmail,
+    '  Firebase uid:        ' + uid,
+  ].join('\n');
+
+  let delivered = false;
+
+  if (process.env.ALERT_EMAIL_TO) {
+    try {
+      const ok = await sendViaResend({ to: process.env.ALERT_EMAIL_TO, subject, text: summary });
+      delivered = delivered || ok;
+    } catch (err) {
+      console.error('[link-request] email delivery threw:', err.message);
+    }
+  }
+
+  if (process.env.ALERT_WEBHOOK_URL) {
+    try {
+      const resp = await fetch(process.env.ALERT_WEBHOOK_URL, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ text: summary, content: summary }),
+      });
+      if (resp.ok) delivered = true;
+      else console.error('[link-request] webhook delivery failed:', resp.status, await resp.text());
+    } catch (err) {
+      console.error('[link-request] webhook delivery threw:', err.message);
+    }
+  }
+
+  if (!delivered) {
+    console.warn('[link-request] no alert channel delivered — see PURCHASE_LINK_REQUEST above');
+  }
+}
+
 // ── Pre-checkout enrollment guard ────────────────────────────────────────────
 // POST /pre-checkout
 // Header: Authorization: Bearer <Firebase ID token>

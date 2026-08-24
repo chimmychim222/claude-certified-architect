@@ -1594,8 +1594,119 @@ function renderAuthWelcome(pendingUnverified) {
   } else {
     if (buyBtn) buyBtn.style.display = '';
     if (pendingMsg) pendingMsg.style.display = 'none';
+    // Third state, additive: the buy button above stays visible. See
+    // renderAlreadyPaidPrompt for why this branch is where the four real
+    // failures land, and why the button is not removed.
+    renderAlreadyPaidPrompt(panel, buyBtn);
   }
   panel.style.display = 'block';
+}
+
+// The third state for the welcome panel — see renderAuthWelcome above. The two
+// branches there cover "we found your purchase" and "you are new", and every
+// payment failure this product has actually had fell between them: the buyer
+// checked out as a guest under one address and signed up under another, so no
+// pending_enrollments record matches, and they are handed the $49 button with
+// nothing on screen acknowledging the charge they already made. Four cases in
+// four months, all this shape.
+//
+// Additive by design — the button stays exactly where it was. This asks the one
+// question whose answer only the buyer has, at the one moment it is worth
+// asking. Grants nothing: it collects a string and hands it to a human.
+//
+// Built here rather than in markup because #auth-welcome is static in two files
+// (index.html, diagnostic/index.html) and one JS source of truth is what keeps
+// them from drifting — the same reason the pendingUnverified branch works this
+// way. No paymentBlockHost() needed: unlike #success-banner, #auth-welcome
+// exists in both files, so this renders on /diagnostic/ unchanged.
+function renderAlreadyPaidPrompt(panel, buyBtn) {
+  if (document.getElementById('auth-welcome-paid-prompt')) return;
+
+  const wrap = document.createElement('div');
+  wrap.id = 'auth-welcome-paid-prompt';
+  wrap.className = 'form-group';
+  wrap.style.cssText = 'margin:0 0 14px;text-align:left';
+  wrap.innerHTML =
+    '<p style="color:var(--text2);font-size:.85rem;line-height:1.5;margin:0 0 8px">' +
+      '<strong>Already paid?</strong> If you used a different email address at checkout, ' +
+      'tell us which one and we will link your purchase — or email ' +
+      '<a href="mailto:support@claudecertifiedarchitects.com" style="color:var(--green);text-decoration:underline">' +
+      'support@claudecertifiedarchitects.com</a>.' +
+    '</p>' +
+    '<div style="display:flex;gap:8px;align-items:stretch">' +
+      '<input id="auth-welcome-paid-email" type="email" autocomplete="email" ' +
+        'placeholder="Email used at checkout" aria-label="Email address used at checkout" ' +
+        'style="flex:1;min-width:0;font-size:.85rem;min-height:44px">' +
+      '<button type="button" id="auth-welcome-paid-btn" class="btn-secondary" ' +
+        'style="padding:0 14px;font-size:.85rem;min-height:44px;white-space:nowrap">Link it</button>' +
+    '</div>' +
+    '<p id="auth-welcome-paid-status" role="status" aria-live="polite" ' +
+      'style="color:var(--text2);font-size:.8rem;line-height:1.5;margin:8px 0 0;display:none"></p>';
+
+  if (buyBtn) buyBtn.insertAdjacentElement('beforebegin', wrap);
+  else panel.appendChild(wrap);
+
+  document.getElementById('auth-welcome-paid-btn')
+    .addEventListener('click', submitPurchaseLinkRequest);
+
+  // Sizes the denominator. Every count in this area has been argued from a
+  // rate with no absolute number under it; this is how many brand-new signups
+  // see the prompt at all, against which purchase_link_requested is the hit
+  // rate. Costs one event and settles the question in a fortnight.
+  if (typeof gtag !== 'undefined') {
+    gtag('event', 'already_paid_prompt_shown', { page_path: location.pathname });
+  }
+}
+
+// Posts the checkout address the visitor names to /link-purchase-request. That
+// endpoint writes a record and alerts a human — it does not enrol anyone, and
+// nothing here should ever be changed to expect that it might.
+async function submitPurchaseLinkRequest() {
+  const input  = document.getElementById('auth-welcome-paid-email');
+  const btn    = document.getElementById('auth-welcome-paid-btn');
+  const status = document.getElementById('auth-welcome-paid-status');
+  if (!input || !status) return;
+
+  const show = function(msg) { status.textContent = msg; status.style.display = 'block'; };
+  const value = (input.value || '').trim();
+
+  if (!value || value.indexOf('@') < 1) {
+    show('Please enter the email address you used at checkout.');
+    input.focus();
+    return;
+  }
+  if (!currentUser) {
+    show('Please sign in first, then tell us which address you used.');
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+  try {
+    const token = await fbAuth.getIdToken(currentUser);
+    const resp  = await fetch(WEBHOOK_BASE + '/link-purchase-request', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body:    JSON.stringify({ checkoutEmail: value })
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+
+    input.parentElement.style.display = 'none';
+    show('Thanks — we have both addresses and will email you once your purchase is linked. ' +
+         'Please don\'t pay again in the meantime.');
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'purchase_link_requested', { page_path: location.pathname });
+    }
+  } catch (e) {
+    // Never dead-end someone who has already paid once. A cold Render dyno or a
+    // dropped connection must not leave them staring at the $49 button with the
+    // impression that telling us failed, so this falls back to the address in
+    // the copy above rather than reporting a bare error.
+    console.warn('[link-request] submit failed:', e.message);
+    show('We could not send that just now. Please email ' +
+         'support@claudecertifiedarchitects.com with both email addresses and we will ' +
+         'link your purchase. Please don\'t pay again.');
+    if (btn) { btn.disabled = false; btn.textContent = 'Link it'; }
+  }
 }
 
 // Extracted from unlock-now-btn's click handler below. Also used by the
