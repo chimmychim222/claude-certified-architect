@@ -907,7 +907,75 @@ function openAuthModal(mode) {
   setTimeout(() => document.getElementById('auth-email').focus(), 100);
 }
 
-function closeAuthModal() {
+// Which of #auth-modal's five renderers is on screen — the login/signup form,
+// the loading spinner, the post-signup welcome panel, the payment-block
+// message, or the error strip. Read from COMPUTED display, not inline style:
+// .auth-error and .auth-loading are hidden by their class, so el.style.display
+// is '' for both until something sets it. Error outranks form because the
+// error strip renders above a still-visible form area and is what the visitor
+// is looking at. Must be read BEFORE .show comes off.
+function authModalRenderer() {
+  const visible = (id) => {
+    const el = document.getElementById(id);
+    return !!el && getComputedStyle(el).display !== 'none';
+  };
+  if (visible('payment-block-msg')) return 'payment_block';
+  if (visible('auth-welcome'))      return 'welcome';
+  if (visible('auth-loading'))      return 'loading';
+  if (visible('auth-error'))        return 'error';
+  if (visible('auth-form-area'))    return 'form';
+  return 'none';
+}
+
+// A checkout redirect can be in flight while the modal is open: the 1s
+// begin_checkout wait inside trackCheckoutAndGo(), and before it the 4s
+// /pre-checkout fetch. Dismissing "Redirecting to secure checkout…" used to
+// leave both running, so a visitor who explicitly declined was still sent to
+// Stripe a moment later. checkoutCancelled is the single flag every one of
+// those continuations checks; openPaymentModal() clears it at the top of each
+// fresh attempt, so declining one click never blocks the next.
+let checkoutCancelled = false;
+let _checkoutGoTimer  = null;
+let _checkoutPreCtrl  = null;
+
+function cancelPendingCheckout() {
+  checkoutCancelled = true;
+  if (_checkoutGoTimer !== null) { clearTimeout(_checkoutGoTimer); _checkoutGoTimer = null; }
+  // Aborting on its own would be WORSE than doing nothing: the /pre-checkout
+  // chain fails open, so an abort lands in its .catch() and that .catch()
+  // redirects to Stripe. checkoutCancelled is what actually stops it; the
+  // abort only releases the request.
+  if (_checkoutPreCtrl) {
+    try { _checkoutPreCtrl.abort(); } catch (e) {}
+    _checkoutPreCtrl = null;
+  }
+}
+
+// Re-show the shell when there is output the visitor must see. A dismissal
+// does not abort an in-flight signup — the account is still created — and
+// renderAuthWelcome()/showAuthError() were writing into an overlay with no
+// .show, so a visitor who dismissed mid-signup succeeded and saw nothing at
+// all. Re-showing follows openAuthModalLoading() and showPaymentBlock(),
+// which already re-add .show, rather than inventing a second pattern.
+// Suppressing the render instead would need somewhere else to put "your
+// account is ready", and on /diagnostic/ there is nowhere: #success-banner
+// exists in index.html only.
+function ensureAuthModalVisible() {
+  const modal = document.getElementById('auth-modal');
+  if (!modal || modal.classList.contains('show')) return;
+  modal.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+// method names the dismissal path for GA4 — 'close_button', 'escape' or
+// 'backdrop'. Called with NO argument by the paths that close the modal as a
+// step rather than a dismissal (login succeeded, already enrolled, the welcome
+// panel's own buttons); those fire nothing, so the event below counts
+// dismissals only. This is the baseline the backdrop-removal commit is judged
+// against — nothing on any close path was instrumented before it.
+function closeAuthModal(method) {
+  const renderer = authModalRenderer();
+  const redirectWasPending = _checkoutGoTimer !== null || _checkoutPreCtrl !== null;
   document.getElementById('auth-modal').classList.remove('show');
   document.body.style.overflow = '';
   // The user dismissed the modal without completing sign-in/sign-up — drop
@@ -915,19 +983,46 @@ function closeAuthModal() {
   // later, unrelated login doesn't unexpectedly redirect to Stripe.
   window.__pendingCheckout = false;
   try { sessionStorage.removeItem('cca_checkout_intent'); } catch (e) {}
+  // …and stop the redirect this dismissal was declining.
+  cancelPendingCheckout();
+  if (method && typeof gtag !== 'undefined') {
+    gtag('event', 'auth_modal_dismissed', {
+      method:             method,
+      renderer:           renderer,
+      redirect_cancelled: redirectWasPending,
+      page_path:          location.pathname,
+    });
+  }
 }
 
 // Backdrop click and Escape both dismiss the modal exactly like the × button
 // — routed through closeAuthModal() itself so all three get the same "not
-// now" cleanup (pending-checkout intent cleared) with no navigation anywhere.
+// now" cleanup (pending-checkout intent cleared, an in-flight Stripe redirect
+// cancelled) with no navigation anywhere. Each passes its own method string so
+// the three are separable in GA4.
 (function() {
   const _authModalEl = document.getElementById('auth-modal');
   if (!_authModalEl) return; // pages that don't include the modal (e.g. /register)
-  _authModalEl.addEventListener('click', (e) => {
-    if (e.target === _authModalEl) closeAuthModal();
+  // A plain click handler also fires when the mousedown happened INSIDE .modal
+  // and only the mouseup landed on the backdrop — which is exactly what
+  // selecting a line of text and releasing past the edge of the panel does.
+  // That is accidental dismissal happening today. Requiring both ends of the
+  // gesture on the overlay itself makes the drag a no-op and leaves a genuine
+  // backdrop click behaving as before. A tap fires the compatibility mouse
+  // events, so touch is covered; a touch that scrolls the overlay (possible
+  // since 562e9f7 made the overlay the scroll container) suppresses them,
+  // which is also what we want.
+  let _downOnBackdrop = false;
+  _authModalEl.addEventListener('mousedown', (e) => {
+    _downOnBackdrop = (e.target === _authModalEl);
+  });
+  _authModalEl.addEventListener('mouseup', (e) => {
+    const dismiss = _downOnBackdrop && e.target === _authModalEl;
+    _downOnBackdrop = false;
+    if (dismiss) closeAuthModal('backdrop');
   });
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && _authModalEl.classList.contains('show')) closeAuthModal();
+    if (e.key === 'Escape' && _authModalEl.classList.contains('show')) closeAuthModal('escape');
   });
 })();
 
@@ -981,6 +1076,10 @@ function showAuthError(msg) {
   const el = document.getElementById('auth-error');
   el.textContent = msg;
   el.style.display = 'block';
+  // An error can land after the visitor dismissed the modal — a backdrop
+  // click during an in-flight signup does not abort the request. Writing into
+  // a hidden overlay showed them nothing at all; see ensureAuthModalVisible.
+  ensureAuthModalVisible();
 }
 
 // Shared user/{uid} doc write for a brand-new account — both email/password
@@ -1596,6 +1695,11 @@ function renderAuthWelcome(pendingUnverified) {
     if (pendingMsg) pendingMsg.style.display = 'none';
   }
   panel.style.display = 'block';
+  // The signup that produced this panel was not aborted by a dismissal, so
+  // the account exists whether or not the overlay is still showing. Bring it
+  // back rather than telling a brand-new customer nothing; see
+  // ensureAuthModalVisible.
+  ensureAuthModalVisible();
 }
 
 // Extracted from unlock-now-btn's click handler below. Also used by the
@@ -1953,6 +2057,10 @@ function onStripePagehide() {
 }
 
 function trackCheckoutAndGo(url) {
+  // The visitor dismissed the modal after the click that got here. Every
+  // caller is inside openPaymentModal(), which clears the flag at the top of
+  // each attempt, so this only ever means "declined THIS redirect".
+  if (checkoutCancelled) return;
   // Clear the checkout intent the moment we commit to the Stripe redirect.
   // This ensures that on ANY return path — bfcache restore OR full reload —
   // onAuthStateChanged finds no intent and does NOT auto-restart checkout.
@@ -1960,7 +2068,10 @@ function trackCheckoutAndGo(url) {
   try { sessionStorage.removeItem('cca_checkout_intent'); } catch (_) {}
   let navigated = false;
   const go = () => {
-    if (navigated) return;
+    // checkoutCancelled is re-read here, not captured above: the whole point
+    // is the ~1s gap between arming the redirect and taking it. event_callback
+    // can also fire after a dismissal, and reaches this same guard.
+    if (navigated || checkoutCancelled) return;
     navigated = true;
     stripeRedirectAt = Date.now();
     stripeArrivedFired = false;
@@ -1982,13 +2093,21 @@ function trackCheckoutAndGo(url) {
   checkoutEventSent = true;
   if (typeof gtag !== 'undefined') {
     gtag('event', 'begin_checkout', { value: 49, currency: 'USD', transport_type: 'beacon', event_callback: go, event_timeout: 1000 });
-    setTimeout(go, 1000);
+    // The bare timeout is the only guarantee a buyer reaches Stripe when
+    // event_callback never fires (gtag.js is deferred to window.onload), so it
+    // stays exactly as it was — the handle is kept only so a dismissal can
+    // clear it. Nothing about the undismissed path changes.
+    _checkoutGoTimer = setTimeout(() => { _checkoutGoTimer = null; go(); }, 1000);
   } else {
     go();
   }
 }
 
 function openPaymentModal() {
+  // Every path out of here is a fresh checkout attempt, so a dismissal of the
+  // PREVIOUS one must not block it. This is the only place the flag is
+  // cleared, which is why declining once never sticks.
+  checkoutCancelled = false;
   // A previous checkout's post-payment confirmation never matched this
   // browser to an account (see confirmPaymentAndUnlock) — don't let the
   // visitor pay a second time while that's unresolved. Point them back at
@@ -2132,6 +2251,10 @@ function openPaymentModal() {
   const _preUrl = url.toString();
   const _preCtrl = new AbortController();
   const _preTimer = setTimeout(() => _preCtrl.abort(), 4000);
+  // Published so a dismissal can abort this fetch. The abort alone changes
+  // nothing — it lands in the fail-open .catch() below, which redirects — so
+  // both settle paths check checkoutCancelled before doing anything.
+  _checkoutPreCtrl = _preCtrl;
   currentUser.getIdToken()
     .then(tok => fetch(WEBHOOK_BASE + '/pre-checkout', {
       method: 'POST',
@@ -2141,6 +2264,10 @@ function openPaymentModal() {
     .then(r => r.json())
     .then(result => {
       clearTimeout(_preTimer);
+      if (_checkoutPreCtrl === _preCtrl) _checkoutPreCtrl = null;
+      // Dismissed while this was in flight. Every branch below either
+      // redirects or navigates, and the visitor has said no to all of them.
+      if (checkoutCancelled) return;
       if (result.reason === 'already_enrolled') {
         closeAuthModal();
         if (document.getElementById('dashboard-section')) showSection('dashboard');
@@ -2179,7 +2306,14 @@ function openPaymentModal() {
         trackCheckoutAndGo(_preUrl);
       }
     })
-    .catch(() => { clearTimeout(_preTimer); trackCheckoutAndGo(_preUrl); });
+    // Still fails open on a real error. A dismissal reaches here too, because
+    // cancelPendingCheckout() aborts the fetch — trackCheckoutAndGo() checks
+    // the same flag and returns, so this stays one behaviour, not two.
+    .catch(() => {
+      clearTimeout(_preTimer);
+      if (_checkoutPreCtrl === _preCtrl) _checkoutPreCtrl = null;
+      trackCheckoutAndGo(_preUrl);
+    });
 }
 
 // Legacy fallback: check URL params on load (for non-Firebase mode)

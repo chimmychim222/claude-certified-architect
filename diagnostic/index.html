@@ -298,7 +298,9 @@ footer a{color:var(--text3);text-decoration:underline}
 <!-- ═══════ AUTH / PAYMENT MODAL (ported from index.html — see app.js) ═══════ -->
 <div class="modal-overlay" id="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
   <div class="modal">
-    <button class="close-btn" onclick="closeAuthModal()" aria-label="Close dialog">&times;</button>
+    <!-- The argument is the GA4 dismissal method — see closeAuthModal() in
+         app.js, and the identical comment on index.html's copy. -->
+    <button class="close-btn" onclick="closeAuthModal('close_button')" aria-label="Close dialog">&times;</button>
     <p id="auth-modal-title" class="modal-title" role="heading" aria-level="2">Log In</p>
     <p id="auth-modal-subtitle" style="display:none;margin:-12px 0 20px;font-size:.85rem;color:var(--text2);line-height:1.5"></p>
     <div class="auth-error" id="auth-error"></div>
