@@ -470,6 +470,10 @@ app.post('/claim-enrollment', async (req, res) => {
 // the request path writes one, and the route below no longer overwrites one.
 const PURCHASE_LINK_TERMINAL_STATUSES = ['linked', 'rejected'];
 
+// NO CALLER SINCE 2026-08-25. The client prompt that posted here was removed
+// from app.js, so nothing on the site reaches this route — but a valid ID token
+// and curl still do, so the collection can still grow. It and the admin reader
+// below are retained for the records already written.
 // POST /link-purchase-request
 // Header: Authorization: Bearer <Firebase ID token>
 // Body:   { checkoutEmail: string }
