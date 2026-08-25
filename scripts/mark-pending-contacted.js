@@ -43,12 +43,19 @@ const PENDING_TERMINAL_STATUSES = ['contacted', 'abandoned'];
 // mailbox part looks like. A match does NOT block anything -- it only flags the
 // row in the dry run and refuses an --apply that names it without
 // --include-test, so an owner test record is never quietly rewritten.
-const TEST_ACCOUNT_MARKERS = [
-  'joshuaklinetranslations',
-  'joshtest',
-  'chimsmcginty@protonmail.com',
-  '+ccatest',
-];
+//
+// Two of the twelve are personal addresses and this file is served publicly by
+// GitHub Pages, so they are SUPPLIED, not hardcoded. Set
+// CCA_TEST_ACCOUNT_MARKERS to a comma-separated list of the remaining markers.
+// The two below are generic and safe to publish; without the env var they still
+// catch the +ccatestN and joshtest variants, but NOT the two personal ones --
+// which is why the run prints a warning when it is unset.
+const BUILTIN_MARKERS = ['joshtest', '+ccatest'];
+const EXTRA_MARKERS   = (process.env.CCA_TEST_ACCOUNT_MARKERS || '')
+  .split(',')
+  .map(s => s.trim().toLowerCase())
+  .filter(Boolean);
+const TEST_ACCOUNT_MARKERS = [...BUILTIN_MARKERS, ...EXTRA_MARKERS];
 
 const isTestAccount = e => TEST_ACCOUNT_MARKERS.some(m => (e || '').toLowerCase().includes(m));
 
@@ -89,6 +96,11 @@ const hours = ts => {
   console.log('Project:', sa.project_id);
   console.log('Mode:   ', apply ? `LIVE (will write status='${statusArg}')` : 'DRY RUN (no writes)');
   if (apply) console.log('Targets:', targets.join(', '));
+  if (!EXTRA_MARKERS.length) {
+    console.warn('WARNING: CCA_TEST_ACCOUNT_MARKERS is unset. Only the generic test-account');
+    console.warn('         markers are active, so two of the twelve excluded addresses will');
+    console.warn('         NOT be flagged as owner records in the listing below.');
+  }
   console.log('');
 
   const snap = await db.collection('pending_enrollments').get();

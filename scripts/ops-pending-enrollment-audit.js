@@ -1,11 +1,12 @@
 /**
- * Operations script — pending_enrollments audit + conditional Aruna enrollment.
+ * Operations script — pending_enrollments audit + conditional targeted enrollment.
  *
- * PART 1: For aruna.kumar@comcast.net
+ * PART 1 (optional): For ONE customer named on the command line
  *   - Confirm Stripe session is paid and not refunded
  *   - Check Firebase Auth existence
  *   - If account EXISTS but not enrolled: enroll now (claim + Firestore write)
  *   - If NO account: trace /claim-enrollment path and confirm it will work
+ *   Skipped entirely unless BOTH --email and --session are given.
  *
  * PART 2: Full pending_enrollments sweep
  *   - For every record: Stripe status, Firebase account existence, enrollment status
@@ -14,10 +15,18 @@
  * Safe guards:
  *   - No application code modified
  *   - No records deleted
- *   - The ONLY possible write is the targeted Aruna enrollment if (and only if)
- *     a Firebase account already exists for her email but is not yet enrolled.
+ *   - The ONLY possible write is the targeted enrollment if (and only if) a
+ *     Firebase account already exists for the given email but is not yet enrolled.
  *
- * Usage: node scripts/ops-pending-enrollment-audit.js
+ * Nothing identifying is hardcoded here. This file is served publicly by GitHub
+ * Pages, so the customer address, the Stripe session id and the credential
+ * filenames are all supplied at run time and none of them lives in the repo.
+ *
+ * Usage:
+ *   node scripts/ops-pending-enrollment-audit.js <service-account.json> <stripe-readonly-key.txt>
+ *   node scripts/ops-pending-enrollment-audit.js <service-account.json> <stripe-readonly-key.txt> --email=<address> --session=<cs_...>
+ *
+ * The two paths may instead be set once as CCA_SA_PATH and CCA_STRIPE_KEY_PATH.
  */
 const fs    = require('fs');
 const path  = require('path');
@@ -25,19 +34,38 @@ const admin = require('firebase-admin');
 const { getFirestore } = require('firebase-admin/firestore');
 const Stripe = require('stripe');
 
-const SA_PATH  = path.join(__dirname, '../testing keys/claude-certification-testing-firebase-adminsdk-fbsvc-65fdc2cdbd.json');
-const KEY_PATH = path.join(__dirname, '../testing keys/stripe-readonly-key.txt');
+const args       = process.argv.slice(2);
+const positional = args.filter(a => !a.startsWith('--'));
+const flag       = name => {
+  const hit = args.find(a => a.startsWith(`--${name}=`));
+  return hit ? hit.slice(name.length + 3) : null;
+};
 
-const sa        = require(SA_PATH);
-const stripeKey = fs.readFileSync(KEY_PATH, 'utf8').trim();
+const SA_PATH  = process.env.CCA_SA_PATH         || positional[0];
+const KEY_PATH = process.env.CCA_STRIPE_KEY_PATH || positional[1];
+
+if (!SA_PATH || !KEY_PATH) {
+  console.error('\nUsage: node scripts/ops-pending-enrollment-audit.js <service-account.json> <stripe-readonly-key.txt> [--email=<address> --session=<cs_...>]');
+  console.error('   or: set CCA_SA_PATH and CCA_STRIPE_KEY_PATH and pass neither path.');
+  console.error('\nBoth key files live outside the repo, in the gitignored local key directory.\n');
+  process.exit(1);
+}
+
+const sa        = require(path.resolve(SA_PATH));
+const stripeKey = fs.readFileSync(path.resolve(KEY_PATH), 'utf8').trim();
 
 admin.initializeApp({ credential: admin.credential.cert(sa) });
 const auth   = admin.auth();
 const db     = getFirestore(admin.app(), 'default');
 const stripe = Stripe(stripeKey);
 
-const ARUNA_EMAIL      = 'aruna.kumar@comcast.net';
-const ARUNA_SESSION_ID = 'cs_live_a1r5hn2dzfxKzsQltVmfcGaZS477VRoFGny6GBIEV6Rkywq1BKS0BBVGkE';
+const TARGET_EMAIL      = (flag('email') || process.env.CCA_TARGET_EMAIL || '').toLowerCase() || null;
+const TARGET_SESSION_ID = flag('session') || process.env.CCA_TARGET_SESSION_ID || null;
+
+if ((TARGET_EMAIL && !TARGET_SESSION_ID) || (!TARGET_EMAIL && TARGET_SESSION_ID)) {
+  console.error('\n--email and --session must be given together, or neither.\n');
+  process.exit(1);
+}
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -141,26 +169,31 @@ function ageHours(createdAt) {
   const sep = '-'.repeat(80);
 
   // ─────────────────────────────────────────────────────────────────────────
-  // PART 1 — Aruna
+  // PART 1 — the targeted customer, if one was named
   // ─────────────────────────────────────────────────────────────────────────
+  if (!TARGET_EMAIL) {
+    console.log('\n' + SEP);
+    console.log('PART 1 — SKIPPED (no --email/--session given; running the sweep only)');
+    console.log(SEP);
+  } else {
   console.log('\n' + SEP);
-  console.log('PART 1 — aruna.kumar@comcast.net');
+  console.log('PART 1 — ' + TARGET_EMAIL);
   console.log(SEP);
 
   // 1a. Firestore pending record
   console.log('\n[1a] Firestore pending_enrollments record:');
-  const arunaDocRef = db.collection('pending_enrollments').doc(ARUNA_EMAIL.toLowerCase());
-  const arunaDoc    = await arunaDocRef.get();
-  if (arunaDoc.exists) {
-    const d = arunaDoc.data();
-    console.log('  Document key (Firestore doc ID):', arunaDocRef.id);
+  const targetDocRef = db.collection('pending_enrollments').doc(TARGET_EMAIL);
+  const targetDoc    = await targetDocRef.get();
+  if (targetDoc.exists) {
+    const d = targetDoc.data();
+    console.log('  Document key (Firestore doc ID):', targetDocRef.id);
     console.log('  email field:                    ', d.email);
     console.log('  stripeSessionId:                ', d.stripeSessionId);
     console.log('  createdAt:                      ', d.createdAt?.toDate?.()?.toISOString() || '(missing)');
     console.log('  age:                            ', ageHours(d.createdAt), 'hours');
-    if (d.stripeSessionId !== ARUNA_SESSION_ID) {
+    if (d.stripeSessionId !== TARGET_SESSION_ID) {
       console.log('  *** NOTE: session ID differs from expected! ***');
-      console.log('    expected:', ARUNA_SESSION_ID);
+      console.log('    expected:', TARGET_SESSION_ID);
       console.log('    actual:  ', d.stripeSessionId);
     }
   } else {
@@ -169,8 +202,8 @@ function ageHours(createdAt) {
 
   // 1b. Stripe session
   console.log('\n[1b] Stripe session status:');
-  const stripe1 = await getStripeSessionStatus(ARUNA_SESSION_ID);
-  console.log('  Session ID:     ', ARUNA_SESSION_ID);
+  const stripe1 = await getStripeSessionStatus(TARGET_SESSION_ID);
+  console.log('  Session ID:     ', TARGET_SESSION_ID);
   if (stripe1.found) {
     console.log('  paymentStatus:  ', stripe1.paymentStatus);
     console.log('  sessionStatus:  ', stripe1.sessionStatus);
@@ -187,50 +220,50 @@ function ageHours(createdAt) {
   }
 
   // 1c. Firebase account check
-  console.log('\n[1c] Firebase Auth account for', ARUNA_EMAIL + ':');
-  const aruna = await getFirebaseAccount(ARUNA_EMAIL);
-  if (aruna.exists === false) {
+  console.log('\n[1c] Firebase Auth account for', TARGET_EMAIL + ':');
+  const target = await getFirebaseAccount(TARGET_EMAIL);
+  if (target.exists === false) {
     console.log('  *** NO Firebase account exists for this email ***');
     console.log('\n[1d] /claim-enrollment path trace (since no account exists):');
     console.log('');
     console.log('  The pending_enrollments document is keyed by:');
-    console.log('    customerEmail.toLowerCase() → "' + ARUNA_EMAIL.toLowerCase() + '"');
+    console.log('    customerEmail.toLowerCase() → "' + TARGET_EMAIL + '"');
     console.log('');
     console.log('  The /claim-enrollment endpoint does:');
     console.log('    const email = (decoded.email || "").toLowerCase()');
     console.log('    const pendingRef = db.collection("pending_enrollments").doc(email)');
     console.log('');
-    console.log('  When Aruna signs up with aruna.kumar@comcast.net:');
-    console.log('    decoded.email will be: "aruna.kumar@comcast.net"');
-    console.log('    .toLowerCase()       → "aruna.kumar@comcast.net"');
-    console.log('    pendingRef doc ID    → "aruna.kumar@comcast.net"');
-    console.log('    actual doc ID        → "' + ARUNA_EMAIL.toLowerCase() + '"');
-    console.log('    MATCH:', ARUNA_EMAIL.toLowerCase() === ARUNA_EMAIL.toLowerCase() ? '✅ YES — will be found and claimed' : '❌ NO — MISMATCH');
+    console.log('  When they sign up with the same address:');
+    console.log('    decoded.email will be: "' + TARGET_EMAIL + '"');
+    console.log('    .toLowerCase()       → "' + TARGET_EMAIL + '"');
+    console.log('    pendingRef doc ID    → "' + TARGET_EMAIL + '"');
+    console.log('    actual doc ID        → "' + TARGET_EMAIL + '"');
+    console.log('    MATCH:', TARGET_EMAIL === TARGET_EMAIL ? '✅ YES — will be found and claimed' : '❌ NO — MISMATCH');
     console.log('');
     console.log('  GATE: email_verified must be true before claim is granted.');
-    console.log('    → After sign-up, Aruna must click the verification link in her inbox.');
+    console.log('    → After sign-up, they must click the verification link in their inbox.');
     console.log('    → Signing up with Google auth satisfies this gate automatically.');
-    console.log('    → If she uses email/password, she must verify before /claim-enrollment succeeds.');
+    console.log('    → With email/password they must verify before /claim-enrollment succeeds.');
     console.log('');
-    console.log('  INSTRUCTION TO SEND ARUNA:');
+    console.log('  INSTRUCTION TO SEND THE CUSTOMER:');
     console.log('    "Go to claudecertifiedarchitects.com, click Log In, and create a free');
-    console.log('     account with aruna.kumar@comcast.net (the exact email used at checkout).');
+    console.log('     account with the exact email you used at checkout.');
     console.log('     If you sign up with email/password, click the verification link we\'ll');
     console.log('     email you before logging in. Your course access will unlock automatically."');
-  } else if (aruna.exists === true) {
-    console.log('  UID:           ', aruna.uid);
-    console.log('  emailVerified: ', aruna.emailVerified);
-    console.log('  authEnrolled:  ', aruna.authEnrolled);
-    console.log('  fsEnrolled:    ', aruna.fsEnrolled);
-    console.log('  fsEnrolledAt:  ', aruna.fsEnrolledAt);
+  } else if (target.exists === true) {
+    console.log('  UID:           ', target.uid);
+    console.log('  emailVerified: ', target.emailVerified);
+    console.log('  authEnrolled:  ', target.authEnrolled);
+    console.log('  fsEnrolled:    ', target.fsEnrolled);
+    console.log('  fsEnrolledAt:  ', target.fsEnrolledAt);
 
-    const needsEnrollment = !aruna.authEnrolled || !aruna.fsEnrolled;
+    const needsEnrollment = !target.authEnrolled || !target.fsEnrolled;
     if (!needsEnrollment) {
       console.log('\n  Already fully enrolled — no write needed.');
     } else {
       console.log('\n  *** Account exists but NOT enrolled — enrolling now... ***');
       try {
-        const result = await enrollAccount(aruna.uid, ARUNA_EMAIL, ARUNA_SESSION_ID);
+        const result = await enrollAccount(target.uid, TARGET_EMAIL, TARGET_SESSION_ID);
         console.log('\n  BEFORE:');
         console.log('    Auth claims: ', JSON.stringify(result.before.authClaims));
         console.log('    FS enrolled: ', result.before.fsData?.enrolled);
@@ -248,7 +281,8 @@ function ageHours(createdAt) {
       }
     }
   } else {
-    console.log('  ERROR checking account:', aruna.error);
+    console.log('  ERROR checking account:', target.error);
+  }
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -350,7 +384,7 @@ function ageHours(createdAt) {
       console.log('');
     });
   } else {
-    console.log('\nNo STUCK customers (beyond any Aruna enrollment already handled above).');
+    console.log('\nNo STUCK customers (beyond any targeted enrollment already handled above).');
   }
 
   process.exit(0);

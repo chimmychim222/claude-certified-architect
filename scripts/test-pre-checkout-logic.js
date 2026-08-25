@@ -9,22 +9,40 @@
  *   3. Second call within 10 min (same UID) → expect 'recent_session'
  *   4. Cleanup: delete the checkout_intent written in tests 2+3
  *
- * Usage: node scripts/test-pre-checkout-logic.js
+ * Nothing identifying is hardcoded here. This file is served publicly by GitHub
+ * Pages, so the credential path and the enrolled UID that test 1 needs are both
+ * supplied at run time and neither lives in the repo.
+ *
+ * Usage:
+ *   node scripts/test-pre-checkout-logic.js <service-account.json> <enrolled-uid>
+ *
+ * Both may instead be set once as CCA_SA_PATH and CCA_ENROLLED_TEST_UID. Use one
+ * of the owner's own test accounts for the UID, never a real customer's.
  */
 const fs   = require('fs');
 const path = require('path');
 const admin = require('firebase-admin');
 const { getFirestore } = require('firebase-admin/firestore');
 
-const SA_PATH = path.join(__dirname, '../testing keys/claude-certification-testing-firebase-adminsdk-fbsvc-65fdc2cdbd.json');
-const sa = require(SA_PATH);
+const positional = process.argv.slice(2).filter(a => !a.startsWith('--'));
+
+const SA_PATH      = process.env.CCA_SA_PATH           || positional[0];
+// A production UID that is already enrolled — test 1 asserts it is turned away.
+const ENROLLED_UID = process.env.CCA_ENROLLED_TEST_UID || positional[1];
+
+if (!SA_PATH || !ENROLLED_UID) {
+  console.error('\nUsage: node scripts/test-pre-checkout-logic.js <service-account.json> <enrolled-uid>');
+  console.error('   or: set CCA_SA_PATH and CCA_ENROLLED_TEST_UID and pass neither.');
+  console.error('\nThe key file lives outside the repo, in the gitignored local key directory.\n');
+  process.exit(1);
+}
+
+const sa = require(path.resolve(SA_PATH));
 
 admin.initializeApp({ credential: admin.credential.cert(sa) });
 const auth = admin.auth();
 const db   = getFirestore(admin.app(), 'default');
 
-// Known enrolled UID from production (chimsmcginty@protonmail.com, enrolled 2026-06-17)
-const ENROLLED_UID     = 'ZjVJ4TWlZ5PoV21Po5xi7is0k2Z2';
 // Non-existent / unenrolled UID to simulate a brand-new account
 const UNENROLLED_UID   = 'test-unenrolled-pre-checkout-zz9';
 

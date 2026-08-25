@@ -1,7 +1,14 @@
 /**
  * Blast-radius audit: all paid Stripe sessions vs Firebase enrollment.
  * READ-ONLY — no writes to any system.
- * Usage: node scripts/blast-radius-audit.js
+ * The credential filenames are not hardcoded: this file is served publicly by
+ * GitHub Pages, and the service-account filename identifies the project and the
+ * key. Both paths are supplied at run time.
+ *
+ * Usage:
+ *   node scripts/blast-radius-audit.js <service-account.json> <stripe-readonly-key.txt>
+ *
+ * They may instead be set once as CCA_SA_PATH and CCA_STRIPE_KEY_PATH.
  */
 const fs = require('fs');
 const path = require('path');
@@ -9,11 +16,20 @@ const admin = require('firebase-admin');
 const { getFirestore } = require('firebase-admin/firestore');
 const Stripe = require('stripe');
 
-const SA_PATH = path.join(__dirname, '../testing keys/claude-certification-testing-firebase-adminsdk-fbsvc-65fdc2cdbd.json');
-const KEY_PATH = path.join(__dirname, '../testing keys/stripe-readonly-key.txt');
+const positional = process.argv.slice(2).filter(a => !a.startsWith('--'));
 
-const sa = require(SA_PATH);
-const stripeKey = fs.readFileSync(KEY_PATH, 'utf8').trim();
+const SA_PATH = process.env.CCA_SA_PATH || positional[0];
+const KEY_PATH = process.env.CCA_STRIPE_KEY_PATH || positional[1];
+
+if (!SA_PATH || !KEY_PATH) {
+  console.error('\nUsage: node scripts/blast-radius-audit.js <service-account.json> <stripe-readonly-key.txt>');
+  console.error('   or: set CCA_SA_PATH and CCA_STRIPE_KEY_PATH and pass neither.');
+  console.error('\nBoth key files live outside the repo, in the gitignored local key directory.\n');
+  process.exit(1);
+}
+
+const sa = require(path.resolve(SA_PATH));
+const stripeKey = fs.readFileSync(path.resolve(KEY_PATH), 'utf8').trim();
 
 admin.initializeApp({ credential: admin.credential.cert(sa) });
 const auth = admin.auth();
