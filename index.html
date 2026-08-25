@@ -363,6 +363,37 @@ footer .footer-disclaimer{color:var(--text2);font-size:.875rem;line-height:1.65;
 @media(max-width:768px){
   nav .inner{padding:12px 16px}
 
+  /* Nav collapses to the hamburger at 768, NOT 640, so that it lines up with
+     LOGO_CSS's @media(max-width:768px){.user-area{display:none!important}}
+     (build.js). 951e375 hid .user-area at 768 while showing the panel's
+     .nav-auth-btn links only at 640, and its commit message states the two
+     match. They differ by 128px, and in that gap the homepage rendered NO auth
+     control at all — cluster hidden, panel links hidden, and the hamburger
+     (shown there only by the pointer:coarse rule) unable to open a panel whose
+     collapse rule did not apply. Both are 768 now, so at every width auth is
+     reachable by exactly one route: the panel at <=768, the .user-area cluster
+     at >=769. Aligning at 640 instead was measured and rejected — it renders
+     the cluster at x 959-1143 on a 768px viewport, visible to CSS and
+     off-screen to the reader, and pushes nav .inner scrollWidth 939 -> 1143. */
+  .hamburger{display:flex}
+  nav .nav-links{display:none;position:absolute;top:100%;left:0;right:0;flex-direction:column;background:rgba(245,243,234,.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:12px 16px;gap:4px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+  nav .nav-links.mobile-open{display:flex}
+  nav .nav-links button,nav .nav-links>a{width:100%;text-align:left;padding:12px 16px;border-radius:var(--radius-sm)}
+  /* Same declarations as LOGO_CSS's @media(max-width:640px) nav .nav-auth-btn
+     rule, at (0,2,2) so it outranks that file's (0,1,1) nav .nav-auth-btn
+     {display:none}, which sits in a <body> style block and would otherwise win
+     on document order. Duplicated rather than corrected at source because
+     LOGO_CSS is inlined verbatim into all 56 nav-bearing pages and this commit
+     is homepage-only — class="nav-auth-btn" appears in index.html and nowhere
+     else in the repo, so the source rule is inert on the other 55. */
+  nav .nav-links a.nav-auth-btn{display:flex;align-items:center;color:var(--text2);text-decoration:none;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.9rem;min-height:44px}
+  nav .mobile-nav-user.nav-signed-in{display:flex;align-items:center;gap:8px;padding:12px 16px;min-height:44px}
+  nav .mobile-nav-user .user-email{max-width:160px}
+  /* Inert while LOGO_CSS hides .user-area below 769px; kept beside its siblings
+     so the panel's layout rules cannot drift away from its breakpoint again. */
+  nav .user-area{width:100%;margin-left:0;padding-left:0;border-left:none;padding-top:10px;margin-top:6px;border-top:1px solid var(--border)}
+  nav .inner{position:relative}
+
   .hero{padding:120px 0 60px}
   .hero-stats .stat .num{font-size:1.4rem}
   .dash-grid{grid-template-columns:1fr}
@@ -380,15 +411,9 @@ footer .footer-disclaimer{color:var(--text2);font-size:.875rem;line-height:1.65;
 
 /* ── RESPONSIVE MOBILE ── */
 @media(max-width:640px){
-  /* Nav hamburger */
-  .hamburger{display:flex}
-  nav .nav-links{display:none;position:absolute;top:100%;left:0;right:0;flex-direction:column;background:rgba(245,243,234,.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:12px 16px;gap:4px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
-  nav .nav-links.mobile-open{display:flex}
-  nav .nav-links button,nav .nav-links>a{width:100%;text-align:left;padding:12px 16px;border-radius:var(--radius-sm)}
-  nav .mobile-nav-user.nav-signed-in{display:flex;align-items:center;gap:8px;padding:12px 16px;min-height:44px}
-  nav .mobile-nav-user .user-email{max-width:160px}
-  nav .user-area{width:100%;margin-left:0;padding-left:0;border-left:none;padding-top:10px;margin-top:6px;border-top:1px solid var(--border)}
-  nav .inner{position:relative}
+  /* Nav hamburger rules live in @media(max-width:768px) above — see the note
+     there. They were here, 128px away from the .user-area rule they are
+     supposed to hand over to. */
 
   /* Hero */
   .hero{padding:110px 0 50px}
