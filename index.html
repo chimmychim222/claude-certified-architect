@@ -376,7 +376,27 @@ footer .footer-disclaimer{color:var(--text2);font-size:.875rem;line-height:1.65;
      the cluster at x 959-1143 on a 768px viewport, visible to CSS and
      off-screen to the reader, and pushes nav .inner scrollWidth 939 -> 1143. */
   .hamburger{display:flex}
-  nav .nav-links{display:none;position:absolute;top:100%;left:0;right:0;flex-direction:column;background:rgba(245,243,234,.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:12px 16px;gap:4px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+  /* Opaque, not rgba(...,.97). The panel is painted over page content, and
+     nav's own backdrop-filter makes nav a backdrop root - so the blur below
+     samples that root rather than the page and never softens what shows
+     through. What bled through was sharp text at 3%, which read as legible
+     FAQ headings and footer copy behind the menu. var(--bg) IS
+     rgb(245,243,234): the same colour with the alpha removed, so nothing
+     about the panel's appearance changes except that it now covers.
+     The blur is left in place and is now inert - one line to retire, its own
+     commit, noted rather than removed here.
+
+     The PANEL scrolls, not an outer wrapper. The modal's
+     overlay-scrolls-not-content reasoning (562e9f7) deliberately does NOT
+     transfer: that holds because .close-btn is position:absolute inside
+     .modal, so scrolling .modal takes the x off-screen with the content.
+     Checked here - this panel contains no absolutely-positioned descendant,
+     and its dismiss control, the hamburger, is a sibling inside .inner and
+     outside the scroller, so it cannot scroll out of reach. The second
+     max-height repeats the first for dvh: on iOS 100vh is the URL-bar-hidden
+     height and overshoots the visible area, and a browser that cannot parse
+     dvh simply keeps the vh line. */
+  nav .nav-links{display:none;position:absolute;top:100%;left:0;right:0;flex-direction:column;background:var(--bg);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:12px 16px;gap:4px;box-shadow:0 8px 24px rgba(0,0,0,.08);max-height:calc(100vh - var(--banner-h,0px) - var(--nav-h,64px) - 12px);max-height:calc(100dvh - var(--banner-h,0px) - var(--nav-h,64px) - 12px);overflow-y:auto;overscroll-behavior:contain}
   nav .nav-links.mobile-open{display:flex}
   nav .nav-links button,nav .nav-links>a{width:100%;text-align:left;padding:12px 16px;border-radius:var(--radius-sm)}
   /* Same declarations as LOGO_CSS's @media(max-width:640px) nav .nav-auth-btn
@@ -489,7 +509,7 @@ footer .footer-disclaimer{color:var(--text2);font-size:.875rem;line-height:1.65;
   /* Prevent iOS zoom on input focus (must be ≥16px) */
   input,select,textarea{font-size:16px !important}
   /* Fix iOS momentum scrolling */
-  .modal-overlay,.modal,.lesson-content{-webkit-overflow-scrolling:touch}
+  .modal-overlay,.modal,.lesson-content,nav .nav-links{-webkit-overflow-scrolling:touch}
   /* Fix iOS 100vh including toolbar */
   body{min-height:-webkit-fill-available}
 }
