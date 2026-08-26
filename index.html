@@ -228,7 +228,16 @@ section .section-sub{color:var(--text2);margin-bottom:40px;font-size:1rem}
    inner "Start …" button specifically gets pointer-events:none so a tap on
    it passes through to the card instead of firing startTest() on a locked
    session. Visual styling (grayed strip, lock badge, cursor) is unchanged. */
-.dash-card.locked{position:relative;cursor:pointer}
+/* The ::after strip below is position:absolute;bottom:0 with no reserved
+   gutter, so it lands on top of whatever content reaches the card's inner
+   bottom edge. Measured before this rule: 72% of the Start button covered at
+   375px on EVERY locked card (pre-existing), and 67% on the tallest card at
+   1280px once a fifth card changed which card sets its grid row's height.
+   84px = 28px base padding + 56px strip. Shared rule on .locked, the same way
+   the pointer-events rule below is shared — never a per-card fix, because the
+   card it bites changes whenever the grid reflows. Keep in step with the
+   640px override further down, where the base padding drops to 20px. */
+.dash-card.locked{position:relative;cursor:pointer;padding-bottom:84px}
 .dash-card.locked button{pointer-events:none}
 .dash-card.locked::after{content:'🔒 Enroll to unlock';position:absolute;bottom:0;left:0;right:0;padding:14px;text-align:center;background:linear-gradient(transparent,rgba(245,243,234,.95) 40%);border-radius:0 0 var(--radius) var(--radius);font-size:1rem;font-weight:600;color:var(--accent-text);cursor:pointer;pointer-events:auto;z-index:2;letter-spacing:.3px}
 .dash-card.locked:hover::after{color:var(--accent2)}
@@ -490,6 +499,7 @@ footer .footer-disclaimer{color:var(--text2);font-size:.875rem;line-height:1.65;
   /* Dashboard */
   .dash-grid{grid-template-columns:1fr}
   .dash-card{padding:20px}
+  .dash-card.locked{padding-bottom:76px} /* 20px base padding + 56px strip */
 
   /* Progress */
   .progress-summary-grid{grid-template-columns:1fr}
