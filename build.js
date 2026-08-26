@@ -890,7 +890,7 @@ function blogFooter() {
 function articleJsonLd(post) {
   const img = post.ogImage
     ? (post.ogImage.startsWith('http') ? post.ogImage : BASE + post.ogImage)
-    : BASE + '/og-image-v2.png';
+    : BASE + '/cca-link-image-v3.jpg';
   return {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -910,7 +910,7 @@ function articleJsonLd(post) {
 function generateBlogPost(post, _index, allPosts) {
   const ogImg = post.ogImage
     ? (post.ogImage.startsWith('http') ? post.ogImage : BASE + post.ogImage)
-    : BASE + '/og-image-v2.png';
+    : BASE + '/cca-link-image-v3.jpg';
 
   const schemaList = [articleJsonLd(post), breadcrumb([
     { name: 'Home', url: BASE },
@@ -953,7 +953,8 @@ function generateBlogPost(post, _index, allPosts) {
 <meta property="og:image" content="${ogImg}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:type" content="image/png">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:alt" content="Claude Certified Architect field guide card: the published exam guide's 720/1000 pass mark, 60 questions, and the five domain weightings.">
 <meta property="article:published_time" content="${post.date}">
 <meta property="article:modified_time" content="${post.updated || post.date}">
 <meta property="article:section" content="CCA Exam Preparation">
@@ -1041,15 +1042,16 @@ function generateBlogIndex(posts) {
 <meta property="og:description" content="Articles and guides on Claude architecture, prompt engineering, MCP, and passing the CCA Foundations exam.">
 <meta property="og:url" content="${BASE}/blog/">
 <meta property="og:site_name" content="CCA Practice Platforms">
-<meta property="og:image" content="${BASE}/og-image-v2.png">
+<meta property="og:image" content="${BASE}/cca-link-image-v3.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:type" content="image/png">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:alt" content="Claude Certified Architect field guide card: the published exam guide's 720/1000 pass mark, 60 questions, and the five domain weightings.">
 <meta name="author" content="CCA Practice Platforms">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="CCA Blog | Claude Certified Architect Guides &amp; Study Tips">
 <meta name="twitter:description" content="Articles and guides on Claude architecture, prompt engineering, MCP, and passing the CCA Foundations exam.">
-<meta name="twitter:image" content="${BASE}/og-image-v2.png">
+<meta name="twitter:image" content="${BASE}/cca-link-image-v3.jpg">
 <link rel="preconnect" href="https://www.googletagmanager.com">
 ${schemas}
 ${sharedCSS()}

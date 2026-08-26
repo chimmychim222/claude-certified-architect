@@ -168,7 +168,7 @@ Target audience: people preparing for the CCA Foundations exam or considering ge
     description: meta.description,
     date:        today,
     slug:        meta.slug,
-    ogImage:     '/og-image-v2.png',
+    ogImage:     '/cca-link-image-v3.jpg',
     body:        body,
     h1:          meta.h1 || meta.title,
   };
