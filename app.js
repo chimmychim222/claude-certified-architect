@@ -2404,6 +2404,16 @@ const PROGRESS_DOMAINS = [
 ];
 const PROGRESS_TYPE_LABELS = { quick: 'Quick Sprint', focused: 'Focused Session', deep: 'Deep Practice', full: 'Full Certification Exam' };
 
+// The bank's `d` field is the join key used by POOL, domainScores and the stored
+// attempt history, so it never changes. PROGRESS_DOMAINS carries the display name
+// (the bank's `Claude Code Configuration` is truncated against the guide's
+// `Claude Code Configuration & Workflows`). Falls back to the raw key so an
+// unmapped domain still renders a name rather than nothing.
+function domainLabel(key) {
+  const d = PROGRESS_DOMAINS.find(x => x.key === key);
+  return d ? d.label : key;
+}
+
 async function loadProgress() {
   const emptyEl   = document.getElementById('progress-empty');
   const contentEl = document.getElementById('progress-content');
@@ -4565,7 +4575,7 @@ function renderQuestion() {
   document.getElementById('test-progress-bar').style.width = `${((t.current+1)/total)*100}%`;
 
   let html = `<div class="question-card">
-    <div class="q-num">${q.d} — Question ${t.current+1}</div>
+    <div class="q-num">${domainLabel(q.d)} — Question ${t.current+1}</div>
     <div class="q-text">${q.q}</div>`;
 
   if (t.freePreview && revealed) {
@@ -4727,7 +4737,7 @@ function finishTest() {
 
   for (const [domain, scores] of Object.entries(domainScores)) {
     const dpct = Math.round((scores.correct/scores.total)*100);
-    breakdownHTML += `<div class="rb-card"><div class="rb-val" style="color:var(--text)">${dpct}%</div><div class="rb-label">${domain}</div></div>`;
+    breakdownHTML += `<div class="rb-card"><div class="rb-val" style="color:var(--text)">${dpct}%</div><div class="rb-label">${domainLabel(domain)}</div></div>`;
   }
   document.getElementById('results-breakdown').innerHTML = breakdownHTML;
   document.getElementById('review-area').innerHTML = '';
@@ -4759,7 +4769,7 @@ function reviewTest() {
     const userAns = t.answers[i];
     const questionCorrect = isCorrect(q, userAns);
     html += `<div class="question-card" style="border-color:${questionCorrect?'var(--green)':'var(--red)'}">
-      <div class="q-num" style="color:${questionCorrect?'var(--green)':'var(--red)'}">${questionCorrect?'✓ CORRECT':'✗ INCORRECT'} — ${q.d}</div>
+      <div class="q-num" style="color:${questionCorrect?'var(--green)':'var(--red)'}">${questionCorrect?'✓ CORRECT':'✗ INCORRECT'} — ${domainLabel(q.d)}</div>
       <div class="q-text">${q.q}</div>`;
     q.o.forEach((opt, j) => {
       let cls = '';
