@@ -783,8 +783,8 @@ function updateDashCards() {
   const focusedCard  = document.getElementById('card-focused');
   const focusedBadge = focusedCard && focusedCard.querySelector('.lock-badge');
 
-  // card-deep and card-full: fully locked unless enrolled
-  ['card-deep','card-full'].forEach(id => {
+  // card-deep, card-full and card-domain: fully locked unless enrolled
+  ['card-deep','card-full','card-domain'].forEach(id => {
     const card = document.getElementById(id);
     if (!card) return;
     const badge = card.querySelector('.lock-badge');
@@ -808,6 +808,14 @@ function updateDashCards() {
       if (focusedBadge) { focusedBadge.textContent = '5 FREE'; focusedBadge.classList.add('unlocked'); }
     }
   }
+
+  // The locked overlay kills the "Start" button with pointer-events:none, but a
+  // <select> is still operable by keyboard, so disable it outright. A click on a
+  // disabled control fires no event, so it bubbles to the card's openPaymentModal
+  // handler below -- which is the behaviour we want on a locked card anyway.
+  const drillSelect = document.getElementById('domain-drill-select');
+  if (drillSelect) drillSelect.disabled = !enrolled;
+  renderDomainDrillPicker();
 
   // Make fully-locked overlays clickable → payment (Stripe, with or without login)
   document.querySelectorAll('.dash-card.locked').forEach(card => {
@@ -2404,14 +2412,90 @@ const PROGRESS_DOMAINS = [
 ];
 const PROGRESS_TYPE_LABELS = { quick: 'Quick Sprint', focused: 'Focused Session', deep: 'Deep Practice', full: 'Full Certification Exam' };
 
+// Blueprint order, per the official CCAR-F Exam Guide v1.0 section 4 --
+// Agentic 27, Tool Design 18, Claude Code Config 20, Prompt Eng 20,
+// Context Mgmt 15. PROGRESS_DOMAINS is in the BANK's own order and stays that
+// way: the mastery grid renders from it. This is a separate view over the same
+// five domains, used by the domain drill's picker.
+//
+// The slug is what ?startTest=domain-<slug> carries. It is a NAME, never a
+// position, so reordering this list can't silently repoint a bookmarked link
+// the way an index would.
+const DOMAIN_DRILL_DOMAINS = [
+  { slug: 'agentic',     key: 'Agentic Architecture & Orchestration'   },
+  { slug: 'tool-design', key: 'Tool Design & MCP Integration'          },
+  { slug: 'claude-code', key: 'Claude Code Configuration'              },
+  { slug: 'prompt',      key: 'Prompt Engineering & Structured Output' },
+  { slug: 'context',     key: 'Context Management & Reliability'       },
+];
+const DOMAIN_DRILL_QUESTIONS = 20;   // requested; the real count is min(this, available)
+const DOMAIN_DRILL_MINUTES   = 40;   // matches Focused Session's 20q / 40m shape
+
 // The bank's `d` field is the join key used by POOL, domainScores and the stored
 // attempt history, so it never changes. PROGRESS_DOMAINS carries the display name
 // (the bank's `Claude Code Configuration` is truncated against the guide's
 // `Claude Code Configuration & Workflows`). Falls back to the raw key so an
 // unmapped domain still renders a name rather than nothing.
+function progressDomain(key) { return PROGRESS_DOMAINS.find(x => x.key === key) || null; }
 function domainLabel(key) {
-  const d = PROGRESS_DOMAINS.find(x => x.key === key);
+  const d = progressDomain(key);
   return d ? d.label : key;
+}
+
+// `domain-<slug>` is the drill's test type. Returns null for every other type,
+// which is what leaves getTestConfig()'s switch and startTest()'s enrollment
+// guard working exactly as they did.
+function domainDrillEntry(type) {
+  if (typeof type !== 'string' || type.indexOf('domain-') !== 0) return null;
+  return DOMAIN_DRILL_DOMAINS.find(d => d.slug === type.slice('domain-'.length)) || null;
+}
+
+// Derived from QUESTIONS at run time, never hardcoded. Four other surfaces
+// publish per-domain counts and one of them was wrong for four weeks.
+function domainQuestionCount(key) {
+  let n = 0;
+  for (let i = 0; i < QUESTIONS.length; i++) if (QUESTIONS[i].d === key) n++;
+  return n;
+}
+
+// finishTest() stores the drill as type `domain-<slug>`. Without an entry here
+// the Recent Attempts list renders that raw key. Built from the same table so
+// the two can't drift apart.
+DOMAIN_DRILL_DOMAINS.forEach(d => { PROGRESS_TYPE_LABELS['domain-' + d.slug] = domainLabel(d.key) + ' Drill'; });
+
+// Fills the Domain Drill card's <select>. Blueprint order, label from
+// PROGRESS_DOMAINS (so the truncated Claude Code name is corrected here too),
+// exam weight beside the name per the never-a-bare-sequence rule, and the
+// number of questions the domain actually holds, counted from QUESTIONS.
+function renderDomainDrillPicker() {
+  const sel = document.getElementById('domain-drill-select');
+  if (!sel) return;
+  const keep = sel.value;
+  sel.innerHTML = DOMAIN_DRILL_DOMAINS.map(d => {
+    const dom = progressDomain(d.key);
+    const w   = dom ? dom.weight + '% of exam · ' : '';
+    return `<option value="${d.slug}">${domainLabel(d.key)} — ${w}${domainQuestionCount(d.key)} questions</option>`;
+  }).join('');
+  if (keep) sel.value = keep;
+  updateDomainDrillMeta();
+}
+
+// The card's meta line shows what the drill will actually draw, which is
+// min(20, available) -- not the requested 20.
+function updateDomainDrillMeta() {
+  const sel  = document.getElementById('domain-drill-select');
+  const meta = document.getElementById('domain-drill-meta');
+  if (!sel || !meta || !sel.value) return;
+  const cfg = getTestConfig('domain-' + sel.value);
+  if (cfg) meta.textContent = cfg.questions + ' Questions';
+}
+
+// Card button. Routes through startTest() like every other mode, so the
+// enrollment guard, the shuffle and the correct-index remap all still apply.
+function startDomainDrill() {
+  const sel = document.getElementById('domain-drill-select');
+  if (!sel || !sel.value) return;
+  startTest('domain-' + sel.value);
 }
 
 async function loadProgress() {
@@ -4471,6 +4555,16 @@ let currentTest = null;
 let timerInterval = null;
 
 function getTestConfig(type) {
+  const drill = domainDrillEntry(type);
+  if (drill) {
+    // Context Management holds the fewest questions, so take what the domain
+    // actually has rather than assuming 20 exists everywhere.
+    return {
+      name: domainLabel(drill.key) + ' Drill',
+      questions: Math.min(DOMAIN_DRILL_QUESTIONS, domainQuestionCount(drill.key)),
+      minutes: DOMAIN_DRILL_MINUTES
+    };
+  }
   switch(type) {
     case 'quick': return {name:'Quick Sprint', questions:10, minutes:20};
     case 'focused': return {name:'Focused Session', questions:20, minutes:40};
@@ -4506,10 +4600,20 @@ async function startTest(type) {
   }
 
   const config = getTestConfig(type);
+  // An unrecognised type -- a mistyped ?startTest= in the address bar, or a
+  // drill slug that no longer exists -- used to throw on config.questions and
+  // leave the visitor looking at a blank test screen.
+  if (!config) { console.warn('[startTest] unknown test type:', type); return; }
   const isFreePreview = (type === 'focused' && !enrolled);
   const questionCount = isFreePreview ? 5 : config.questions;
 
-  const shuffled = shuffleArray(QUESTIONS);
+  // Narrow on the INPUT side of the shuffle. Everything downstream -- the
+  // option shuffle, the correct-index remap, MR handling, the option cap --
+  // then runs untouched, which is why the drill inherits MR support for free.
+  const drill = domainDrillEntry(type);
+  const pool  = drill ? QUESTIONS.filter(q => q.d === drill.key) : QUESTIONS;
+
+  const shuffled = shuffleArray(pool);
   const selected = shuffled.slice(0, questionCount).map(q => {
     const indices = q.o.map((_, i) => i);
     const shuffledIdx = shuffleArray(indices);
@@ -4847,6 +4951,11 @@ if (!enrolled) {
   const _earlyHub = new URLSearchParams(window.location.search).get('hub');
   showSection(_earlyHub === 'practice-tests' ? 'dashboard' : 'home');
 }
+
+// updateDashCards() also renders the picker, but it only runs from
+// onAuthStateChanged. Populate it here too so the card is never an empty
+// dropdown if Firebase is slow or blocked.
+renderDomainDrillPicker();
 
 // ═══════ SCROLL REVEAL (IntersectionObserver) ═══════
 (function(){
