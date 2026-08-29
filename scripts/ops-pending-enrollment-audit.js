@@ -237,8 +237,17 @@ function ageHours(createdAt) {
     console.log('    decoded.email will be: "' + TARGET_EMAIL + '"');
     console.log('    .toLowerCase()       → "' + TARGET_EMAIL + '"');
     console.log('    pendingRef doc ID    → "' + TARGET_EMAIL + '"');
-    console.log('    actual doc ID        → "' + TARGET_EMAIL + '"');
-    console.log('    MATCH:', TARGET_EMAIL === TARGET_EMAIL ? '✅ YES — will be found and claimed' : '❌ NO — MISMATCH');
+    // Read the actual doc id back from the [1a] fetch, never from the argument.
+    // This line printed TARGET_EMAIL and the comparison below was TARGET_EMAIL
+    // === TARGET_EMAIL, so it answered YES on every run since 3570e5c and
+    // proved nothing. targetDocRef.id is also derived from TARGET_EMAIL, so the
+    // only load-bearing fact here is whether a document exists at that key --
+    // which is exactly what a Gmail dot variant (foo.bar@ vs foobar@, one inbox,
+    // two doc ids) would break.
+    console.log('    actual doc ID        → ' + (targetDoc.exists ? '"' + targetDocRef.id + '"' : '(none — no document at this key)'));
+    console.log('    MATCH:', targetDoc.exists
+      ? '✅ YES — a pending_enrollments doc exists at this key and will be claimed'
+      : '❌ NO — no document at this key; signing up will claim nothing');
     console.log('');
     console.log('  GATE: email_verified must be true before claim is granted.');
     console.log('    → After sign-up, they must click the verification link in their inbox.');
