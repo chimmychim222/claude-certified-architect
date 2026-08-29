@@ -30,6 +30,7 @@ commands in the Appendix, to refresh the data and update this file.
 | All blocks valid JSON, `@context`/`@type` correct | ✅ Pass | 0 issues across 28 pages |
 | Required properties present per type | ✅ Pass | Course, Organization, WebSite, FAQPage, Article, WebPage, BreadcrumbList |
 | No fabricated Review/AggregateRating | ✅ Pass | None present |
+| ↳ Note, 2026-08-29 | — | Verdict left as recorded. It passed because the detector, `scripts/jsonld-audit.js`, tested JSON-LD blocks only. A fabricated "4.9 / 1,247 student reviews" line sat in plain HTML in `og-image.html` and `og-preview/index.html`, and as pixels in `og-image.png` and `og-image-v2.png`, throughout. Deleted in [0f13532](../../commit/0f13532). |
 | BreadcrumbList sequential + matches canonical | ✅ Pass | All non-home pages |
 | Article `headline`/`url`/`datePublished` match visible content | ✅ Pass | All 21 posts |
 | Organization schema has `name`, `url`, `logo` | ✅ Pass | |
