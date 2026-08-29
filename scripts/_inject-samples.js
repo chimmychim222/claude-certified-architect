@@ -83,28 +83,53 @@ const QS = [
     correct: 1,
     explanation: 'Tool results are fed back to Claude, so an error the model can actually read is what keeps the loop recoverable. A rate limit is worth waiting out; an item that does not exist never will be, and the agent can only tell those apart if the tool says which it is. A server-side log records the failure for operators and returns nothing the agent can act on. A raw exception dump beside the <code>isError</code> flag says something failed without saying what kind of failure it was or whether a retry has any chance. Retrying on a fixed interval until it succeeds never terminates on a missing item and hammers a rate-limited API.',
   },
+  {
+    domain: 'Prompt Engineering &amp; Structured Output (20%)',
+    select: 2,
+    q: 'A review prompt sets out in prose the four fields every finding must carry, and the model still returns findings that drop a field and change shape between runs. Which two changes address that most directly?',
+    opts: [
+      'Restate the four field names a second time immediately before the diff, so the requirement is the last thing the model reads before it generates',
+      'Add two or three worked examples that render a complete finding in the exact four-field shape the output is meant to take',
+      'Describe each of the four fields at greater length, so the model is given a fuller specification of what each one should contain',
+      'Define the finding as a JSON schema on an extraction tool and read the findings out of the <code>tool_use</code> response rather than out of prose',
+      'Move the four field names into the system prompt, leaving the diff and the instruction to review it in the user turn',
+    ],
+    correct: [1, 3],
+    explanation: 'Two independent mechanisms are at work and the prompt is using neither. Worked examples demonstrate the shape rather than describing it, which is what the guide names as the most effective route to consistently formatted output, and a model that has seen a finding rendered correctly reproduces its shape far more reliably than one that has only read about it. A JSON schema attached to a tool removes the question from prose altogether: the guide names tool use with a schema as the most reliable approach for structured output, and a field the schema requires cannot simply be dropped. The three wrong answers all leave the output governed by prose. Repeating the field names moves an instruction without changing its kind. Describing the fields at greater length is more of exactly what has already failed. Moving the names into the system prompt changes where the specification sits rather than how the model is shown to satisfy it.',
+  },
 ];
 
-const LABELS = ['A', 'B', 'C', 'D'];
+const LABELS = ['A', 'B', 'C', 'D', 'E'];
 
 function buildCard(q) {
+  // `correct` is an index for single-select and an array of indices for a
+  // multiple-response item, which also carries `select` (how many to pick).
+  const keys = Array.isArray(q.correct) ? q.correct : [q.correct];
   const optsHtml = q.opts.map((opt, oi) => {
-    const cls = oi === q.correct ? ' class="sq-correct"' : '';
+    const cls = keys.indexOf(oi) !== -1 ? ' class="sq-correct"' : '';
     return `        <li${cls}><span class="opt-label">${LABELS[oi]}</span>${opt}</li>`;
   }).join('\n');
+  const keyLabels = keys.map(k => LABELS[k]).join(' and ');
+  const selectAttr = q.select ? ` data-select="${q.select}"` : '';
+  const formatPill = q.select
+    ? `\n        <span class="sq-format">Multiple response &middot; select two</span>`
+    : '';
+  const mrNote = q.select
+    ? `\n        <p class="sq-mr-note" aria-live="polite">Select two answers</p>`
+    : '';
 
-  return `      <div class="sq-card reveal">
-        <span class="sq-domain">${q.domain}</span>
+  return `      <div class="sq-card reveal"${selectAttr}>
+        <span class="sq-domain">${q.domain}</span>${formatPill}
         <p class="sq-question">${q.q}</p>
         <ul class="sq-options">
 ${optsHtml}
-        </ul>
+        </ul>${mrNote}
         <button class="sq-toggle" onclick="toggleSampleQ(this)" aria-expanded="false">
           <span class="sq-toggle-text">Show answer</span>
           <span class="sq-toggle-arrow" aria-hidden="true">&#x25BE;</span>
         </button>
         <div class="sq-answer" aria-hidden="true">
-          <div class="sq-answer-label">&#x2713;&nbsp;Correct: ${LABELS[q.correct]}</div>
+          <div class="sq-answer-label">&#x2713;&nbsp;Correct: ${keyLabels}</div>
           <p class="sq-explanation">${q.explanation}</p>
         </div>
       </div>`;
@@ -170,6 +195,9 @@ const checks = [
   'Tool Design',
   'context: fork',
   'structured result describing the error',
+  'Prompt Engineering',
+  'Which two changes address that most directly',
+  'sq-format',
 ];
 let ok = true;
 checks.forEach(str => {

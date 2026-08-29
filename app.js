@@ -5220,7 +5220,9 @@ function toggleSampleQ(btn) {
       label.innerHTML = '&#x2713;&nbsp;Correct — well done!';
       label.style.color = 'var(--green)';
     } else if (result === 'wrong') {
-      label.innerHTML = '&#x2715;&nbsp;Incorrect — correct answer highlighted above.';
+      label.innerHTML = card.getAttribute('data-select')
+        ? '&#x2715;&nbsp;Incorrect — correct answers highlighted above.'
+        : '&#x2715;&nbsp;Incorrect — correct answer highlighted above.';
       label.style.color = 'var(--red)';
     }
     // sq-revealed is permanent once set (keeps correct option green)
@@ -5233,16 +5235,42 @@ function toggleSampleQ(btn) {
   textEl.textContent = open ? 'Show answer' : 'Hide answer';
 }
 
-// Click an option to attempt answer
+// Click an option to attempt answer.
+// data-select="N" on the card marks a multiple-response item: the card stays
+// open until N options are chosen, and it is graded on the whole set. Cards
+// without the attribute keep the original single-select behaviour untouched.
 function selectSampleAnswer(li) {
   var card = li.closest('.sq-card');
   if (card.classList.contains('sq-answered')) return;
+  var need = parseInt(card.getAttribute('data-select') || '1', 10);
+  if (need > 1) { selectSampleAnswerMulti(card, li, need); return; }
   card.classList.add('sq-answered');
   var isCorrect = li.classList.contains('sq-correct');
   card.setAttribute('data-result', isCorrect ? 'correct' : 'wrong');
   li.classList.add('sq-chosen');
   if (!isCorrect) li.classList.add('sq-selected');
   // sq-revealed NOT added here — correct answer hidden until Show answer clicked
+}
+
+// Multiple-response sample: toggle choices until `need` are selected, then
+// grade the set. Nothing is revealed here — Show answer still does that.
+function selectSampleAnswerMulti(card, li, need) {
+  li.classList.toggle('sq-chosen');
+  var chosen = card.querySelectorAll('.sq-options li.sq-chosen');
+  var note = card.querySelector('.sq-mr-note');
+  if (chosen.length < need) {
+    if (note) note.textContent = chosen.length
+      ? chosen.length + ' of ' + need + ' selected'
+      : 'Select ' + (need === 2 ? 'two' : need) + ' answers';
+    return;
+  }
+  card.classList.add('sq-answered');
+  var allCorrect = true;
+  Array.prototype.forEach.call(chosen, function (el) {
+    if (!el.classList.contains('sq-correct')) { el.classList.add('sq-selected'); allCorrect = false; }
+  });
+  card.setAttribute('data-result', allCorrect ? 'correct' : 'wrong');
+  if (note) note.textContent = need + ' of ' + need + ' selected';
 }
 
 // Shuffle sample question cards on every page load
