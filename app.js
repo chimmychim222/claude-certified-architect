@@ -2356,7 +2356,7 @@ function showSection(id) {
   // Pages without the dashboard/SPA sections (e.g. /diagnostic/, which only
   // loads app.js for its checkout/auth modal) have nothing for this to do.
   if (!document.getElementById('home-section')) return;
-  ['home','pricing','testimonials','dashboard','test','results','lessons','progress'].forEach(s => {
+  ['home','pricing','testimonials','customer-quotes','dashboard','test','results','lessons','progress'].forEach(s => {
     const el = document.getElementById(s + '-section');
     if (el) el.style.display = 'none';
   });
@@ -2370,9 +2370,11 @@ function showSection(id) {
     document.getElementById('home-section').style.display = 'block';
     if (sqSection) sqSection.style.display = 'block';
     document.getElementById('testimonials-section').style.display = 'block';
+    document.getElementById('customer-quotes-section').style.display = 'block';
     document.getElementById('pricing-section').style.display = 'block';
   } else if (id === 'pricing') {
     document.getElementById('testimonials-section').style.display = 'block';
+    document.getElementById('customer-quotes-section').style.display = 'block';
     document.getElementById('pricing-section').style.display = 'block';
     document.getElementById('pricing-section').scrollIntoView({behavior:'smooth'});
   } else if (id === 'dashboard') {
@@ -5124,44 +5126,12 @@ document.querySelectorAll('.hero-stats .num[data-count]').forEach(el => {
   }
 })();
 
-// ═══════ TESTIMONIALS (JS-based infinite scroll) ═══════
-(function(){
-  const testimonials = [];
-  const track = document.getElementById('testimonial-track');
-  if (!track) return;
-  function buildCard(t) {
-    return '<div class="testimonial-card"><div class="testimonial-stars">★★★★★</div><div class="testimonial-text">'+t.text+'</div><div class="testimonial-author"><div class="testimonial-avatar '+t.color+'">'+t.initials+'</div><div><div class="testimonial-name">'+t.name+'</div><div class="testimonial-role">'+t.role+'</div><div class="testimonial-badge">PASSED FIRST ATTEMPT</div></div></div></div>';
-  }
-  // Build two copies for seamless loop
-  let html = '';
-  testimonials.forEach(t => { html += buildCard(t); });
-  testimonials.forEach(t => { html += buildCard(t); });
-  track.innerHTML = html;
-  // JS-based smooth scroll (works on all devices including mobile)
-  let pos = 0;
-  let speed = 1.2;
-  let paused = false;
-  let halfWidth = 0;
-  function measure() {
-    halfWidth = track.scrollWidth / 2;
-  }
-  measure();
-  window.addEventListener('resize', measure);
-  track.addEventListener('mouseenter', function(){ paused = true; });
-  track.addEventListener('mouseleave', function(){ paused = false; });
-  track.addEventListener('touchstart', function(){ paused = true; }, {passive:true});
-  track.addEventListener('touchend', function(){ paused = false; }, {passive:true});
-  track.addEventListener('touchcancel', function(){ paused = false; }, {passive:true});
-  function tick() {
-    if (!paused && halfWidth > 0) {
-      pos -= speed;
-      if (Math.abs(pos) >= halfWidth) pos = 0;
-      track.style.transform = 'translateX(' + pos + 'px)';
-    }
-    requestAnimationFrame(tick);
-  }
-  requestAnimationFrame(tick);
-})();
+// ═══════ TESTIMONIALS ═══════
+// The auto-scrolling testimonial carousel that lived here has been removed. It
+// hardcoded a five-star rating and a "PASSED FIRST ATTEMPT" badge into every
+// card, neither of which this site can stand behind, and it advanced on a timer,
+// which hides cards from anyone who does not wait. Real customer quotes are
+// published as a plain static grid in index.html's #customer-quotes-section.
 
 // ═══════ NAV SCROLL EFFECT ═══════
 (function(){
