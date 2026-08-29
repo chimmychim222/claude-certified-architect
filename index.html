@@ -1163,9 +1163,19 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
         <div class="meta"><span>10 Questions</span><span>20 Minutes</span></div>
         <button class="btn-primary btn-sm" onclick="startTest('quick')">Start Sprint</button>
       </div>
+      <!-- The badge ships in the state updateDashCards() renders for a visitor
+           who is not enrolled, which is every visitor a crawler or a text
+           extractor ever is. Focused Session’s first five questions need no
+           account: startTest() exempts 'focused' from the enrollment guard and
+           serves a 5-question preview. JS refines this to ENROLLED after a
+           purchase; it no longer has to CORRECT a shipped "LOCKED" that was
+           never true. Do not add class="locked" to any card here -- the click
+           handler that makes a locked card reach checkout is assigned inside
+           updateDashCards(), so a statically-locked card is a dead card until
+           that runs. -->
       <div class="dash-card" id="card-focused">
         <div class="icon">🔥</div>
-        <h3>Focused Session <span class="lock-badge">LOCKED</span></h3>
+        <h3>Focused Session <span class="lock-badge unlocked">5 FREE</span></h3>
         <p>A timed 20-question session drawn at random from the full question bank.</p>
         <div class="meta"><span>20 Questions</span><span>40 Minutes</span></div>
         <button class="btn-primary btn-sm" onclick="startTest('focused')">Start Session</button>
