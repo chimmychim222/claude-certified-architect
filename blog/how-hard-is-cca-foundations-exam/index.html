@@ -181,27 +181,27 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 <h2>The Five Domains, Ranked by Reported Difficulty</h2>
 
 <h3>1. Context Management (hardest for most candidates)</h3>
-<p>This domain covers token budgets, prompt caching, and multi-turn context design. It consistently catches candidates regardless of their experience level. Engineers who've built with Claude tend to have strong intuitions about the symptoms of poor context management (cost spikes, inconsistent behaviour, degraded quality over long conversations) but haven't systematised the underlying mechanics.</p>
+<p>This domain covers token budgets, prompt caching, and <a href="/blog/context-management-reliability-cca-domain-5/">multi-turn context design</a>. It consistently catches candidates regardless of their experience level. Engineers who've built with Claude tend to have strong intuitions about the symptoms of poor context management (cost spikes, inconsistent behaviour, degraded quality over long conversations) but haven't systematised the underlying mechanics.</p>
 
 <p>Context management catches people because the domain rewards precise judgment, not general awareness. Knowing that prompt caching exists is not the same as knowing when it's the right tool for a given scenario — whether the reused content is genuinely static, whether the cost and latency tradeoff makes sense, and whether the pattern fits a caching approach at all. Structured context-design judgment — recognising degradation patterns and correcting them — appears in exam scenarios requiring you to diagnose and correct a poorly designed multi-turn system.</p>
 
 <h3>2. Agentic Architecture (hardest for non-engineers)</h3>
-<p>The highest-weighted domain (27%) tests your ability to design agentic systems that are reliable, safe, and cost-controlled. The core principles — scoped tool access, human-in-the-loop checkpoints, reversible actions before irreversible ones, failure handling in multi-agent pipelines — are straightforward to understand conceptually. Where candidates fail is in applying them precisely when scenarios involve competing constraints.</p>
+<p>The highest-weighted domain (27%) tests your ability to <a href="/blog/agentic-architecture-orchestration-cca-domain-1/">design agentic systems that are reliable, safe, and cost-controlled</a>. The core principles — scoped tool access, human-in-the-loop checkpoints, reversible actions before irreversible ones, failure handling in multi-agent pipelines — are straightforward to understand conceptually. Where candidates fail is in applying them precisely when scenarios involve competing constraints.</p>
 
 <p>A typical difficult question: an agentic loop is producing inconsistent results. Several potential causes are offered, each plausible. The correct answer requires you to distinguish between a context window management issue, a tool definition issue, a prompt design issue, and a model reliability issue — not just identify that something is wrong.</p>
 
 <h3>3. Tool Design and MCP (hardest for conceptual learners)</h3>
-<p>The Model Context Protocol domain catches candidates who learned about MCP from blog posts rather than from building with it. The exam tests tool schema design principles, security boundaries in MCP servers, and the architectural patterns for connecting Claude to external systems.</p>
+<p>The Model Context Protocol domain catches candidates who learned about MCP from blog posts rather than from building with it. The exam tests <a href="/blog/tool-design-mcp-cca-domain-4/">tool schema design principles</a>, security boundaries in MCP servers, and the architectural patterns for connecting Claude to external systems.</p>
 
 <p>The most common failure point: candidates can describe what MCP does but can't reason about which transport is appropriate for a given deployment scenario, or can't identify the security vulnerability in a described MCP server implementation.</p>
 
 <h3>4. Claude Code Configuration (moderate difficulty)</h3>
-<p>This domain covers CLAUDE.md files, Claude Code setup, slash commands, hooks, and permission management. Candidates with direct Claude Code experience typically find this domain manageable. The difficulty is in the details: the difference between global and project-level CLAUDE.md files, the precedence rules when both exist, and the specific hook types (PreToolUse, PostToolUse, Stop, Notification) and their appropriate uses.</p>
+<p>This domain covers <a href="/blog/claude-code-config-workflows-cca-domain-2/">CLAUDE.md files, Claude Code setup, slash commands, hooks, and permission management</a>. Candidates with direct Claude Code experience typically find this domain manageable. The difficulty is in the details: the difference between global and project-level CLAUDE.md files, the precedence rules when both exist, and the specific hook types (PreToolUse, PostToolUse, Stop, Notification) and their appropriate uses.</p>
 
 <p>Candidates without Claude Code experience find this domain disproportionately hard because the concepts don't map to prior knowledge. Everything needs to be learned from scratch rather than updated from a foundation.</p>
 
 <h3>5. Prompt Engineering (most accessible domain)</h3>
-<p>The domain covers system prompt design, chain-of-thought prompting, few-shot examples, and prompt anti-patterns — vocabulary that most experienced Claude users have implicitly used without formalising. Most candidates with meaningful Claude experience find this the domain they need the least preparation time for.</p>
+<p>The domain covers system prompt design, chain-of-thought prompting, <a href="/blog/prompt-engineering-structured-output-cca-domain-3/">few-shot examples</a>, and prompt anti-patterns — vocabulary that most experienced Claude users have implicitly used without formalising. Most candidates with meaningful Claude experience find this the domain they need the least preparation time for.</p>
 
 <p>The trap: overconfidence. Candidates who've done a lot of prompt engineering often skip this domain during preparation and lose points on the exact definition of prompt anti-patterns the exam uses.</p>
 
@@ -211,14 +211,14 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 
 <p>Engineers familiar with AI development but without deep Claude-specific experience need to build from a solid foundation, though they aren't starting from zero on the underlying concepts.</p>
 
-<p><a href="/blog/who-should-get-cca-foundations-certification/">Non-engineers</a> (product managers, technical consultants, architects from adjacent fields) typically need more time to build conceptual foundations before working on exam-specific preparation. These candidates can and do pass — the exam tests architectural reasoning, not code-writing ability — but the foundation-building phase takes longer.</p>
+<p>Non-engineers (product managers, technical consultants, <a href="/blog/how-to-prepare-cca-f-career-switch/">architects from adjacent fields</a>) typically need more time to build conceptual foundations before working on exam-specific preparation. These candidates can and do pass — the exam tests architectural reasoning, not code-writing ability — but the foundation-building phase takes longer.</p>
 
 <h2>What Catches People Off Guard</h2>
 <p>Three things consistently surprise candidates who failed their first attempt:</p>
 
 <ol>
   <li><strong>The precision of the context management domain.</strong> Knowing that prompt caching exists is not enough. The exam expects you to reason about when it's the right tool for a given scenario and when it isn't. Vague knowledge produces wrong answers on questions that have specifically correct answers.</li>
-  <li><strong>The scenario depth in Agentic Architecture.</strong> Scenarios are not abstract. They describe a specific system with specific failure modes and ask you to identify the precise cause and correct fix. Candidates who studied principles without working through practice scenarios get caught by the specificity.</li>
+  <li><strong>The scenario depth in Agentic Architecture.</strong> Scenarios are not abstract. They describe a specific system with specific failure modes and ask you to identify the precise cause and correct fix. Candidates who studied principles without <a href="/cca-practice-questions/">working through practice scenarios</a> get caught by the specificity.</li>
   <li><strong>The time pressure.</strong> 60 questions in 120 minutes is 2 minutes per question. Questions are paragraph-length scenarios, not one-line recall prompts. Candidates who haven't practiced under time pressure often run short of time on the later questions, which costs marks regardless of which domains those questions happen to fall in.</li>
 </ol>
 
