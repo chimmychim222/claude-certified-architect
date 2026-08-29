@@ -892,6 +892,28 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
       <a class="btn-primary btn-diagnostic-hero" href="/diagnostic/">Start the Free Diagnostic →</a>
       <button class="btn-secondary" onclick="showSection('lessons')">View Lesson Plan</button>
     </div>
+    <!-- USAGE FIGURE - REFRESH ME.
+         Derived 2026-08-29 from Firebase Auth, read-only, project
+         claude-certification-testing (the live project; see app.js firebaseConfig).
+
+         Exact query, one step:
+           listUsers() paged at 1000, count every account whose email does NOT
+           match /joshuaklinetrans[al]?ations|joshtest|chimsmcginty|ccatest/i
+           -> 3443 total, 57 owner/test, 3386 real.  Put 3386 below.
+
+         The exclusion pattern is 57 accounts, NOT the twelve on the Stripe
+         list - that twelve is only the owner accounts that made a PURCHASE.
+
+         Growing ~33/day (461 in the 14 days to 2026-08-29), so it understates
+         by ~100 every three days. It is a floor, so it stays true as it ages;
+         bump it when it crosses the next round hundred.
+
+         Checked 2026-08-29 against the (not set) bot traffic that began mid-August:
+         34.1 signups/day Jul16-Aug14 vs 31.3/day Aug15-29 - no step change; the
+         densest 10-minute window after Aug 15 is 4 accounts; Google OAuth rose
+         56.1%->68.4% and verified rose 77.3%->87.2%. The bots did not create
+         accounts. Re-run that check before any large upward revision. -->
+    <div style="font-size:.74rem;color:var(--text3,#8a8a7f);margin:0 0 1rem;letter-spacing:.01em;text-align:center">3,386 people have created a free account.</div>
     <div class="hero-stats">
       <div class="stat stagger-1 reveal"><div class="num" data-count="400">400</div><div class="label">Scenario-based questions, none repeated in a test</div></div>
       <div class="stat stagger-2 reveal"><div class="num">Both</div><div class="label">Question formats, MC and MR</div></div>
@@ -920,54 +942,6 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
       <button class="btn-primary" id="hero-enroll-btn" onclick="openPaymentModal()">Enroll Now — $49</button>
     </div>
   </div>
-</section>
-
-<!-- ═══════ EXAM-READY STATS ═══════ -->
-<section class="testimonials-section" id="testimonials-section">
-  <div class="container">
-    <div class="testimonials-header reveal">
-      <h2>Built to Get You Exam-Ready</h2>
-      <p>A complete, independent prep program covering all five CCA Foundations domains — every question written to match the official scenario-based format.</p>
-    </div>
-    <div class="divider-glow"></div>
-    <div class="success-bar reveal">
-      <div class="success-stat">
-        <div class="counter">Every</div>
-        <div class="counter-label">Answer explained in full &mdash; the reasoning, not just the key</div>
-      </div>
-      <div class="success-stat">
-        <div class="counter" data-count="120" data-suffix=" min">120 min</div>
-        <div class="counter-label">Full-length timed mock exam, 60 items, as the guide specifies</div>
-      </div>
-      <div class="success-stat">
-        <div class="counter" data-count="4">4</div>
-        <div class="counter-label">Practice modes, from a 10-question sprint to the full exam</div>
-      </div>
-      <div class="success-stat">
-        <div class="counter">10-day</div>
-        <div class="counter-label">Money-back guarantee</div>
-      </div>
-    </div>
-    <div class="divider-glow"></div>
-    <p class="success-footnote reveal">Built from the official CCA Foundations exam guide</p>
-  </div>
-
-  <!-- ████████████████████████████████████████████████████████████████████
-       REAL TESTIMONIALS PLACEHOLDER
-       ------------------------------------------------------------------
-       Do not add content here until you have real students to cite with
-       written consent, verified results, and documented pass metrics.
-       Use .testimonial-card / .testimonial-author / .testimonial-badge
-       markup (see CSS TESTIMONIALS block in <style> for full reference).
-       Remove this comment and uncomment the wrapper below when ready.
-  ████████████████████████████████████████████████████████████████████ -->
-  <!--
-  <div class="testimonial-wrapper">
-    <div class="testimonial-track" id="testimonial-track">
-    </div>
-  </div>
-  -->
-
 </section>
 
 <!-- ═══════ SAMPLE QUESTIONS ═══════ -->
@@ -1055,6 +1029,54 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
       </div>
     </div>
   </div>
+</section>
+
+<!-- ═══════ EXAM-READY STATS ═══════ -->
+<section class="testimonials-section" id="testimonials-section">
+  <div class="container">
+    <div class="testimonials-header reveal">
+      <h2>Built to Get You Exam-Ready</h2>
+      <p>A complete, independent prep program covering all five CCA Foundations domains — every question written to match the official scenario-based format.</p>
+    </div>
+    <div class="divider-glow"></div>
+    <div class="success-bar reveal">
+      <div class="success-stat">
+        <div class="counter">Every</div>
+        <div class="counter-label">Answer explained in full &mdash; the reasoning, not just the key</div>
+      </div>
+      <div class="success-stat">
+        <div class="counter" data-count="120" data-suffix=" min">120 min</div>
+        <div class="counter-label">Full-length timed mock exam, 60 items, as the guide specifies</div>
+      </div>
+      <div class="success-stat">
+        <div class="counter" data-count="4">4</div>
+        <div class="counter-label">Practice modes, from a 10-question sprint to the full exam</div>
+      </div>
+      <div class="success-stat">
+        <div class="counter">10-day</div>
+        <div class="counter-label">Money-back guarantee</div>
+      </div>
+    </div>
+    <div class="divider-glow"></div>
+    <p class="success-footnote reveal">Built from the official CCA Foundations exam guide</p>
+  </div>
+
+  <!-- ████████████████████████████████████████████████████████████████████
+       REAL TESTIMONIALS PLACEHOLDER
+       ------------------------------------------------------------------
+       Do not add content here until you have real students to cite with
+       written consent, verified results, and documented pass metrics.
+       Use .testimonial-card / .testimonial-author / .testimonial-badge
+       markup (see CSS TESTIMONIALS block in <style> for full reference).
+       Remove this comment and uncomment the wrapper below when ready.
+  ████████████████████████████████████████████████████████████████████ -->
+  <!--
+  <div class="testimonial-wrapper">
+    <div class="testimonial-track" id="testimonial-track">
+    </div>
+  </div>
+  -->
+
 </section>
 
 <!-- ═══════ PRICING ═══════ -->
@@ -1158,7 +1180,7 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
     <div class="dash-grid">
       <div class="dash-card">
         <div class="icon">⚡</div>
-        <h3>Quick Sprint <span style="font-size:.7rem;color:var(--green);font-weight:400">FREE</span></h3>
+        <h3>Quick Sprint <span class="lock-badge unlocked">FREE</span></h3>
         <p>A fast 10-question drill covering random topics. Great for daily practice.</p>
         <div class="meta"><span>10 Questions</span><span>20 Minutes</span></div>
         <button class="btn-primary btn-sm" onclick="startTest('quick')">Start Sprint</button>
