@@ -4582,6 +4582,53 @@ function shuffleArray(arr) {
   return a;
 }
 
+// -- FULL-EXAM STRATIFICATION ----------------------------------------------
+// A uniform draw of 60 from a 400-item bank lands on the published weights
+// only in expectation. Context Management averages 9 but runs +/- 2.6, so an
+// individual attempt could serve 6 or 12 of it. These two functions make every
+// attempt carry the blueprint exactly.
+//
+// The weights come from PROGRESS_DOMAINS, which already holds the guide figures
+// beside the domain keys, so nothing here hardcodes a count. Change a weight
+// there and the draw follows.
+
+// Largest-remainder (Hare quota) allocation of `count` seats across the domains.
+// 60 at 27/20/20/18/15 gives exact shares 16.20/12.00/12.00/10.80/9.00; the
+// floors sum to 59, and the one leftover seat goes to the largest fractional
+// part, which is Tool Design at 0.80 and is the only one above zero. Result:
+// 16/12/12/11/9.
+function domainQuota(count) {
+  const total = PROGRESS_DOMAINS.reduce((s, d) => s + d.weight, 0);
+  const rows  = PROGRESS_DOMAINS.map(d => {
+    const exact = count * d.weight / total;
+    return { key: d.key, n: Math.floor(exact), rem: exact - Math.floor(exact) };
+  });
+  let short = count - rows.reduce((s, r) => s + r.n, 0);
+  // Sort a COPY so `rows` keeps blueprint order; the objects are shared, so
+  // incrementing here updates the originals.
+  rows.slice().sort((a, b) => b.rem - a.rem).forEach(r => { if (short > 0) { r.n++; short--; } });
+  return rows;
+}
+
+// Shuffle within each domain, take that domain's seats, then shuffle the result
+// so the paper is not served in domain blocks. This runs on the INPUT side of
+// the option shuffle -- the same place the domain drill narrows -- so the
+// correct-index remap, MR handling and the option cap downstream are untouched.
+function stratifiedDraw(pool, count) {
+  const out = [];
+  for (const row of domainQuota(count)) {
+    out.push(...shuffleArray(pool.filter(q => q.d === row.key)).slice(0, row.n));
+  }
+  // A domain holding fewer questions than its seats would leave the paper short.
+  // It cannot happen today -- the smallest domain has 60 against 9 seats -- but a
+  // future retirement must shrink that domain's share, never the exam.
+  if (out.length < count) {
+    const taken = new Set(out);
+    out.push(...shuffleArray(pool.filter(q => !taken.has(q))).slice(0, count - out.length));
+  }
+  return shuffleArray(out);
+}
+
 async function startTest(type) {
   // quick: always free. focused: first 5 free. deep/full: need enrollment.
   if (type !== 'quick' && type !== 'focused' && !enrolled) {
@@ -4613,8 +4660,11 @@ async function startTest(type) {
   const drill = domainDrillEntry(type);
   const pool  = drill ? QUESTIONS.filter(q => q.d === drill.key) : QUESTIONS;
 
-  const shuffled = shuffleArray(pool);
-  const selected = shuffled.slice(0, questionCount).map(q => {
+  // The full exam is stratified so each domain carries its published share on
+  // every attempt. Every other mode stays a uniform draw over its own pool.
+  const drawn = (type === 'full') ? stratifiedDraw(pool, questionCount)
+                                  : shuffleArray(pool).slice(0, questionCount);
+  const selected = drawn.map(q => {
     const indices = q.o.map((_, i) => i);
     const shuffledIdx = shuffleArray(indices);
     const remappedA = isMR(q) ? q.a.map(orig => shuffledIdx.indexOf(orig)) : shuffledIdx.indexOf(q.a);
