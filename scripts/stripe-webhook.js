@@ -917,10 +917,18 @@ async function sendStaleEnrollmentAlert(stale) {
     `• ${s.email} — Stripe session ${s.stripeSessionId || '(none)'} — ` +
     (s.ageHours === null ? 'age unknown (missing timestamp)' : `${s.ageHours}h old`)
   );
+  // NO DURATION IN THE SUMMARY LINE. This previously read "paid in the last 48
+  // hours and still has no course access" — the 48 was the window CEILING from
+  // STALE_PENDING_THRESHOLD_MS, hardcoded, and it sat next to "no course access"
+  // joined by a bare "and", so it parsed as "locked out for 48 hours". Every
+  // alert this function sends is for a record 2–48h old, so every one of them
+  // read as maximally stale and maximally urgent. The per-record bullets above
+  // already state each age accurately; the summary does not need a bound, and a
+  // bound restated here is one more thing that can drift from the constant.
   const summary =
-    `${stale.length} NEW stranded buyer${plural} — paid in the last 48 hours and ` +
-    `still has no course access. Reach them now, before they give up or ` +
-    `dispute:\n\n` + lines.join('\n');
+    `${stale.length} NEW stranded buyer${plural} — paid recently, no course ` +
+    `access yet. Reach them now, before they give up or dispute:\n\n` +
+    lines.join('\n');
 
   let delivered = false;
 
@@ -958,8 +966,15 @@ async function sendStaleEnrollmentAlert(stale) {
     // Covers two cases at once: no channel env var was set at all, or every
     // configured channel failed above. Either way, the data still lands
     // somewhere durable (Render's log dashboard).
+    //
+    // This line said "older than 48h" — the pre-4f1cfa1 semantics, left behind
+    // when the window inverted. It was not ambiguous like the summary above, it
+    // was FALSE: this set is 2–48h old, so every record it described was younger
+    // than 48h, not older. Records that really are past 48h go to `aged` and
+    // reach neither this fallback nor any channel. No bound stated here either;
+    // JSON.stringify(stale) already carries each record's age.
     console.warn(
-      `[pending_enrollments] ${stale.length} unclaimed record(s) older than 48h — needs manual review ` +
+      `[pending_enrollments] ${stale.length} unclaimed record(s) needing manual review ` +
       `(no alert channel configured or delivery failed; set ALERT_EMAIL_TO or ALERT_WEBHOOK_URL to get pinged):`,
       JSON.stringify(stale)
     );
@@ -1057,10 +1072,22 @@ async function findStalePendingEnrollments() {
 
     // ── Guard 4: a NEW stranded buyer, unenrolled, not alerted recently ─
     // They paid in the last 48h and have no course access. Reachable now.
+    //
+    // ONE DECIMAL, not Math.round to the hour. This is the only ageHours that
+    // gets RENDERED to a human (sendStaleEnrollmentAlert's bullet). Rounding a
+    // 2.4h record to "2h old" printed it AT the 2h admission floor, so the one
+    // record a reader might sanity-check looked like it should not have fired.
+    // Math.floor is no better — it prints "2h" for anything up to 2.9h, which
+    // makes the same misreading systematic rather than occasional.
+    // JS drops a trailing .0, so a record at exactly 3h still reads "3h old".
+    //
+    // Deliberately NOT applied to the `aged` copy above or the one at :747:
+    // neither is rendered, and the three-way duplication of this expression is
+    // logged as its own cleanup rather than widened into this commit.
     stale.push({
       email,
       stripeSessionId: data.stripeSessionId || null,
-      ageHours:        createdAtMs === null ? null : Math.round((now - createdAtMs) / 3600000),
+      ageHours:        createdAtMs === null ? null : Math.round((now - createdAtMs) / 3600000 * 10) / 10,
     });
     docRefs.push(doc.ref);
   }
