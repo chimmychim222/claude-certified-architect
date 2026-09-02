@@ -11,8 +11,8 @@
  * Usage:
  *   node scripts/set-enrolled.js <path-to-service-account.json> <uid> [uid2] ...
  *
- * Example (Windows — file saved to Downloads):
- *   node scripts/set-enrolled.js "C:\Users\joshu\Downloads\claude-certification-testing-firebase-adminsdk-xxxx.json" uXdKJsc34DNBIVQdT4Jwk21qBfg1
+ * Example:
+ *   node scripts/set-enrolled.js "<path-to>/claude-certification-testing-firebase-adminsdk-xxxx.json" <enrolled-uid>
  *
  * After running, the user must log out and back in (or wait up to 1 hour)
  * for the new token claim to be reflected in their session.

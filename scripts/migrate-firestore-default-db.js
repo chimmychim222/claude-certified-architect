@@ -43,7 +43,7 @@
  *   node scripts/migrate-firestore-default-db.js <path-to-service-account.json> [--dry-run]
  *
  * Example:
- *   node scripts/migrate-firestore-default-db.js "C:\Users\joshu\Desktop\claude-certification-testing-firebase-adminsdk-fbsvc-2b928948bb.json"
+ *   node scripts/migrate-firestore-default-db.js "<path-to>/claude-certification-testing-firebase-adminsdk-xxxx.json"
  *
  * Add --dry-run to walk and print everything that WOULD be copied without
  * writing anything — recommended as a first pass to sanity-check the plan.

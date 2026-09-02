@@ -1,9 +1,9 @@
 import os
 
 files = [
-    r'C:\Users\joshu\Desktop\Flore website\cca-foundations-exam\index.html',
-    r'C:\Users\joshu\Desktop\Flore website\cca-practice-questions\index.html',
-    r'C:\Users\joshu\Desktop\Flore website\cca-exam-guide\index.html',
+    r'<repo-root>\cca-foundations-exam\index.html',
+    r'<repo-root>\cca-practice-questions\index.html',
+    r'<repo-root>\cca-exam-guide\index.html',
 ]
 
 # The corrupted separator char is U+0083 (C1 control) + 'A'

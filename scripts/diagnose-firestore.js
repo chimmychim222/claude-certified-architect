@@ -9,18 +9,24 @@
  *       reads/writes — like set-enrolled.js does — work fine.
  *
  * Usage:
- *   node scripts/diagnose-firestore.js <path-to-service-account.json>
+ *   node scripts/diagnose-firestore.js <path-to-service-account.json> <uid>
+ *
+ * The UID of the users/ document to read is supplied at run time (second
+ * positional argument, or CCA_DIAGNOSE_UID) rather than hardcoded: this file
+ * is served publicly by GitHub Pages. Use one of the owner's own accounts.
  *
  * Example:
- *   node scripts/diagnose-firestore.js "C:\Users\joshu\Downloads\claude-certification-testing-firebase-adminsdk-fbsvc-2b928948bb.json"
+ *   node scripts/diagnose-firestore.js "<path-to>/claude-certification-testing-firebase-adminsdk-xxxx.json" <uid>
  */
 
 const admin = require('firebase-admin');
 const path  = require('path');
 
 const args = process.argv.slice(2);
-if (args.length < 1) {
-  console.error('\nUsage: node scripts/diagnose-firestore.js <service-account.json>\n');
+const TARGET_UID = process.env.CCA_DIAGNOSE_UID || args[1];
+if (args.length < 1 || !TARGET_UID) {
+  console.error('\nUsage: node scripts/diagnose-firestore.js <service-account.json> <uid>');
+  console.error('   or: set CCA_DIAGNOSE_UID and pass only the service-account path.\n');
   process.exit(1);
 }
 
@@ -57,9 +63,9 @@ const candidates = ['(default)', 'default', '-default-'];
 async function runTests(label, db) {
   console.log(`\n========== Connecting with databaseId = ${label} ==========`);
 
-  console.log(`--- direct document GET on users/uXdKJsc34DNBIVQdT4Jwk21qBfg1 ---`);
+  console.log(`--- direct document GET on users/${TARGET_UID} ---`);
   try {
-    const docSnap = await db.collection('users').doc('uXdKJsc34DNBIVQdT4Jwk21qBfg1').get();
+    const docSnap = await db.collection('users').doc(TARGET_UID).get();
     console.log('OK — exists:', docSnap.exists, ' data:', JSON.stringify(docSnap.data()));
   } catch (e) {
     console.error('FAILED:', e.message);
