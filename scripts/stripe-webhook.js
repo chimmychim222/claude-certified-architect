@@ -35,6 +35,24 @@ const express    = require('express');
 const bodyParser = require('body-parser');
 const crypto     = require('crypto');
 
+// Constant-time secret comparison. Both sides are SHA-256 hashed first, so a
+// wrong-length guess neither throws (timingSafeEqual needs equal lengths) nor
+// leaks the secret's length through timing: the compare always runs over two
+// 32-byte digests. Used by the admin routes and /nurture-send.
+function secretMatches(provided, expected) {
+  if (typeof provided !== 'string' || typeof expected !== 'string' || expected.length === 0) return false;
+  const a = crypto.createHash('sha256').update(provided).digest();
+  const b = crypto.createHash('sha256').update(expected).digest();
+  return crypto.timingSafeEqual(a, b);
+}
+// Unset ADMIN_API_KEY keeps both admin routes disabled, exactly as before.
+function adminKeyMatches(req) {
+  const key = process.env.ADMIN_API_KEY;
+  if (!key) return false;
+  const h = req.headers['x-admin-key'];
+  return secretMatches(Array.isArray(h) ? h[0] : (h || ''), key);
+}
+
 // ── Diagnostic lead-capture hardening ────────────────────────────────────────
 // /diagnostic-email is unauthenticated by design (it is the free diagnostic's
 // email capture), and this file is served publicly by GitHub Pages, so assume
@@ -361,6 +379,28 @@ app.post(
       return res.json({ skipped: true, type: event.type });
     }
 
+    // ── Event-id dedupe ── after the signature check and the type filter, before
+    // any write. create() with the existence precondition is one atomic write:
+    // ALREADY_EXISTS (gRPC code 6) means this event id was already processed and
+    // is skipped. The record is written FIRST and released in every failure exit
+    // below, so a Stripe retry after a partial failure is NOT skipped. Any other
+    // store error fails OPEN: a dedupe outage must never block a real enrolment.
+    const eventRef = db.collection('stripe_events').doc(event.id);
+    try {
+      await eventRef.create({
+        type:       event.type,
+        sessionId:  (event.data && event.data.object && event.data.object.id) || null,
+        receivedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    } catch (err) {
+      if (err.code === 6 || /ALREADY_EXISTS/.test(String(err.message))) {
+        console.log(`[stripe] duplicate event skipped: ${event.id}`);
+        return res.json({ ok: true, duplicate: true, id: event.id });
+      }
+      console.warn(`[stripe] dedupe store error for ${event.id}, proceeding (fail open):`, err.message);
+    }
+    const releaseEvent = () => eventRef.delete().catch(() => {});
+
     const session           = event.data.object;
     const customerEmail     = session.customer_details?.email || session.customer_email;
     const clientReferenceId = session.client_reference_id || null;
@@ -428,7 +468,7 @@ app.post(
 
     if (!customerEmail) {
       console.error('No customer email in event');
-      return res.status(400).send('No customer email found');
+      releaseEvent(); return res.status(400).send('No customer email found');
     }
 
     // Look up the Firebase account for this email. If none exists yet — the
@@ -461,11 +501,11 @@ app.post(
           return res.json({ ok: true, pending: true });
         } catch (stashErr) {
           console.error('Failed to stash pending enrollment:', stashErr.message);
-          return res.status(500).send(stashErr.message);
+          releaseEvent(); return res.status(500).send(stashErr.message);
         }
       }
       console.error('Enrollment lookup error:', err.message);
-      return res.status(500).send(err.message);
+      releaseEvent(); return res.status(500).send(err.message);
     }
 
     try {
@@ -511,7 +551,7 @@ app.post(
 
     } catch (err) {
       console.error('Enrollment error:', err.message);
-      return res.status(500).send(err.message);
+      releaseEvent(); return res.status(500).send(err.message);
     }
   }
 );
@@ -864,7 +904,7 @@ async function sendPurchaseLinkAlert({ uid, accountEmail, checkoutEmail, emailVe
 // drop any document missing the sort field — the same "vanished from /admin"
 // failure by a different route. Sorting happens in memory.
 app.get('/admin/purchase-link-requests', async (req, res) => {
-  if (!process.env.ADMIN_API_KEY || req.headers['x-admin-key'] !== process.env.ADMIN_API_KEY) {
+  if (!adminKeyMatches(req)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   try {
@@ -1310,7 +1350,7 @@ setInterval(checkStalePendingEnrollmentsAndAlert, 6 * 60 * 60 * 1000);
 // │ same audit flagged for the Stripe webhook and /claim-enrollment.     │
 // └─────────────────────────────────────────────────────────────────────┘
 app.get('/admin/stale-pending-enrollments', async (req, res) => {
-  if (!process.env.ADMIN_API_KEY || req.headers['x-admin-key'] !== process.env.ADMIN_API_KEY) {
+  if (!adminKeyMatches(req)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   try {
@@ -1906,20 +1946,9 @@ a{color:#b04928}
 </body></html>`;
 }
 
-// ── POST /nurture-send ────────────────────────────────────────────────────────
-// Called once daily by cron-job.org. Auth: ?secret= or x-nurture-secret header.
-// Dry-run: add ?dryRun=true to log decisions without sending or writing state.
-//
-// Required env vars: NURTURE_CRON_SECRET
-// Optional env var:  SEQUENCE_START (ISO date — defaults to 2026-06-19)
-app.post('/nurture-send', express.json(), async (req, res) => {
-  // 1. Authenticate
-  const provided = (req.query.secret || req.headers['x-nurture-secret'] || '').trim();
-  if (!process.env.NURTURE_CRON_SECRET || provided !== process.env.NURTURE_CRON_SECRET) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  const dryRun = req.query.dryRun === 'true' || req.query.dryRun === '1';
+// The sequence itself, run AFTER /nurture-send has responded. Logs a start
+// line and a finish line with counts; a throw is logged by the caller's catch.
+async function runNurtureSequence(dryRun) {
   console.log(`[nurture] Run started — dryRun=${dryRun} sequenceStart=${SEQUENCE_START.toISOString()}`);
 
   const result = { ok: true, dryRun, sent: 0, skipped: 0, errors: 0, details: [] };
@@ -1929,7 +1958,7 @@ app.post('/nurture-send', express.json(), async (req, res) => {
     snap = await db.collection('diagnostic_leads').get();
   } catch (err) {
     console.error('[nurture] Failed to load diagnostic_leads:', err.message);
-    return res.status(500).json({ error: 'DB read failed', message: err.message });
+    throw new Error('DB read failed: ' + err.message);
   }
 
   const now = Date.now();
@@ -2056,7 +2085,40 @@ app.post('/nurture-send', express.json(), async (req, res) => {
   }
 
   console.log(`[nurture] Run complete — sent=${result.sent} skipped=${result.skipped} errors=${result.errors} dryRun=${dryRun}`);
-  return res.json(result);
+  return result;
+}
+
+// ── POST /nurture-send ─────────────────────────────────────────────────────
+// Called once daily by cron-job.org. Auth: ?secret= (what the job uses today,
+// deprecated because it lands in request logs) or the x-nurture-secret header.
+// Dry-run: add ?dryRun=true to log decisions without sending or writing state.
+//
+// RESPONDS FIRST, THEN PROCESSES. cron-job.org's free plan times out at 30 s and
+// a cold-start run takes ~100 s, so the job reported "Failed (timeout)" daily
+// for a run that succeeded. After this the dashboard will always say success;
+// the start/finish log lines and lastNurtureAt on the leads are the evidence.
+//
+// Required env vars: NURTURE_CRON_SECRET
+// Optional env var:  SEQUENCE_START (ISO date — defaults to 2026-06-19)
+app.post('/nurture-send', express.json(), async (req, res) => {
+  // 1. Authenticate — BEFORE the 200. Constant-time compare via secretMatches().
+  const viaQuery = typeof req.query.secret === 'string' && req.query.secret.length > 0;
+  const provided = String(req.query.secret || req.headers['x-nurture-secret'] || '').trim();
+  if (!process.env.NURTURE_CRON_SECRET || !secretMatches(provided, process.env.NURTURE_CRON_SECRET)) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  if (viaQuery) {
+    console.warn('[nurture] DEPRECATED: secret supplied as ?secret= (it lands in request logs). Move the cron job to the x-nurture-secret header; the query form still works until then.');
+  }
+  const dryRun = req.query.dryRun === 'true' || req.query.dryRun === '1';
+
+  // 2. Respond now. Nothing after this line reaches the caller.
+  res.json({ ok: true, started: true, dryRun });
+
+  // 3. Run. The catch is what stops a throw in the background portion from
+  //    becoming an unhandled rejection that takes the process down.
+  runNurtureSequence(dryRun)
+    .catch(err => console.error('[nurture] FAILED after response —', (err && err.message) || err));
 });
 
 const PORT = process.env.PORT || 3001;
