@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      // Only the Stripe webhook and the ops scripts (Admin SDK, which bypasses
+      // these rules) may write the entitlement fields. A signed-in user may
+      // create and update their own document, but never add or change them.
+      function isOwner() { return request.auth != null && request.auth.uid == userId; }
+      function serverOwned() { return ['enrolled', 'enrolledAt', 'stripeSessionId']; }
+
+      allow read: if isOwner();
+      allow create: if isOwner()
+                    && !request.resource.data.keys().hasAny(serverOwned());
+      allow update: if isOwner()
+                    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(serverOwned());
+      allow delete: if false;
+
+      match /attempts/{attemptId} {
+        allow read, write: if isOwner();
+      }
+    }
+  }
+}
