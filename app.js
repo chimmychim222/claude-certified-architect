@@ -4632,10 +4632,11 @@ function stratifiedDraw(pool, count) {
 }
 
 // -- FREE-PREVIEW DRAW ------------------------------------------------------
-// The logged-out Focused Session preview is five questions, and it is the only
-// place a visitor sees the bank before paying. It draws ONE multiple-response
-// item and four single-select items, then shuffles the five so the MR item's
-// slot is uniform. Every paid mode keeps the plain uniform draw above.
+// The draw for the two surfaces a logged-out visitor can run: the Focused
+// Session preview (five questions) and the unenrolled Quick Sprint (ten). It
+// draws ONE multiple-response item and count-1 single-select items, then
+// shuffles them so the MR item's slot is uniform. Every paid mode, and an
+// enrolled Quick Sprint, keeps the plain uniform draw in startTest.
 //
 // One MR item is excluded from this draw only: the one reproduced verbatim on
 // the homepage sample cards (index.html, sample-q-section). A visitor who has
@@ -4693,14 +4694,17 @@ async function startTest(type) {
 
   // The full exam is stratified so each domain carries its published share on
   // every attempt. Every other mode stays a uniform draw over its own pool,
-  // with one exception: the free preview guarantees a multiple-response item.
-  // The hero says "Both -- question formats, MC and MR", and a uniform draw of
-  // five from a bank that is ~11% MR left roughly 57% of previews with no MR
-  // item at all, so the claim was true for fewer than half of the visitors who
-  // tested it. freePreviewDraw() takes exactly one MR item and four
-  // single-select items and shuffles the five. Paid modes are untouched.
+  // with one exception: the two LOGGED-OUT surfaces guarantee a multiple-response
+  // item. The hero says "Both -- question formats, MC and MR", and a uniform
+  // draw from a bank that is ~11% MR left roughly 57% of five-question previews
+  // and 32% of ten-question sprints with no MR item at all. freePreviewDraw()
+  // takes exactly one MR item and the rest single-select, then shuffles. The
+  // Focused preview (five) and the unenrolled Quick Sprint (ten) both use it;
+  // an ENROLLED Quick Sprint and every paid mode keep the plain uniform draw.
+  const isFreeQuickSprint = (type === 'quick' && !enrolled);
   const drawn = (type === 'full')  ? stratifiedDraw(pool, questionCount)
-              : isFreePreview      ? freePreviewDraw(pool, questionCount)
+              : (isFreePreview || isFreeQuickSprint)
+                                   ? freePreviewDraw(pool, questionCount)
                                    : shuffleArray(pool).slice(0, questionCount);
   const selected = drawn.map(q => {
     const indices = q.o.map((_, i) => i);
