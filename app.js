@@ -4631,6 +4631,35 @@ function stratifiedDraw(pool, count) {
   return shuffleArray(out);
 }
 
+// -- FREE-PREVIEW DRAW ------------------------------------------------------
+// The logged-out Focused Session preview is five questions, and it is the only
+// place a visitor sees the bank before paying. It draws ONE multiple-response
+// item and four single-select items, then shuffles the five so the MR item's
+// slot is uniform. Every paid mode keeps the plain uniform draw above.
+//
+// One MR item is excluded from this draw only: the one reproduced verbatim on
+// the homepage sample cards (index.html, sample-q-section). A visitor who has
+// just answered it there would otherwise meet it again as their "free"
+// question. It is matched by stem text, never by index, because indices shift
+// when an item is retired; if that stem is ever edited in QUESTIONS, edit it
+// here in the same commit or the exclusion silently stops applying.
+//
+// Falls back to the uniform draw if either subset is unexpectedly short -- a
+// free preview must never fail to start.
+const FREE_PREVIEW_MR_EXCLUDE = new Set([
+  "A review prompt sets out in prose the four fields every finding must carry, and the model still returns findings that drop a field and change shape between runs. Which two changes address that most directly?",
+]);
+
+function freePreviewDraw(pool, count) {
+  const mrPool = pool.filter(q => isMR(q) && !FREE_PREVIEW_MR_EXCLUDE.has(q.q));
+  const scPool = pool.filter(q => !isMR(q));
+  if (count < 2 || mrPool.length < 1 || scPool.length < count - 1) {
+    return shuffleArray(pool).slice(0, count);
+  }
+  const picked = [shuffleArray(mrPool)[0], ...shuffleArray(scPool).slice(0, count - 1)];
+  return shuffleArray(picked);
+}
+
 async function startTest(type) {
   // quick: always free. focused: first 5 free. deep/full: need enrollment.
   if (type !== 'quick' && type !== 'focused' && !enrolled) {
@@ -4663,9 +4692,16 @@ async function startTest(type) {
   const pool  = drill ? QUESTIONS.filter(q => q.d === drill.key) : QUESTIONS;
 
   // The full exam is stratified so each domain carries its published share on
-  // every attempt. Every other mode stays a uniform draw over its own pool.
-  const drawn = (type === 'full') ? stratifiedDraw(pool, questionCount)
-                                  : shuffleArray(pool).slice(0, questionCount);
+  // every attempt. Every other mode stays a uniform draw over its own pool,
+  // with one exception: the free preview guarantees a multiple-response item.
+  // The hero says "Both -- question formats, MC and MR", and a uniform draw of
+  // five from a bank that is ~11% MR left roughly 57% of previews with no MR
+  // item at all, so the claim was true for fewer than half of the visitors who
+  // tested it. freePreviewDraw() takes exactly one MR item and four
+  // single-select items and shuffles the five. Paid modes are untouched.
+  const drawn = (type === 'full')  ? stratifiedDraw(pool, questionCount)
+              : isFreePreview      ? freePreviewDraw(pool, questionCount)
+                                   : shuffleArray(pool).slice(0, questionCount);
   const selected = drawn.map(q => {
     const indices = q.o.map((_, i) => i);
     const shuffledIdx = shuffleArray(indices);
