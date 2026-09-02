@@ -35,6 +35,150 @@ const express    = require('express');
 const bodyParser = require('body-parser');
 const crypto     = require('crypto');
 
+// ── Diagnostic lead-capture hardening ────────────────────────────────────────
+// /diagnostic-email is unauthenticated by design (it is the free diagnostic's
+// email capture), and this file is served publicly by GitHub Pages, so assume
+// the caller has read it. Three layers, in order of importance:
+//   1. A strict allowlist of the payload diagnostic/index.html actually posts.
+//      Anything else is rejected with 400 and nothing is written or sent.
+//   2. HTML escaping of every caller-supplied value before it reaches an
+//      email body. The allowlist makes this unreachable for new leads; the
+//      nurture builders also read diagnostic_leads documents written BEFORE
+//      the allowlist existed, and escaping is what protects those.
+//   3. An in-process rate limit per client IP and per address. Render offers
+//      no platform-level limiter, and a Free instance spins down after 15
+//      idle minutes, so THESE COUNTERS RESET ON EVERY COLD START. Partial
+//      mitigation, deliberately not backed by Firestore.
+
+function escHtml(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Own-property lookup, so a caller-chosen key such as "constructor" or
+// "toString" cannot resolve to a built-in through the prototype chain.
+function own(obj, key) {
+  return Object.prototype.hasOwnProperty.call(obj, key) ? obj[key] : undefined;
+}
+
+// The five domain labels exactly as diagnostic/index.html's DOMAINS renders
+// them (the second carries "& Workflows"; nurtureDomainKey() maps it back to
+// the bank's key), each with the label's published exam share.
+const DIAG_DOMAIN_WEIGHTS = Object.freeze(Object.assign(Object.create(null), {
+  'Agentic Architecture & Orchestration':   27,
+  'Claude Code Configuration & Workflows':  20,
+  'Prompt Engineering & Structured Output': 20,
+  'Tool Design & MCP Integration':          18,
+  'Context Management & Reliability':       15,
+}));
+const DIAG_RESULT_KEYS = ['estimatedScore', 'passScore', 'weakestDomain', 'weakestDomainWeight', 'domains'];
+const DIAG_DOMAIN_KEYS = ['label', 'examWeight', 'correct', 'total', 'pct'];
+const DIAG_EMAIL_MAX   = 254;
+const DIAG_EMAIL_RE    = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$/;
+
+function isPlainObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
+function sameKeys(obj, keys) {
+  const k = Object.keys(obj);
+  return k.length === keys.length && keys.every(x => k.includes(x));
+}
+function intIn(v, lo, hi) { return Number.isInteger(v) && v >= lo && v <= hi; }
+
+// Returns { ok: true, email, results } holding freshly built objects with only
+// the validated fields, or { ok: false, error }. Rejects rather than coerces:
+// a malformed payload is not a lead.
+function validateDiagnosticPayload(body) {
+  if (!isPlainObject(body) || !sameKeys(body, ['email', 'results'])) return { ok: false, error: 'Invalid payload' };
+  if (typeof body.email !== 'string') return { ok: false, error: 'Invalid email' };
+  const email = body.email.trim();
+  if (email.length === 0 || email.length > DIAG_EMAIL_MAX || !DIAG_EMAIL_RE.test(email)) {
+    return { ok: false, error: 'Invalid email' };
+  }
+
+  const r = body.results;
+  if (!isPlainObject(r) || !sameKeys(r, DIAG_RESULT_KEYS)) return { ok: false, error: 'Invalid results' };
+  if (!intIn(r.estimatedScore, 0, 1000)) return { ok: false, error: 'Invalid estimatedScore' };
+  if (!intIn(r.passScore, 0, 1000))      return { ok: false, error: 'Invalid passScore' };
+  if (typeof r.weakestDomain !== 'string' || own(DIAG_DOMAIN_WEIGHTS, r.weakestDomain) === undefined) {
+    return { ok: false, error: 'Invalid weakestDomain' };
+  }
+  if (r.weakestDomainWeight !== DIAG_DOMAIN_WEIGHTS[r.weakestDomain]) return { ok: false, error: 'Invalid weakestDomainWeight' };
+  if (!Array.isArray(r.domains) || r.domains.length !== 5) return { ok: false, error: 'Invalid domains' };
+
+  const seen    = new Set();
+  const domains = [];
+  for (const d of r.domains) {
+    if (!isPlainObject(d) || !sameKeys(d, DIAG_DOMAIN_KEYS)) return { ok: false, error: 'Invalid domain entry' };
+    if (typeof d.label !== 'string' || own(DIAG_DOMAIN_WEIGHTS, d.label) === undefined || seen.has(d.label)) {
+      return { ok: false, error: 'Invalid domain label' };
+    }
+    if (d.examWeight !== DIAG_DOMAIN_WEIGHTS[d.label])          return { ok: false, error: 'Invalid examWeight' };
+    if (!intIn(d.total, 0, 60) || !intIn(d.correct, 0, d.total)) return { ok: false, error: 'Invalid domain counts' };
+    if (!intIn(d.pct, 0, 100))                                   return { ok: false, error: 'Invalid pct' };
+    seen.add(d.label);
+    domains.push({ label: d.label, examWeight: d.examWeight, correct: d.correct, total: d.total, pct: d.pct });
+  }
+  return {
+    ok: true,
+    email,
+    results: {
+      estimatedScore:      r.estimatedScore,
+      passScore:           r.passScore,
+      weakestDomain:       r.weakestDomain,
+      weakestDomainWeight: r.weakestDomainWeight,
+      domains,
+    },
+  };
+}
+
+// Sliding-window counters in process memory. 10 submissions per IP per 15
+// minutes, 3 per address per hour. A genuine visitor submits once, sometimes
+// twice after a retake; the page's own cold-start retry only fires on a
+// non-2xx, so a 429 is never re-sent as a duplicate lead. Memory is bounded
+// by dropping the oldest keys past 5,000 entries.
+const DIAG_LIMITS = {
+  ip:    { max: 10, windowMs: 15 * 60 * 1000 },
+  email: { max: 3,  windowMs: 60 * 60 * 1000 },
+};
+const diagHits = new Map(); // key -> [hit timestamps within the window]
+function diagRateLimited(key, limit, now) {
+  now = now || Date.now();
+  const arr = (diagHits.get(key) || []).filter(t => now - t < limit.windowMs);
+  if (arr.length >= limit.max) { diagHits.set(key, arr); return true; }
+  arr.push(now);
+  diagHits.set(key, arr);
+  if (diagHits.size > 5000) {
+    for (const k of diagHits.keys()) { if (diagHits.size <= 4000) break; diagHits.delete(k); }
+  }
+  return false;
+}
+// Render sits behind Cloudflare, which sets cf-connecting-ip; fall back to the
+// first x-forwarded-for entry, then the socket.
+function clientIp(req) {
+  const cf = req.headers['cf-connecting-ip'];
+  if (cf) return String(cf).trim();
+  const xff = req.headers['x-forwarded-for'];
+  if (xff) return String(xff).split(',')[0].trim();
+  return (req.socket && req.socket.remoteAddress) || 'unknown';
+}
+
+// express.json() capped far below its 100 KB default (a genuine payload is
+// under 1 KB), with parse and size errors turned into a clean JSON rejection
+// instead of Express's HTML error page. Applied to /diagnostic-email only.
+const diagJsonParser = express.json({ limit: '4kb' });
+function diagJson(req, res, next) {
+  diagJsonParser(req, res, err => {
+    if (err) {
+      const status = err.type === 'entity.too.large' ? 413 : 400;
+      return res.status(status).json({ error: status === 413 ? 'Payload too large' : 'Invalid JSON' });
+    }
+    next();
+  });
+}
+
 // ── Resend helper ─────────────────────────────────────────────────────────────
 // Sends transactional email via Resend.com (https://resend.com).
 // Uses the built-in fetch available in Node 18+.
@@ -72,8 +216,17 @@ async function sendViaResend({ to, subject, text, html, replyTo, listUnsubscribe
       console.log('[resend] Email sent:', data.id, '→', to);
       return true;
     } else {
-      const err = await resp.text();
-      console.error('[resend] Send failed:', resp.status, err);
+      const errText = await resp.text();
+      let errName = null;
+      try { errName = JSON.parse(errText).name || null; } catch (_) {}
+      if (resp.status === 429) {
+        // One distinct, greppable line per Resend quota state: rate_limit_exceeded
+        // (per-second), daily_quota_exceeded, monthly_quota_exceeded. Logged
+        // only -- no retry, no backoff.
+        console.error(`[resend] QUOTA ${errName || 'unknown_429'}:`, resp.status, errText);
+      } else {
+        console.error('[resend] Send failed:', resp.status, errText);
+      }
       return false;
     }
   } catch (err) {
@@ -1193,10 +1346,24 @@ app.get('/admin/stale-pending-enrollments', async (req, res) => {
 // 3. Emails results via Resend (requires RESEND_API_KEY env var +
 //    claudecertifiedarchitects.com domain verified in Resend dashboard)
 //
-app.post('/diagnostic-email', express.json(), async (req, res) => {
-  const { email, results } = req.body || {};
-  if (!email || !email.includes('@')) {
-    return res.status(400).json({ error: 'Invalid email' });
+app.post('/diagnostic-email', diagJson, async (req, res) => {
+  // Order: per-IP limit first (cheapest), then the allowlist, then the
+  // per-address limit, then the write and the send. A rejected request
+  // writes nothing and sends nothing.
+  const ip = clientIp(req);
+  if (diagRateLimited('ip:' + ip, DIAG_LIMITS.ip)) {
+    console.warn('[diagnostic-email] rate limited (ip):', ip);
+    return res.status(429).json({ error: 'Too many requests' });
+  }
+  const v = validateDiagnosticPayload(req.body);
+  if (!v.ok) {
+    console.warn('[diagnostic-email] rejected:', v.error, 'ip:', ip);
+    return res.status(400).json({ error: v.error });
+  }
+  const { email, results } = v;
+  if (diagRateLimited('email:' + email.toLowerCase(), DIAG_LIMITS.email)) {
+    console.warn('[diagnostic-email] rate limited (email):', email);
+    return res.status(429).json({ error: 'Too many requests' });
   }
 
   // 1. Console log — always captured in Render logs
@@ -1292,7 +1459,7 @@ const NURTURE_DOMAIN_Q_COUNT = {
 const NURTURE_DOMAIN_ALIASES = {
   'Claude Code Configuration & Workflows': 'Claude Code Configuration',
 };
-const nurtureDomainKey = d => NURTURE_DOMAIN_ALIASES[d] || d;
+const nurtureDomainKey = d => own(NURTURE_DOMAIN_ALIASES, d) || d;
 
 // Derived, so correcting one figure can never leave the total contradicting it.
 const NURTURE_BANK_TOTAL = Object.values(NURTURE_DOMAIN_Q_COUNT).reduce((a, b) => a + b, 0);
@@ -1466,14 +1633,15 @@ function buildEmail1(results, unsubUrl) {
   const above  = gap <= 0;
   const domain = results.weakestDomain       || 'Agentic Architecture & Orchestration';
   const weight = results.weakestDomainWeight || 27;
-  const N      = NURTURE_DOMAIN_Q_COUNT[nurtureDomainKey(domain)] || null;
+  const domainH = escHtml(domain), scoreH = escHtml(score), gapH = escHtml(gap), weightH = escHtml(weight); // HTML-safe copies
+  const N      = own(NURTURE_DOMAIN_Q_COUNT, nurtureDomainKey(domain)) || null;
   // An unresolved domain publishes the bank total, not a guessed per-domain
   // count. The old `|| 80` was exact for one domain and wrong for the other four.
   const bankPhrase     = N ? `${N} questions in ${domain} alone`
                            : `${NURTURE_BANK_TOTAL} questions across all five domains`;
-  const bankPhraseHtml = N ? `<strong>${N} questions in ${domain}</strong> alone`
+  const bankPhraseHtml = N ? `<strong>${N} questions in ${domainH}</strong> alone`
                            : `<strong>${NURTURE_BANK_TOTAL} questions</strong> across all five domains`;
-  const tip    = STUDY_TIPS[domain] || STUDY_TIPS['Agentic Architecture & Orchestration'];
+  const tip    = own(STUDY_TIPS, domain) || STUDY_TIPS['Agentic Architecture & Orchestration'];
   const cta    = nurtureCtaUrl('d1');
 
   const subject = 'What your CCA diagnostic actually told you';
@@ -1517,14 +1685,14 @@ function buildEmail1(results, unsubUrl) {
 
   // ── HTML ──
   const scoreHtml = above
-    ? eP(`Your result: <strong>${score}/1,000</strong> — above the 720 passing standard on a 10-question sample. Your weakest domain: <strong>${domain}</strong> (${weight}% of the real exam).`)
-    : eP(`Your result: <strong>${score}/1,000</strong> — <strong>${gap} points below</strong> the 720 passing standard. Your weakest domain: <strong>${domain}</strong> (${weight}% of the real exam).`);
+    ? eP(`Your result: <strong>${scoreH}/1,000</strong> — above the 720 passing standard on a 10-question sample. Your weakest domain: <strong>${domainH}</strong> (${weightH}% of the real exam).`)
+    : eP(`Your result: <strong>${scoreH}/1,000</strong> — <strong>${gapH} points below</strong> the 720 passing standard. Your weakest domain: <strong>${domainH}</strong> (${weightH}% of the real exam).`);
   const contextHtml = above
-    ? eP(`The real exam is 60 questions drawn from a much larger pool. Your weakest area — <strong>${domain}</strong> (${weight}% of the exam) — is where the full exam will probe hardest.`)
-    : eP(`${domain} accounts for <strong>${weight}%</strong> of your actual exam score. Closing that domain first gives you the biggest return on your study time.`);
+    ? eP(`The real exam is 60 questions drawn from a much larger pool. Your weakest area — <strong>${domainH}</strong> (${weightH}% of the exam) — is where the full exam will probe hardest.`)
+    : eP(`${domainH} accounts for <strong>${weightH}%</strong> of your actual exam score. Closing that domain first gives you the biggest return on your study time.`);
   const tipBlock =
     `<div style="background:#f5f3ea;border-left:3px solid #c4522c;padding:14px 18px;margin:20px 0;border-radius:0 6px 6px 0">` +
-    `<p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#b04928;margin:0 0 8px">Study tip — ${domain}</p>` +
+    `<p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#b04928;margin:0 0 8px">Study tip — ${domainH}</p>` +
     `<p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.88rem;color:#191918;line-height:1.65;margin:0">${tip}</p>` +
     `</div>`;
   const ctaHtml = above
@@ -1547,7 +1715,8 @@ function buildEmail2(results, unsubUrl) {
   const gap    = pass - score;
   const above  = gap <= 0;
   const domain = results.weakestDomain       || 'Agentic Architecture & Orchestration';
-  const sampleQ = SAMPLE_QUESTIONS[domain] || SAMPLE_QUESTIONS['Agentic Architecture & Orchestration'];
+  const domainH = escHtml(domain), gapH = escHtml(gap);   // HTML-safe copies; the text branches keep the raw values
+  const sampleQ = own(SAMPLE_QUESTIONS, domain) || SAMPLE_QUESTIONS['Agentic Architecture & Orchestration'];
   const correctLetter = OPT_LETTERS[sampleQ.correct];
   const cta = nurtureCtaUrl('d3');
 
@@ -1595,7 +1764,7 @@ function buildEmail2(results, unsubUrl) {
   // ── HTML ──
   const stakesHtml = above
     ? eP(`Your diagnostic showed you at passing level on a short sample. The real exam is 60 questions at a harder curve — and it costs <strong>$125 (USD)</strong>. A mandatory waiting period applies between attempts, so one underprepared attempt costs both the fee and weeks of time.`)
-    : eP(`You’re currently <strong>${gap} points below the 720 passing standard</strong>. The real CCA Foundations exam costs <strong>$125 (USD)</strong> — and a mandatory waiting period applies between attempts. Sitting it underprepared means losing both the fee and weeks before you can retry.`);
+    : eP(`You’re currently <strong>${gapH} points below the 720 passing standard</strong>. The real CCA Foundations exam costs <strong>$125 (USD)</strong> — and a mandatory waiting period applies between attempts. Sitting it underprepared means losing both the fee and weeks before you can retry.`);
 
   const optRows = sampleQ.options.map((o, i) => {
     const isCorrect = i === sampleQ.correct;
@@ -1608,7 +1777,7 @@ function buildEmail2(results, unsubUrl) {
 
   const questionBlock =
     `<div style="background:#f5f3ea;border:1px solid #d9d5ca;border-radius:8px;padding:20px;margin:24px 0">` +
-    `<p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#b04928;margin:0 0 10px">Sample question — ${domain}</p>` +
+    `<p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#b04928;margin:0 0 10px">Sample question — ${domainH}</p>` +
     `<p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.88rem;font-weight:600;color:#191918;line-height:1.6;margin:0 0 14px">${sampleQ.q}</p>` +
     `<table width="100%" cellpadding="0" cellspacing="4" border="0">${optRows}</table>` +
     `<p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.8rem;color:#5a5a52;line-height:1.55;margin:14px 0 0;border-top:1px solid #d9d5ca;padding-top:12px"><strong>Why:</strong> ${sampleQ.explain}</p>` +
@@ -1632,6 +1801,7 @@ function buildEmail3(results, unsubUrl) {
   const gap    = pass - score;
   const above  = gap <= 0;
   const domain = results.weakestDomain       || 'Agentic Architecture & Orchestration';
+  const domainH = escHtml(domain), gapH = escHtml(gap);   // HTML-safe copies; the text branches keep the raw values
   const cta    = nurtureCtaUrl('d7');
 
   const subject = above ? 'One week on — is your CCA prep locked in?' : 'Your CCA gap is still open';
@@ -1664,14 +1834,14 @@ function buildEmail3(results, unsubUrl) {
   // ── HTML ──
   const openingHtml = above
     ? eP('A week ago you scored above the 720 passing standard on a short sample. The real exam is 60 questions — broader, harder, drawn from a much larger pool. A passing sample is a good sign, not a guarantee.')
-    : eP(`A week ago you were <strong>${gap} points below the 720 passing standard</strong>, with <strong>${domain}</strong> as your weakest area.`) +
+    : eP(`A week ago you were <strong>${gapH} points below the 720 passing standard</strong>, with <strong>${domainH}</strong> as your weakest area.`) +
       eP('That gap doesn’t close on its own.');
 
   const riskBlock =
     `<div style="background:#f0fdf4;border:1.5px solid #a7f3d0;border-radius:8px;padding:18px 20px;margin:20px 0">` +
     `<p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.88rem;color:#191918;line-height:1.65;margin:0">` +
     `<strong style="color:#1a4d3a">10-day money-back guarantee.</strong> Try the full 400-question bank for a week. ` +
-    `If you don’t feel more confident in ${domain}, get a full refund: email us within 10 days of purchase.</p>` +
+    `If you don’t feel more confident in ${domainH}, get a full refund: email us within 10 days of purchase.</p>` +
     `</div>`;
 
   const bodyHtml =
