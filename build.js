@@ -549,6 +549,10 @@ const faqPageQA = [
     a: 'The platform includes 400 scenario-based practice questions across all five exam domains — multiple-choice and multiple-response, matching the mixed format described in the official exam guide — full-length 120-minute timed exam simulations, a free 10-question diagnostic quiz that estimates your readiness against the 720/1,000 passing standard, and a complete exam guide covering format, domain weights, and study strategy.'
   },
   {
+    q: "Aren't these questions just AI-generated? Why pay when I could generate my own?",
+    a: "You could generate a set of questions, and nothing about ours is secret. What you are paying for is the part a generator cannot do: a person has read every one of the 400 questions against the published CCAR-F (CCA-F) exam guide's task statements, and revises them by hand, one or two questions at a time. Every answer carries a written explanation of why it is right, not just the answer key. And the full-length mock draws its 60 questions from that bank at the guide's published domain weights on every attempt, so the mock is shaped by the published weights rather than by whatever a generator happened to produce."
+  },
+  {
     q: 'Is this site affiliated with Anthropic?',
     a: "No. The CCA Foundations exam is Anthropic's official certification. CCA Practice Platforms is an independent exam-preparation resource — we are not affiliated with, endorsed by, sponsored by, or authorized by Anthropic, and we do not administer the official exam or certification. 'Claude', 'Claude Certified Architect', and 'CCA' are trademarks of Anthropic. We provide unofficial practice materials — including a free diagnostic quiz, practice questions, and full exam simulations — to help you prepare for the official exam."
   }
