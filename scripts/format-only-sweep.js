@@ -1,8 +1,11 @@
 /**
  * COPY CLAIM SWEEP — read-only. Run after ANY copy change:  node scripts/format-only-sweep.js
  *
- * Two detectors over every tracked served page (p, li, headings, title, meta
- * descriptions, JSON-LD strings, llms.txt lines):
+ * Two detectors over every tracked served page (p, li, headings, title, table
+ * cells td/th/caption, meta descriptions, JSON-LD strings, llms.txt lines):
+ * Table cells were added on 3 Sep 2026 after the homepage shipped a table of
+ * claims the earlier element list could not see; the control for that change
+ * is the "domain weights" row header of #comparison-section on index.html.
  *
  *   A. FORMAT-ONLY: the PAID product described by format alone — a question
  *      count, a duration, a domain weighting, "full-length", "timed" — with
@@ -44,7 +47,7 @@ function blocks(f, t) {
   const lines = t.split(/\r?\n/);
   const re = /<(p|li|h1|h2|h3|td|div class="count"|title)(?:\s[^>]*)?>([\s\S]*?)<\/\1?[^>]*>/gi;
   // simpler: per-element scan on the raw text with line numbers
-  let m; const elRe = /<(p|li|h1|h2|h3|title)\b[^>]*>([\s\S]*?)<\/\1>/gi;
+  let m; const elRe = /<(p|li|h1|h2|h3|title|td|th|caption)\b[^>]*>([\s\S]*?)<\/\1>/gi;
   while ((m = elRe.exec(t))) { const ln = t.slice(0, m.index).split(/\r?\n/).length; out.push({ where: 'line ' + ln + ' <' + m[1] + '>', text: m[2].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim() }); }
   const metaRe = /<meta\s+(?:name|property)="([^"]+)"\s+content="([^"]*)"/gi;
   while ((m = metaRe.exec(t))) { const ln = t.slice(0, m.index).split(/\r?\n/).length; out.push({ where: 'line ' + ln + ' meta ' + m[1], text: m[2] }); }
