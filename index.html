@@ -220,6 +220,8 @@ section .section-sub{color:var(--text2);margin-bottom:40px;font-size:1rem}
 .dash-card select:disabled{opacity:.55;cursor:not-allowed}
 .lock-badge{font-size:.65rem;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:.3px;background:rgba(196,75,63,.06);color:var(--red);border:1px solid rgba(196,75,63,.15);vertical-align:middle;margin-left:6px}
 .lock-badge.unlocked{background:rgba(45,122,95,.08);color:var(--green);border-color:rgba(45,122,95,.2)}
+/* Free cards carry both descriptions; the free one is the static default so a logged-out visitor and every crawler read it with no flash. updateDashCards() adds is-enrolled, which swaps the spans. */
+.dash-card .when-enrolled{display:none}.dash-card.is-enrolled .when-enrolled{display:inline}.dash-card.is-enrolled .when-free{display:none}
 /* Was pointer-events:none on the whole card with pointer-events:auto only on
    the ::after "Enroll to unlock" strip — so tapping the visible title/button
    anywhere above that strip did nothing (looked broken, esp. on mobile,
@@ -1248,10 +1250,10 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
          toggled in updateDashCards(), see app.js. -->
     <p class="dash-diagnostic-hint" id="dash-diagnostic-hint" style="display:none">Not sure which to start with? <a href="/diagnostic/">Take the free diagnostic first</a> — see your weakest domain before you choose.</p>
     <div class="dash-grid">
-      <div class="dash-card">
+      <div class="dash-card" id="card-quick">
         <div class="icon">⚡</div>
         <h3>Quick Sprint <span class="lock-badge unlocked">FREE</span></h3>
-        <p>A fast 10-question drill for daily practice. Free accounts draw from a 55-question sample of the bank; enrolled accounts draw from all 400.</p>
+        <p><span class="when-free">A fast 10-question drill for daily practice. Free accounts draw from a 55-question sample of the bank; enrolled accounts draw from all 400.</span><span class="when-enrolled">A fast 10-question drill drawn from the full 400-question bank. Great for daily practice.</span></p>
         <div class="meta"><span>10 Questions</span><span>20 Minutes</span></div>
         <button class="btn-primary btn-sm" onclick="startTest('quick')">Start Sprint</button>
       </div>
@@ -1268,7 +1270,7 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
       <div class="dash-card" id="card-focused">
         <div class="icon">🔥</div>
         <h3>Focused Session <span class="lock-badge unlocked">5 FREE</span></h3>
-        <p>A timed 20-question session drawn at random from all 400 questions. The first five are free and come from the 55-question sample.</p>
+        <p><span class="when-free">A timed 20-question session drawn at random from all 400 questions. The first five are free and come from the 55-question sample.</span><span class="when-enrolled">A timed 20-question session drawn from the full 400-question bank.</span></p>
         <div class="meta"><span>20 Questions</span><span>40 Minutes</span></div>
         <button class="btn-primary btn-sm" onclick="startTest('focused')">Start Session</button>
       </div>
@@ -1293,7 +1295,7 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
       <div class="dash-card" id="card-full" style="border-color:var(--accent);background:var(--surface)">
         <div class="icon">🏆</div>
         <h3>Full Certification Exam <span class="lock-badge">LOCKED</span></h3>
-        <p>The complete 60-question practice test, drawn from the full 400-question bank at the real exam's domain weighting — 16 Agentic, 12 Claude Code, 12 Prompt Engineering, 11 Tool Design, 9 Context Management.</p>
+        <p>The complete 60-question practice test, drawn from the full 400-question bank at the published exam guide's domain weighting — 16 Agentic, 12 Claude Code, 12 Prompt Engineering, 11 Tool Design, 9 Context Management.</p>
         <div class="meta"><span>60 Questions</span><span>120 Minutes</span></div>
         <button class="btn-primary btn-sm" onclick="startTest('full')">Start Exam</button>
       </div>

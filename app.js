@@ -779,10 +779,6 @@ function initAuthListener() {
 }
 
 function updateDashCards() {
-  // card-focused: 5 questions free — never fully locked
-  const focusedCard  = document.getElementById('card-focused');
-  const focusedBadge = focusedCard && focusedCard.querySelector('.lock-badge');
-
   // card-deep, card-full and card-domain: fully locked unless enrolled
   ['card-deep','card-full','card-domain'].forEach(id => {
     const card = document.getElementById(id);
@@ -798,16 +794,20 @@ function updateDashCards() {
     }
   });
 
-  // Focused: unlock fully if enrolled; show "5 FREE" preview otherwise
-  if (focusedCard) {
-    focusedCard.classList.remove('locked');
-    focusedCard.onclick = null;
-    if (enrolled) {
-      if (focusedBadge) { focusedBadge.textContent = 'ENROLLED'; focusedBadge.classList.add('unlocked'); }
-    } else {
-      if (focusedBadge) { focusedBadge.textContent = '5 FREE'; focusedBadge.classList.add('unlocked'); }
-    }
-  }
+  // card-quick and card-focused: never locked, never given a click handler.
+  // The badge reads ENROLLED once enrolled and the card's own free label
+  // otherwise. The description follows through the is-enrolled class, which
+  // picks one of the two spans (.when-free / .when-enrolled) in index.html --
+  // both strings live there, none here.
+  [['card-quick', 'FREE'], ['card-focused', '5 FREE']].forEach(([id, freeLabel]) => {
+    const card = document.getElementById(id);
+    if (!card) return;
+    card.classList.remove('locked');
+    card.onclick = null;
+    card.classList.toggle('is-enrolled', !!enrolled);
+    const badge = card.querySelector('.lock-badge');
+    if (badge) { badge.textContent = enrolled ? 'ENROLLED' : freeLabel; badge.classList.add('unlocked'); }
+  });
 
   // The locked overlay kills the "Start" button with pointer-events:none, but a
   // <select> is still operable by keyboard, so disable it outright. A click on a
