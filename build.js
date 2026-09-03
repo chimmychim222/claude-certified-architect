@@ -409,8 +409,8 @@ const questionsSchemas = [
   {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: 'Free CCA Practice Questions',
-    description: 'Free CCA practice questions across all 5 exam domains — detailed explanations, multiple test modes, and domain-weighted scoring to help you pass.',
+    name: 'CCAR-F Practice Questions',
+    description: '400 scenario-based CCA practice questions across all 5 exam domains, with detailed explanations, multiple test modes and domain-weighted scoring. A free 55-question sample needs no account.',
     url: BASE + '/cca-practice-questions/',
     isPartOf: { '@type': 'WebSite', name: schema.course.provider, url: BASE }
   },

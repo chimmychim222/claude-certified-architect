@@ -484,7 +484,7 @@ function renderSchedule(alloc, weakIds, daysPerWeek) {
     }
     html += '<ul>' +
       '<li>A full <a href="/cca-foundations-exam/">60-question timed simulation</a> under real exam conditions (120 minutes, no notes) &mdash; then review every answer, right or wrong.</li>' +
-      '<li>Extra reps from the <a href="/cca-practice-questions/">free practice question bank</a>, focused on whatever scored lowest on your simulation.</li>' +
+      '<li>Extra reps from the <a href="/cca-practice-questions/">practice question bank</a> (a free 55-question sample, or all 400 once enrolled), focused on whatever scored lowest on your simulation.</li>' +
       '<li>If you have time left over, skim <strong>Agentic Architecture &amp; Orchestration</strong> (27% of the exam, the single heaviest domain) &mdash; <a href="/blog/agentic-architecture-orchestration-cca-domain-1/">deep dive</a>.</li>' +
       '</ul></div>';
     container.innerHTML = html;
@@ -513,7 +513,7 @@ function renderSchedule(alloc, weakIds, daysPerWeek) {
     '<ul>' +
     '<li>Take a full <a href="/cca-foundations-exam/">60-question timed simulation</a> under real exam conditions &mdash; 120 minutes, no notes, no pausing.</li>' +
     '<li>Review your domain-by-domain score breakdown and spend remaining time on whichever domain scored lowest' + (weakIds.length ? ' (especially ' + joinWithAnd(domainNames(weakIds)) + ')' : '') + '.</li>' +
-    '<li>Work through extra rounds from the <a href="/cca-practice-questions/">free practice question bank</a> in your weakest area' + (weakIds.length > 1 ? 's' : '') + '.</li>' +
+    '<li>Work through extra rounds from the <a href="/cca-practice-questions/">practice question bank</a> (a free 55-question sample, or all 400 once enrolled) in your weakest area' + (weakIds.length > 1 ? 's' : '') + '.</li>' +
     '<li>Save the day before your exam for rest, not new material.</li>' +
     '</ul></div>';
 

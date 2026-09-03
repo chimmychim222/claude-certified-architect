@@ -8,7 +8,7 @@ CCA Practice Platforms (claudecertifiedarchitects.com) provides unofficial pract
 
 - [Home](https://www.claudecertifiedarchitects.com/): Overview of the practice platform, practice modes, and entry point to the question bank.
 - [CCA Foundations Exam Simulation](https://www.claudecertifiedarchitects.com/cca-foundations-exam/): Full-length, 60-question, 120-minute timed practice exam covering all 5 domains with a scored breakdown.
-- [Free Practice Questions](https://www.claudecertifiedarchitects.com/cca-practice-questions/): 400 scenario-based practice questions with explanations across all 5 domains and multiple test modes.
+- [Practice Questions](https://www.claudecertifiedarchitects.com/cca-practice-questions/): 400 scenario-based practice questions with explanations across all 5 domains and multiple test modes; a free 55-question sample needs no account.
 - [Exam Guide](https://www.claudecertifiedarchitects.com/cca-exam-guide/): Exam format, domain weights, passing score (720/1,000), and study strategies.
 - [Free Diagnostic Quiz](https://www.claudecertifiedarchitects.com/diagnostic/): 10-question, no-login readiness check with a per-domain score.
 - [Official Exam Registration](https://www.claudecertifiedarchitects.com/register/): How to register for the official CCA Foundations exam via Anthropic's Skilljar portal.
