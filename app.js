@@ -2893,10 +2893,12 @@ e:"Temperature 0 or near 0 is best for factual Q&A systems where consistency and
 // prefill differing only in the prefilled character. Found by verifying prefill against
 // fetched documentation across the whole bank, not by a string collision.
 //
-// RETIREMENT MEANS REMOVAL, NOT A FLAG. startTest does shuffleArray(QUESTIONS) and slices;
-// there is no filter on the array anywhere. A question marked {retired:true} would still be
-// shuffled into every test and graded, silently — the same failure shape as adding a
-// question to LESSONS by mistake. If a filter is ever added, this comment can become a flag.
+// RETIREMENT MEANS REMOVAL, NOT A FLAG. startTest draws from QUESTIONS (or a domain slice of
+// it, or the stem-resolved FREE_POOL for the logged-out free tier) and slices; nothing filters
+// on a per-item flag. A question marked {retired:true} would still be shuffled into every test
+// and graded, silently — the same failure shape as adding a question to LESSONS by mistake. A
+// retired item must also leave FREE_STEMS / SUBSET_STEMS in scripts/build-pools.js, which
+// aborts on a stem that no longer matches.
 //
 // Removed from QUESTIONS here and from POOL in diagnostic/index.html in the same commit.
 // Bank size 401 -> 400, which matches the "400 practice questions" claim in /faq/.
@@ -4633,17 +4635,20 @@ function stratifiedDraw(pool, count) {
 
 // -- FREE-PREVIEW DRAW ------------------------------------------------------
 // The draw for the two surfaces a logged-out visitor can run: the Focused
-// Session preview (five questions) and the unenrolled Quick Sprint (ten). It
-// draws ONE multiple-response item and count-1 single-select items, then
+// Session preview (five questions) and the unenrolled Quick Sprint (ten). Both
+// draw from FREE_POOL (below), a fixed sample of the bank, never from all 400.
+// It draws ONE multiple-response item and count-1 single-select items, then
 // shuffles them so the MR item's slot is uniform. Every paid mode, and an
-// enrolled Quick Sprint, keeps the plain uniform draw in startTest.
+// enrolled Quick Sprint, keeps the plain uniform draw over the whole bank in
+// startTest.
 //
 // One MR item is excluded from this draw only: the one reproduced verbatim on
 // the homepage sample cards (index.html, sample-q-section). A visitor who has
 // just answered it there would otherwise meet it again as their "free"
 // question. It is matched by stem text, never by index, because indices shift
 // when an item is retired; if that stem is ever edited in QUESTIONS, edit it
-// here in the same commit or the exclusion silently stops applying.
+// here in the same commit. scripts/build-pools.js reads this set and aborts if
+// the stem no longer matches exactly one item, so the drift cannot ship silently.
 //
 // Falls back to the uniform draw if either subset is unexpectedly short -- a
 // free preview must never fail to start.
@@ -4660,6 +4665,107 @@ function freePreviewDraw(pool, count) {
   const picked = [shuffleArray(mrPool)[0], ...shuffleArray(scPool).slice(0, count - 1)];
   return shuffleArray(picked);
 }
+
+// -- FREE POOL --------------------------------------------------------------
+// The two logged-out surfaces above draw from FREE_POOL, a fixed sample of the
+// bank, not from all 400. Before this, unlimited Quick Sprint replays handed a
+// patient visitor the whole bank ten items at a time. The sample is ten
+// single-select and one multiple-response item per domain, chosen with no
+// key-longest option (this is the most-viewed question set on the property),
+// disjoint from the diagnostic's 40 and from every item quoted on a page or in
+// the nurture emails.
+//
+// STEMS ONLY. The content stays in QUESTIONS; resolveFreePool() matches by
+// exact stem text at load, the same key FREE_PREVIEW_MR_EXCLUDE and the
+// diagnostic's SUBSET_STEMS use, because indices shift when an item is retired
+// and stems do not. THE LIST BELOW IS GENERATED: edit FREE_STEMS in
+// scripts/build-pools.js and run it. That script aborts on a stem that no
+// longer matches exactly one item, a stem shared with the diagnostic, a
+// key-longest item, a quoted item, or a sample too small for freePreviewDraw()
+// to guarantee its one MR item. The runtime guard below only warns.
+// cca:free-pool-stems:start
+const FREE_POOL_STEMS = [
+  // Agentic Architecture & Orchestration
+  "You are building a CI/CD pipeline agent. The agent must run linting, then unit tests, then integration tests in strict order, with each step depending on the previous step's output. Which multi-agent pattern is most appropriate?",
+  "You notice your agent is spending excessive tokens reasoning about trivial decisions like which greeting to use. What is the most effective fix?",
+  "You are implementing a self-healing mechanism in your agent. The agent tried to read a file but received a permission denied error. What should the self-healing behavior look like?",
+  "A hook intercepts outgoing tool calls and blocks any process_refund call exceeding $500, redirecting to human escalation. Why is this preferred over a prompt instruction saying 'do not process refunds over $500'?",
+  "When escalating a customer issue to a human agent, your AI agent sends the entire conversation transcript. Why is this suboptimal?",
+  "When should you use prompt chaining (fixed sequential pipeline) versus dynamic adaptive decomposition for task breakdown?",
+  "Why should all subagent communication be routed through the coordinator rather than allowing direct peer-to-peer communication?",
+  "A customer explicitly says 'I want to speak to a human agent.' Your support agent has already identified the issue and knows it can resolve it in one step. What should the agent do?",
+  "An orchestrator spawns a subagent but never receives a response. The subagent is likely stuck in a retry loop on a failing tool. What timeout and fallback pattern handles this?",
+  "Your orchestrator needs to decide at runtime whether to use a fast cheap model or a powerful expensive model for each subtask. What routing strategy is most effective?",
+  "A customer's message raises both a billing dispute and a shipping-address change in the same turn. Which three practices does correct multi-concern decomposition call for?",
+  // Claude Code Configuration
+  "Your agent applies changes through the file editing tools, and you want a formatting script to run every time one of those edits completes successfully. Which hook event should the script be registered on?",
+  "A Claude Code settings.json lists several specific Bash commands in the permissions allow array. In the default permission mode, Claude proposes a Bash command that none of those entries covers. What happens?",
+  "A developer is working out how request logging is wired through an unfamiliar service before adding a field to it. Reading the files involved has already taken up much of the session, and the change itself still has to be made in the same conversation. Which approach keeps room available for it?",
+  "A new team member reports that Claude Code isn't following the project's coding conventions. The conventions are defined in ~/.claude/CLAUDE.md. What's the likely issue?",
+  "A developer wants their own version of the team's /audit skill, carrying two extra checks that only they care about. The team's skill is checked into the repository and other contributors rely on it as it stands. What should the developer do?",
+  "You need to choose between putting team conventions in CLAUDE.md (always loaded) versus a custom skill (on-demand). When should you use a skill?",
+  "Your CI pipeline needs Claude Code to produce machine-parseable structured output for posting as inline PR comments. What flags should you use?",
+  "A developer adds a /changelog entry point and it works for them every time. Another contributor on the same project does not see it at all. What best explains that?",
+  "A team asks Claude Code to normalise the postal addresses in a supplier catalogue, and each round comes back in a different shape. They rewrite the instruction at greater length and the output stays inconsistent. What should they supply instead?",
+  "A monorepo's standards have grown large enough that loading all of them at the start of every session measurably reduces the room left for the work itself. Which property of a .claude/rules/ file with a paths field addresses that?",
+  "An infrastructure-as-code repository has Terraform files spread across dozens of service directories. Which two reasons make a .claude/rules/ file with paths: [\"terraform/**/*\"] a better fit than a directory-level CLAUDE.md for enforcing Terraform conventions?",
+  // Prompt Engineering & Structured Output
+  "A legal document review system uses Claude to summarize long contracts in multi-turn conversations. After 20 turns, summaries become less accurate. What is the most effective strategy?",
+  "Your extraction prompt says 'extract the relevant information.' Claude produces inconsistent output formats across different documents. What's the most effective fix?",
+  "Your pipeline has a pre-merge code check that blocks merging. Should you use the synchronous API or the Batches API?",
+  "You are designing the review architecture for a service where a typical change touches several modules and also the data that moves between them. How should the review passes be arranged?",
+  "Your extraction pipeline encounters a document with inconsistent source formatting — dates appear as 'Jan 5', '01/05/2024', and '2024-01-05' in different sections. How should you handle this?",
+  "You design a self-correction validation flow that extracts both calculated_total and stated_total from invoices. Why extract both?",
+  "Your application instructs Claude in the system prompt to return only a JSON object. The model produces valid JSON but adds commentary after it. A migration to tool use is scheduled for a later release, so the fix has to work with the current prompt-based call. What additional technique should you use?",
+  "A support pipeline extracts a structured case record from each incoming ticket, and the returns policy is applied automatically from the purchase date the record carries. Many tickets never state a purchase date. Every field in the schema is required, and the model supplies a plausible date when the ticket is silent, placing some cases inside the returns window and others outside it. What is the correct fix?",
+  "You need Claude to extract up to five key claims from a document. Sometimes there are fewer than five claims. What output schema handles this correctly?",
+  "You are extracting dates from documents in many different formats (14/05/2026, May 14 2026, 2026-05-14). Your output schema requires ISO 8601 format (YYYY-MM-DD). What prompt instruction ensures consistent normalisation?",
+  "Your validation-retry loop appends the specific validation error to the prompt and asks Claude to correct a failed extraction. Which two statements correctly describe when this approach will succeed and when it will not?",
+  // Tool Design & MCP Integration
+  "In a tool_result message, how should you handle a large result that might consume too many tokens?",
+  "A project configuration lists three MCP servers: one for Jira, one for an internal search index, and one for a metrics warehouse. A developer believes only one server can be attached at a time and writes a helper that rewrites the configuration before each task so a single server is left in place. What does that helper misunderstand?",
+  "A tool query returns zero results. The agent treats this as an error and retries repeatedly. How should the tool differentiate between 'no results found' and 'query failed'?",
+  "You have a generic analyze_document tool that handles extraction, summarization, and fact-checking. It often produces mixed-quality results. What's the better design?",
+  "The Edit tool fails because the old_string you provided matches multiple locations in the file. What's the correct fallback?",
+  "You need to provide a scoped cross-role tool to a synthesis agent — specifically a verify_fact tool — while keeping the agent focused on synthesis. How should you configure this?",
+  "An agent is asked which parts of a service still depend on a legacy date utility. The utility is re-exported through two wrapper modules under different names, so a search for the original function name finds only a fraction of the call sites. Which approach locates all of them?",
+  "You want to expose your team's Jira project data to Claude Code through MCP. Your team already uses a standard Jira workflow. Should you build a custom MCP server or use an existing community server?",
+  "An MCP tool call to a downstream service fails. The tool currently returns the generic message 'Operation failed' with no further detail. What change to the error response most improves the agent's ability to recover?",
+  "You are designing a tool schema for a function that accepts a start date and end date for a report. What input validation should the schema enforce?",
+  "Your legal-tech agent has a process_document tool whose entire description reads 'Analyzes data.' The agent almost never selects it correctly. Which two additions would most directly fix this?",
+  // Context Management & Reliability
+  "A SaaS platform uses Claude to serve multiple customers. How should they ensure that one customer's data never leaks into another customer's context?",
+  "In Claude API pricing, output tokens are significantly more expensive than input tokens. How should this affect your design decisions?",
+  "Your production Claude application experiences intermittent failures. What observability setup should you have in place?",
+  "A high-availability system using Claude needs to handle API outages gracefully. What pattern should be implemented?",
+  "When handing off context between agents in a multi-agent system, what's the most important consideration?",
+  "Your agent processes customer requests but occasionally provides different responses to identical queries. What reliability technique helps ensure consistent behavior?",
+  "Your multi-agent system has no centralized logging. When errors occur in production, you cannot determine which agent failed or why. What should you implement?",
+  "Your production system processes 1000 requests per hour during peak times. What should you plan for regarding Claude API reliability?",
+  "Your customer support agent handles multi-issue sessions. After 20+ turns, it starts confusing Order #1234's refund amount with Order #5678's details. What context management strategy addresses this?",
+  "An agent exploring an unfamiliar codebase runs a content search that returns every matching line across 60 files, and the full match bodies accumulate in context across a long session. Its next step is to open the most promising files and follow their imports. Which way of trimming the search result keeps it useful?",
+  "A document-analysis subagent is partway through analyzing a batch of 20 source documents when it hits a permission error on the remaining 6, an error it has no way to resolve on its own. Which three of the following are anti-patterns for how the subagent should report this to the coordinator?",
+];
+// cca:free-pool-stems:end
+
+// Every stem must resolve. A stem that drifts drops out of the sample with no
+// error, so the count is checked and the shortfall reported. If the sample ever
+// falls below the largest free draw (ten) the free tier must still start, so it
+// falls back to the whole bank -- loudly.
+function resolveFreePool() {
+  const byStem = new Map();
+  QUESTIONS.forEach(q => byStem.set(q.q, q));
+  const pool = [];
+  FREE_POOL_STEMS.forEach(stem => { const q = byStem.get(stem); if (q) pool.push(q); });
+  const missing = FREE_POOL_STEMS.length - pool.length;
+  if (missing > 0) console.warn('[FreePool] ' + missing + ' stem(s) no longer match QUESTIONS; run scripts/build-pools.js');
+  if (pool.length < 10) {
+    console.warn('[FreePool] sample too small (' + pool.length + ' items); falling back to the whole bank');
+    return QUESTIONS;
+  }
+  return pool;
+}
+const FREE_POOL = resolveFreePool();
 
 async function startTest(type) {
   // quick: always free. focused: first 5 free. deep/full: need enrollment.
@@ -4689,8 +4795,14 @@ async function startTest(type) {
   // Narrow on the INPUT side of the shuffle. Everything downstream -- the
   // option shuffle, the correct-index remap, MR handling, the option cap --
   // then runs untouched, which is why the drill inherits MR support for free.
+  // The logged-out free tier (the Focused preview and the unenrolled Quick
+  // Sprint) draws from FREE_POOL, the fixed sample resolved above. Every
+  // enrolled mode draws from the whole bank.
+  const isFreeQuickSprint = (type === 'quick' && !enrolled);
   const drill = domainDrillEntry(type);
-  const pool  = drill ? QUESTIONS.filter(q => q.d === drill.key) : QUESTIONS;
+  const pool  = drill ? QUESTIONS.filter(q => q.d === drill.key)
+              : (isFreePreview || isFreeQuickSprint) ? FREE_POOL
+              : QUESTIONS;
 
   // The full exam is stratified so each domain carries its published share on
   // every attempt. Every other mode stays a uniform draw over its own pool,
@@ -4701,7 +4813,6 @@ async function startTest(type) {
   // takes exactly one MR item and the rest single-select, then shuffles. The
   // Focused preview (five) and the unenrolled Quick Sprint (ten) both use it;
   // an ENROLLED Quick Sprint and every paid mode keep the plain uniform draw.
-  const isFreeQuickSprint = (type === 'quick' && !enrolled);
   const drawn = (type === 'full')  ? stratifiedDraw(pool, questionCount)
               : (isFreePreview || isFreeQuickSprint)
                                    ? freePreviewDraw(pool, questionCount)
