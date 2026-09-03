@@ -2356,7 +2356,7 @@ function showSection(id) {
   // Pages without the dashboard/SPA sections (e.g. /diagnostic/, which only
   // loads app.js for its checkout/auth modal) have nothing for this to do.
   if (!document.getElementById('home-section')) return;
-  ['home','pricing','testimonials','customer-quotes','dashboard','test','results','lessons','progress'].forEach(s => {
+  ['home','pricing','testimonials','customer-quotes','comparison','dashboard','test','results','lessons','progress'].forEach(s => {
     const el = document.getElementById(s + '-section');
     if (el) el.style.display = 'none';
   });
@@ -2372,10 +2372,12 @@ function showSection(id) {
     document.getElementById('testimonials-section').style.display = 'block';
     document.getElementById('customer-quotes-section').style.display = 'block';
     document.getElementById('pricing-section').style.display = 'block';
+    document.getElementById('comparison-section').style.display = 'block';
   } else if (id === 'pricing') {
     document.getElementById('testimonials-section').style.display = 'block';
     document.getElementById('customer-quotes-section').style.display = 'block';
     document.getElementById('pricing-section').style.display = 'block';
+    document.getElementById('comparison-section').style.display = 'block';
     document.getElementById('pricing-section').scrollIntoView({behavior:'smooth'});
   } else if (id === 'dashboard') {
     document.getElementById('dashboard-section').style.display = 'block';

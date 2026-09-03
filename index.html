@@ -719,6 +719,36 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
   .cq-header h2{font-size:1.4rem}
   .cq-header p{font-size:.88rem}
 }
+/* ── WHAT TO CHECK IN ANY PRACTICE SET (comparison) ── */
+.cmp-section{padding:90px 0;position:relative;z-index:1;background:var(--bg)}
+.cmp-section::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:var(--border)}
+.cmp-header{text-align:center;margin-bottom:40px}
+.cmp-header h2{font-size:clamp(1.6rem,4vw,2.4rem);font-weight:700;color:var(--text);margin-bottom:12px}
+.cmp-header p{color:var(--text2);font-size:.95rem;max-width:640px;margin:0 auto;line-height:1.7;font-family:-apple-system,system-ui,'Segoe UI',sans-serif}
+.cmp-table{width:100%;max-width:860px;margin:0 auto;border-collapse:separate;border-spacing:0;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;font-family:-apple-system,system-ui,'Segoe UI',sans-serif}
+.cmp-table th,.cmp-table td{padding:18px 22px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border);font-size:.92rem;line-height:1.65;overflow-wrap:break-word}
+.cmp-table thead th{font-size:.72rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text3);background:var(--surface2);padding:14px 22px}
+.cmp-table tbody th{font-weight:600;color:var(--text);width:42%}
+.cmp-table tbody td{color:var(--text2)}
+.cmp-table tbody td::before{display:none}
+.cmp-table tbody tr:last-child th,.cmp-table tbody tr:last-child td{border-bottom:none}
+@media(max-width:600px){
+  .cmp-section{padding:60px 0}
+  .cmp-header{margin-bottom:28px}
+  .cmp-header h2{font-size:1.4rem}
+  .cmp-header p{font-size:.88rem}
+  /* The table becomes stacked cards: one card per row, the question as its
+     heading and the answer beneath, captioned by the column name via
+     data-col. thead is visually hidden, not removed, so scope headers still
+     read to assistive tech. Never a sideways-scrolling table on a phone. */
+  .cmp-table{display:block;background:transparent;border:none;border-radius:0;overflow:visible}
+  .cmp-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .cmp-table tbody,.cmp-table tr,.cmp-table th,.cmp-table td{display:block;width:auto}
+  .cmp-table tbody tr{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:14px;overflow:hidden}
+  .cmp-table tbody th{padding:16px 18px 10px;border-bottom:1px solid var(--border);font-size:.95rem}
+  .cmp-table tbody td{padding:12px 18px 16px;border-bottom:none;font-size:.88rem}
+  .cmp-table tbody td::before{content:attr(data-col);display:block;font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--accent-text);margin-bottom:6px}
+}
 /* ── Free focused preview ── */
 .option:disabled{pointer-events:none;cursor:default}
 .q-explanation{margin-top:20px;padding:18px 20px;border-radius:var(--radius-sm);background:var(--surface2);border:1px solid var(--border);animation:fadeInUp .3s ease}
@@ -1220,6 +1250,56 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
         Powered by Stripe · 10-day money-back guarantee · Secure checkout
       </div>
     </div>
+  </div>
+</section>
+
+<!-- ═══════ WHAT TO CHECK IN ANY PRACTICE SET ═══════
+     A buying guide, not a comparison of named sites. Each row is a question a
+     visitor can put to ANY practice set; only the right-hand column answers,
+     and every answer is a checkable fact about this bank, re-derived from
+     app.js's QUESTIONS and the published CCAR-F exam guide on 3 Sep 2026. No
+     competitor is named, linked or described anywhere on this site: a claim
+     about a third-party site goes false the day they ship a feature.
+     Two rows were deliberately NOT built and must not be added back without a
+     re-derived source: "no duplicate questions" (redundant items remain in the
+     bank by decision) and "answers cannot be guessed by length" (false at the
+     measured rate). The multiple-response COUNT is deliberately absent: the
+     proportion of MR items stays internal (primer §5).
+     showSection() in app.js lists 'comparison', so this hides with the rest of
+     the marketing page when a signed-in user navigates to the dashboard. -->
+<section class="cmp-section" id="comparison-section">
+  <div class="container">
+    <div class="cmp-header reveal">
+      <h2>What to check in any practice set.</h2>
+      <p>Put these five questions to any practice set before you rely on it, this one included. The answers on the right describe the 400-question bank and can be checked against the published CCAR-F (CCA-F) exam guide.</p>
+    </div>
+    <table class="cmp-table reveal">
+      <thead>
+        <tr><th scope="col">What to check</th><th scope="col">This bank</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">Does every answer explain why it is right?</th>
+          <td data-col="This bank">Yes. All 400 questions carry a written explanation of the correct answer, not just the answer key.</td>
+        </tr>
+        <tr>
+          <th scope="row">Does it use both question types the published exam guide names?</th>
+          <td data-col="This bank">Yes. The guide names multiple-choice and multiple-response items. The bank holds both, and every multiple-response item states how many answers to select.</td>
+        </tr>
+        <tr>
+          <th scope="row">Does its mix follow the exam guide&rsquo;s domain weights?</th>
+          <td data-col="This bank">Yes, within one question per domain. The 400 split as Agentic Architecture 109 (weighted 27% in the guide), Claude Code Configuration 80 (20%), Prompt Engineering 79 (20%), Tool Design and MCP 72 (18%), and Context Management 60 (15%).</td>
+        </tr>
+        <tr>
+          <th scope="row">Is its full-length mock drawn from the whole bank at those weights?</th>
+          <td data-col="This bank">Yes. Every 60-question full exam draws from the 400-question bank at the guide&rsquo;s weights: 16 Agentic Architecture, 12 Claude Code Configuration, 12 Prompt Engineering, 11 Tool Design and MCP, and 9 Context Management, on every attempt.</td>
+        </tr>
+        <tr>
+          <th scope="row">Has it been edited by hand since it was written?</th>
+          <td data-col="This bank">Yes. Every question has been read against the published exam guide&rsquo;s task statements, and revisions are made by hand, one or two questions at a time.</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </section>
 
