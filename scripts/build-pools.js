@@ -44,29 +44,50 @@ function die(msg) {
 }
 
 // ── 1. Extract QUESTIONS from app.js ──────────────────────────────────────────
-const appSrc = fs.readFileSync(APP, 'utf8');
-const marker = 'const QUESTIONS = [';
-const qStart = appSrc.indexOf(marker) + marker.length - 1;
-if (qStart < marker.length - 1) die('Could not find "const QUESTIONS = [" in app.js');
+// The bracket counter is string-aware AND comment-aware. Until 3 Sep 2026 it
+// was not comment-aware: an apostrophe in a // comment between items ("the
+// model's output", app.js:2892) opened a phantom string, the count
+// desynchronised, and the slice ran on to the close of LESSONS (:4522, not
+// :3806). It still returned 400 items only because the over-long slice
+// happened to be valid JavaScript. The three guards after the extraction
+// exist so the next desynchronisation is loud: a SHORT slice that is still
+// valid JavaScript would otherwise stamp smaller pools with no error, and this
+// script writes app.js on every bank edit.
+const BANK_SIZE = 400;   // the bank is 400 by decision (primer §0); a different count is a parser fault or a bank edit that must be deliberate
 
-let depth = 0, inStr = false, strCh = '', esc = false, i = qStart;
-while (i < appSrc.length) {
-  const c = appSrc[i];
-  if (esc) { esc = false; i++; continue; }
-  if (c === '\\') { esc = true; i++; continue; }
-  if (inStr) { if (c === strCh) inStr = false; }
-  else {
-    if (c === '"' || c === "'") { inStr = true; strCh = c; }
-    else if (c === '[') depth++;
-    else if (c === ']') { depth--; if (depth === 0) break; }
+function extractArrayLiteral(src, marker) {
+  const start = src.indexOf(marker);
+  if (start === -1) return null;
+  const open = start + marker.length - 1;            // index of '['
+  let depth = 0, inStr = false, strCh = '', esc = false;
+  for (let i = open; i < src.length; i++) {
+    const c = src[i], n = src[i + 1];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (c === '\\') esc = true;
+      else if (c === strCh) inStr = false;
+      continue;
+    }
+    if (c === '/' && n === '/') { const nl = src.indexOf('\n', i); if (nl === -1) return null; i = nl; continue; }
+    if (c === '/' && n === '*') { const ce = src.indexOf('*/', i + 2); if (ce === -1) return null; i = ce + 1; continue; }
+    if (c === '"' || c === "'" || c === '`') { inStr = true; strCh = c; continue; }
+    if (c === '[') depth++;
+    else if (c === ']') { depth--; if (depth === 0) return { text: src.slice(open, i + 1), end: i }; }
   }
-  i++;
+  return null;                                        // never closed
 }
-const arrStr = appSrc.slice(qStart, i + 1);
+
+const appSrc = fs.readFileSync(APP, 'utf8');
+const extracted = extractArrayLiteral(appSrc, 'const QUESTIONS = [');
+if (!extracted) die('Could not find a CLOSED "const QUESTIONS = [ ... ]" literal in app.js (marker missing, or the bracket count never returned to zero).');
+const arrStr = extracted.text;
+if (arrStr.includes('const LESSONS')) die('QUESTIONS extraction ran past its own close into LESSONS (the slice contains "const LESSONS"). The bracket counter is desynchronised; refusing to continue.');
 const tmp    = path.join(__dirname, '_qtmp_pools.js');
 fs.writeFileSync(tmp, 'module.exports = ' + arrStr + ';');
 let ALL_Q;
 try { ALL_Q = require(tmp); } finally { fs.unlinkSync(tmp); }
+if (!Array.isArray(ALL_Q) || ALL_Q.length !== BANK_SIZE) die('QUESTIONS parsed to ' + (Array.isArray(ALL_Q) ? ALL_Q.length : typeof ALL_Q) + ' items, expected exactly ' + BANK_SIZE + '. A short extraction that is still valid JavaScript would stamp smaller pools silently; refusing. If the bank size has genuinely changed, update BANK_SIZE deliberately.');
+console.log('QUESTIONS literal closes at app.js line ' + appSrc.slice(0, extracted.end).split('\n').length + ' (' + ALL_Q.length + ' items, no LESSONS text in the slice).');
 
 // ── 2. Domain metadata ────────────────────────────────────────────────────────
 const DOMAINS = [
