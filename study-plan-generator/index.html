@@ -483,7 +483,7 @@ function renderSchedule(alloc, weakIds, daysPerWeek) {
       html += '<p>With ' + alloc.totalDays + ' day' + (alloc.totalDays === 1 ? '' : 's') + ' left, a full domain-by-domain rotation won’t fit. Focus on:</p>';
     }
     html += '<ul>' +
-      '<li>A full <a href="/cca-foundations-exam/">60-question timed simulation</a> under real exam conditions (120 minutes, no notes) &mdash; then review every answer, right or wrong.</li>' +
+      '<li>A full <a href="/cca-foundations-exam/">60-question simulation</a> drawn from the 400-question bank, under timed exam conditions (120 minutes, no notes) &mdash; then review every answer, right or wrong.</li>' +
       '<li>Extra reps from the <a href="/cca-practice-questions/">practice question bank</a> (a free 55-question sample, or all 400 once enrolled), focused on whatever scored lowest on your simulation.</li>' +
       '<li>If you have time left over, skim <strong>Agentic Architecture &amp; Orchestration</strong> (27% of the exam, the single heaviest domain) &mdash; <a href="/blog/agentic-architecture-orchestration-cca-domain-1/">deep dive</a>.</li>' +
       '</ul></div>';
@@ -511,7 +511,7 @@ function renderSchedule(alloc, weakIds, daysPerWeek) {
     '<div class="sb-head"><h3>' + reviewLabel + ': Final Review &amp; Practice Exams</h3>' +
     '<span class="sb-tag">' + alloc.reviewDays + ' day' + (alloc.reviewDays === 1 ? '' : 's') + '</span></div>' +
     '<ul>' +
-    '<li>Take a full <a href="/cca-foundations-exam/">60-question timed simulation</a> under real exam conditions &mdash; 120 minutes, no notes, no pausing.</li>' +
+    '<li>Take a full <a href="/cca-foundations-exam/">60-question simulation</a> drawn from the 400-question bank, under timed exam conditions &mdash; 120 minutes, no notes, no pausing.</li>' +
     '<li>Review your domain-by-domain score breakdown and spend remaining time on whichever domain scored lowest' + (weakIds.length ? ' (especially ' + joinWithAnd(domainNames(weakIds)) + ')' : '') + '.</li>' +
     '<li>Work through extra rounds from the <a href="/cca-practice-questions/">practice question bank</a> (a free 55-question sample, or all 400 once enrolled) in your weakest area' + (weakIds.length > 1 ? 's' : '') + '.</li>' +
     '<li>Save the day before your exam for rest, not new material.</li>' +
