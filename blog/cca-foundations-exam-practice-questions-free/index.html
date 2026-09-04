@@ -238,7 +238,7 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 
 <h3>Correct Answer: B</h3>
 <p>Project-level behavioural instructions — coding standards, workflow rules, file restrictions — belong in <code>CLAUDE.md</code> at the project root. Committed to the repository, this file is automatically picked up by Claude Code for every developer who clones the project. This is the designed mechanism for sharing persistent natural-language instructions across a team.</p>
-<p><strong>Why A is wrong:</strong> <code>settings.json</code> controls tool permissions, MCP server configuration, and allowlists — not natural-language behavioural instructions. It is not the correct place for "run tests before committing" or "avoid /contracts/" style guidance.</p>
+<p><strong>Why A is wrong:</strong> <code>settings.json</code> controls tool permissions, hooks, and which <code>.mcp.json</code> servers are approved — not natural-language behavioural instructions. It is not the correct place for "run tests before committing" or "avoid /contracts/" style guidance.</p>
 <p><strong>Why C is wrong:</strong> <code>settings.local.json</code> is for local overrides that are intentionally not committed. Instructions that need to apply to the whole team must be in a committed file.</p>
 <p><strong>Why D is wrong:</strong> The global <code>~/.claude/CLAUDE.md</code> applies to every project on a developer's machine. Putting project-specific rules there would apply them to unrelated projects and doesn't help other developers — each person's global file is local to their machine.</p>
 
