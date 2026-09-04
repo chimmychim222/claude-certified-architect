@@ -4093,7 +4093,7 @@ Always test user interactions, not implementation details.</pre>
 <h3>Settings Hierarchy</h3>
 <p>Claude Code settings are in JSON files at multiple levels:</p>
 <ul>
-<li><strong>Project settings:</strong> <code>.claude/settings.json</code> — checked into version control, shared across team. Defines allowed/denied tools, MCP servers.</li>
+<li><strong>Project settings:</strong> <code>.claude/settings.json</code> — checked into version control, shared across team. Defines allowed/denied tools and hooks, and approves which <code>.mcp.json</code> servers load; MCP servers themselves are defined in <code>.mcp.json</code> (project) or <code>~/.claude.json</code> (user and local).</li>
 <li><strong>User settings:</strong> <code>~/.claude/settings.json</code> — personal preferences across all projects.</li>
 </ul>
 
