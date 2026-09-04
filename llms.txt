@@ -68,6 +68,7 @@ CCA Practice Platforms (claudecertifiedarchitects.com) provides unofficial pract
 - [Your coding agent's summary of its own work is not evidence](https://www.claudecertifiedarchitects.com/blog/coding-agent-summary-not-evidence/): Four specific incidents from a real production coding session where an AI coding agent's self-report of what it did was wrong, and the session rules that force verification from outside the agent's own narration.
 - [The workflow you turned off is still a load-bearing part of your system](https://www.claudecertifiedarchitects.com/blog/disabled-workflow-still-load-bearing/): A workflow I disabled for good reasons left no record of the reason, and quietly blocked publishing for a month. What that taught me about silent absence, structured errors, and why generators must never mutate their source.
 - [Six searches returned zero. Every one was broken.](https://www.claudecertifiedarchitects.com/blog/when-a-search-returns-a-false-zero/): Six search tools reported zero matches in one week while the matches sat in front of them. What broke in each, why an empty result looks identical to a working one, and the one-line fix.
+- [Your MCP Tool Errors Are Written for the Wrong Reader](https://www.claudecertifiedarchitects.com/blog/mcp-tool-errors-wrong-reader/): An agent called a calendar tool eleven times on the same 409 because the error was written for a human reader. What a tool error should tell a model, why retryable needs idempotent, and why a schema does not save you.
 
 ## Optional
 

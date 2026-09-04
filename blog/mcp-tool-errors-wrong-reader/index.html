@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Google tag (gtag.js) -->
+<script>(function(w,d,s,i){w.dataLayer=w.dataLayer||[];function gtag(){w.dataLayer.push(arguments);}w.gtag=w.gtag||gtag;gtag('js',new Date());gtag('config',i);function gtagLoad(){var j=d.createElement(s);j.async=true;j.src='https://www.googletagmanager.com/gtag/js?id='+i;d.head.appendChild(j);}if(d.readyState==='complete'){gtagLoad();}else{w.addEventListener('load',gtagLoad);}})(window,document,'script','GT-K8FC4RXW');</script>
+<!-- End Google tag (gtag.js) -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Your MCP Tool Errors Are Written for the Wrong Reader | CCA Prep</title>
+<meta name="description" content="An agent called a calendar tool eleven times on the same 409 because the error was written for a human reader. What a tool error should tell a model, why retryable needs idempotent, and why a schema does not save you.">
+<link rel="canonical" href="https://www.claudecertifiedarchitects.com/blog/mcp-tool-errors-wrong-reader/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Your MCP Tool Errors Are Written for the Wrong Reader">
+<meta property="og:description" content="An agent called a calendar tool eleven times on the same 409 because the error was written for a human reader. What a tool error should tell a model, why retryable needs idempotent, and why a schema does not save you.">
+<meta property="og:url" content="https://www.claudecertifiedarchitects.com/blog/mcp-tool-errors-wrong-reader/">
+<meta property="og:site_name" content="CCA Practice Platforms">
+<meta property="og:image" content="https://www.claudecertifiedarchitects.com/cca-link-image-v3.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:alt" content="Claude Certified Architect field guide card: the published exam guide's 720/1000 pass mark, 60 questions, and the five domain weightings.">
+<meta property="article:published_time" content="2026-09-04T09:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-04T09:00:00.000Z">
+<meta property="article:section" content="CCA Exam Preparation">
+<meta name="author" content="CCA Practice Platforms">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Your MCP Tool Errors Are Written for the Wrong Reader">
+<meta name="twitter:description" content="An agent called a calendar tool eleven times on the same 409 because the error was written for a human reader. What a tool error should tell a model, why retryable needs idempotent, and why a schema does not save you.">
+<meta name="twitter:image" content="https://www.claudecertifiedarchitects.com/cca-link-image-v3.jpg">
+<link rel="preconnect" href="https://www.googletagmanager.com">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"Your MCP Tool Errors Are Written for the Wrong Reader","description":"An agent called a calendar tool eleven times on the same 409 because the error was written for a human reader. What a tool error should tell a model, why retryable needs idempotent, and why a schema does not save you.","url":"https://www.claudecertifiedarchitects.com/blog/mcp-tool-errors-wrong-reader/","datePublished":"2026-09-04T09:00:00.000Z","dateModified":"2026-09-04T09:00:00.000Z","image":"https://www.claudecertifiedarchitects.com/cca-link-image-v3.jpg","publisher":{"@type":"Organization","name":"CCA Practice Platforms","url":"https://www.claudecertifiedarchitects.com"},"author":{"@type":"Organization","name":"CCA Practice Platforms","url":"https://www.claudecertifiedarchitects.com"},"isPartOf":{"@type":"WebSite","name":"CCA Practice Platforms","url":"https://www.claudecertifiedarchitects.com"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.claudecertifiedarchitects.com"},{"@type":"ListItem","position":2,"name":"Blog","item":"https://www.claudecertifiedarchitects.com/blog/"},{"@type":"ListItem","position":3,"name":"Your MCP Tool Errors Are Written for the Wrong Reader","item":"https://www.claudecertifiedarchitects.com/blog/mcp-tool-errors-wrong-reader/"}]}</script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --banner-h:0px;--bg:#f5f3ea;--surface:#fff;--surface3:#e8e5dc;--border:#d9d5ca;--border2:#c5c0b5;--text3:#6f6f66;
+  --text:#191918;--text2:#5a5a52;--text3:#6f6f66;
+  --accent:#d97757;--accent2:#a04f31;--accent3:#a8502f;--accent-text:#b04928;--accent-btn:#c4522c;
+  --radius:8px;
+}
+html{scroll-behavior:smooth}
+body{font-family:Georgia,'Times New Roman',serif;background:var(--bg);color:var(--text);line-height:1.7;overflow-x:hidden;min-height:100vh}
+a{color:var(--accent-text);text-decoration:underline;text-underline-offset:3px;transition:color .2s}
+a:hover{color:var(--accent3)}
+
+/* ── Nav ── */
+nav{position:fixed;top:var(--banner-h,0px);left:0;right:0;z-index:100;background:rgba(245,243,234,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+nav .inner{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;max-width:1100px;margin:0 auto;gap:12px}
+nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1rem;font-weight:600;color:var(--text);text-decoration:none;letter-spacing:-.3px;white-space:nowrap}
+.nav-links{flex:1;display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.nav-links a{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:5px 10px;border-radius:6px;font-size:.85rem;color:var(--text2);text-decoration:none;transition:all .2s;white-space:nowrap}
+.nav-links a:hover{color:var(--text);background:rgba(0,0,0,.04)}
+.nav-links a.active{color:var(--text);font-weight:600}
+.nav-hamburger{display:none;flex-direction:column;justify-content:center;align-items:center;gap:5px;padding:6px;cursor:pointer;border:none;background:none;margin-left:auto;flex-shrink:0;min-width:44px;min-height:44px}
+.nav-hamburger span{display:block;width:22px;height:2px;background:var(--text);border-radius:2px;transition:transform .25s,opacity .25s}
+@media(max-width:640px){
+  nav .inner{flex-wrap:nowrap}
+  .nav-links{display:none !important;flex:none;position:absolute;top:100%;left:0;right:0;flex-direction:column;background:rgba(245,243,234,.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:12px 16px;gap:0;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+  .nav-links.open{display:flex !important}
+  .nav-links a{padding:12px 16px;border-radius:6px;width:100%;text-align:left;white-space:normal;min-height:44px;display:flex;align-items:center}
+  .nav-hamburger{display:flex !important}
+}
+
+/* ── Post page ── */
+.post-wrap{max-width:720px;margin:0 auto;padding:86px clamp(1.5rem,4vw,2.5rem) 80px}
+.back-link{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.88rem;color:var(--text3);text-decoration:none;display:inline-block;margin-bottom:24px;transition:color .2s}
+.back-link:hover{color:var(--accent-text)}
+.post-title{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:700;color:var(--text);line-height:1.15;letter-spacing:-.5px;margin-bottom:10px}
+.post-meta{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.85rem;color:var(--text3);padding-bottom:28px;border-bottom:1px solid var(--border);margin-bottom:32px}
+
+/* ── Post body typography ── */
+.post-body{font-size:1.05rem;line-height:1.78}
+.post-body h2{font-size:1.45rem;font-weight:700;color:var(--text);margin:2.2em 0 .65em;letter-spacing:-.3px;line-height:1.25}
+.post-body h3{font-size:1.15rem;font-weight:700;color:var(--text);margin:1.8em 0 .5em;line-height:1.3}
+.post-body p{margin-bottom:1.2em}
+.post-body ul,.post-body ol{margin:0 0 1.2em 1.4em}
+.post-body li{margin-bottom:.4em}
+.post-body strong{font-weight:700;color:var(--text)}
+.post-body code{font-family:'Courier New',monospace;font-size:.87em;background:#e8e5dc;padding:2px 6px;border-radius:4px;color:var(--accent2)}
+.post-body pre{background:#191918;color:#f5f3ea;padding:20px 24px;border-radius:var(--radius);overflow-x:auto;margin:1.5em 0;font-family:'Courier New',monospace;font-size:.87em;line-height:1.6}
+.post-body pre code{background:none;padding:0;color:inherit}
+.post-body blockquote{border-left:3px solid var(--accent);padding:10px 18px;margin:1.5em 0;color:var(--text2);font-style:italic}
+.post-body hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.post-body table{display:block;width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border-collapse:collapse;margin:1.5em 0;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.9rem}
+.post-body th{text-align:left;padding:10px 14px;border-bottom:2px solid var(--border);font-weight:600;color:var(--text)}
+.post-body td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text2)}
+
+/* ── Related articles (internal-linking block at end of each post) ── */
+.related-posts{margin-top:3em;padding-top:1.8em;border-top:1px solid var(--border)}
+.related-posts h2{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1.05rem;font-weight:700;color:var(--text);margin:0 0 .9em;letter-spacing:-.2px}
+.related-posts ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.6em}
+.related-posts li{margin:0}
+.related-posts a{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;color:var(--accent-text);text-decoration:none;font-weight:600;font-size:.95rem;line-height:1.4}
+.related-posts a:hover{text-decoration:underline}
+
+/* ── Blog index ── */
+.blog-wrap{max-width:720px;margin:0 auto;padding:96px clamp(1.5rem,4vw,2.5rem) 80px}
+.blog-header{margin-bottom:44px;padding-bottom:28px;border-bottom:1px solid var(--border)}
+.blog-header h1{font-size:clamp(2rem,4vw,2.75rem);font-weight:700;letter-spacing:-.5px;margin-bottom:8px}
+.blog-header p{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;color:var(--text2);font-size:.97rem}
+.post-list{display:flex;flex-direction:column;gap:0}
+.post-card{padding:28px 0;border-bottom:1px solid var(--border)}
+.post-card-date{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.82rem;color:var(--text3);margin-bottom:5px}
+.post-card-title{font-size:1.22rem;font-weight:700;margin-bottom:7px;line-height:1.3}
+.post-card-title a{color:var(--text);text-decoration:none;transition:color .2s}
+.post-card-title a:hover{color:var(--accent-text)}
+.post-card-desc{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;color:var(--text2);font-size:.93rem;line-height:1.55}
+.empty-state{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;color:var(--text3);padding:40px 0}
+
+/* ── Breadcrumb ── */
+.bc{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.82rem;padding:10px 0 4px}
+.bc ol{list-style:none;display:flex;align-items:center;gap:0;padding:0;margin:0}
+.bc li{display:flex;align-items:center}
+.bc li+li::before{content:"›";padding:0 6px;color:var(--text3);font-size:.9em}
+.bc a{color:var(--text3);text-decoration:none;transition:color .2s}
+.bc a:hover{color:var(--accent-text)}
+.bc [aria-current]{color:var(--text2);font-weight:500}
+
+/* ── Footer ── */
+.site-footer{background:#191918;color:#8a8a7f;padding:28px 24px;text-align:center;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.82rem;line-height:1.6}
+.site-footer a{color:#8a8a7f;text-underline-offset:3px}
+.site-footer a:hover{color:#f5f3ea}
+
+/* ── Compliance banner ── */
+#site-banner{position:fixed;top:0;left:0;right:0;z-index:101;background:var(--surface3,#e8e5dc);color:var(--text2,#5a5a52);font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.72rem;line-height:1.4;text-align:center;padding:7px 44px 7px 16px;border-bottom:1px solid var(--border2,#c5c0b5)}
+#site-banner-close{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3,#8a8a7f);font-size:1.1rem;line-height:1;cursor:pointer;padding:4px 7px;border-radius:4px;transition:color .15s;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center}
+#site-banner-close:hover{color:var(--text,#191918)}
+</style>
+</head>
+<body>
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GT-K8FC4RXW" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+<div id="site-banner" role="note" aria-label="Independence notice">Independent exam prep · Not affiliated with or endorsed by Anthropic · Not the official CCA exam or certification<button id="site-banner-close" aria-label="Dismiss notice">✕</button></div>
+<script>(function(){var b=document.getElementById("site-banner"),c=document.getElementById("site-banner-close");if(!b)return;if(localStorage.getItem("ccaBanner")==="0"){b.style.display="none";document.documentElement.style.setProperty("--banner-h","0px");return;}function setH(){document.documentElement.style.setProperty("--banner-h",b.offsetHeight+"px");}setH();window.addEventListener("resize",setH);c.addEventListener("click",function(){b.style.display="none";document.documentElement.style.setProperty("--banner-h","0px");localStorage.setItem("ccaBanner","0");});})()</script>
+<nav aria-label="Main navigation">
+  <div class="inner">
+    <!-- cca:logo:start --><link rel="preconnect" href="https://www.gstatic.com" crossorigin><script src="/nav-auth.js" defer></script><style>nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1rem;font-weight:600;color:var(--text);text-decoration:none;letter-spacing:-.3px;white-space:nowrap}nav .nav-links{flex:1}#nav-auth-static{margin-left:auto;display:flex;align-items:center;gap:8px;min-width:180px;justify-content:flex-end;flex-shrink:0}#nav-auth-static .nav-auth-login{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.8rem;font-weight:600;color:var(--text2);background:transparent;border:1px solid var(--border);border-radius:6px;text-decoration:none;white-space:nowrap;transition:all .2s}#nav-auth-static .nav-auth-signup{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.8rem;font-weight:700;color:var(--accent-text);background:transparent;border:1px solid var(--accent-text);border-radius:6px;text-decoration:none;white-space:nowrap;transition:all .2s}.nav-user-name{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.78rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px}.nav-logout-btn{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.75rem;font-weight:600;color:var(--text3);background:transparent;border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;white-space:nowrap;transition:all .2s}nav .nav-auth-btn{display:none}@media(max-width:640px){#nav-auth-static{margin-left:0;min-width:0;width:100%;flex-direction:column;align-items:flex-start;gap:4px}#nav-auth-static .nav-auth-login,#nav-auth-static .nav-auth-signup,#nav-auth-static .nav-logout-btn,#nav-auth-static .nav-user-name{border:none;color:var(--text2);font-size:.9rem;width:100%;padding:12px 16px;min-height:44px;display:flex;align-items:center;max-width:none}nav .nav-auth-btn{display:flex;align-items:center;color:var(--text2);text-decoration:none;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.9rem;min-height:44px}}@media(max-width:768px){.user-area{display:none!important}}</style><a href="/" class="logo">CCA Practice Platforms</a><!-- cca:logo:end -->
+    <div class="nav-links" id="blog-nav-links">
+      <a href="/cca-foundations-exam/">Full Mock Exam</a>
+      <a href="/?hub=practice-tests">Practice Tests</a>
+      <a href="/cca-practice-questions/">Question Bank</a>
+      <a href="/diagnostic/">Diagnostic</a>
+      <a href="/study-plan-generator/">Study Plan</a>
+      <span class="nav-sep" aria-hidden="true" style="flex:0 0 1px;align-self:stretch;background:var(--border);margin:4px 6px"></span>
+      <a href="/cca-exam-guide/">Guide</a>
+      <a href="/blog/" class="active">Blog</a>
+      <a href="/faq/">FAQ</a>
+      <a href="/register/" aria-label="Official Claude Certified Architect exam registration on Anthropic's site">Exam Info</a>
+      <div id="nav-auth-static"><a href="/?login=true" class="nav-auth-login">Log In</a><a href="/?signup=true" class="nav-auth-signup">Sign Up Free</a></div>
+      <script>(function(){try{var e=localStorage.getItem('cca_logged_in');if(!e)return;var c=document.getElementById('nav-auth-static');if(!c){var l=document.querySelector('a.nav-auth-login');if(!l)return;c=document.createElement('div');c.id='nav-auth-static';l.parentElement.insertBefore(c,l);c.appendChild(l);var s=document.querySelector('a.nav-auth-signup');if(s)c.appendChild(s);}c.innerHTML='<span class="nav-user-name" title="'+e+'">'+e.split('@')[0]+'</span>'+'<button class="nav-logout-btn" onclick="window.__navSO&&window.__navSO()">Log out</button>';}catch(x){}})()</script>
+    </div>
+    <button class="nav-hamburger" aria-label="Toggle menu"
+      onclick="document.getElementById('blog-nav-links').classList.toggle('open')">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+<main class="post-wrap">
+  <article>
+    <header>
+      <div class="bc" role="navigation" aria-label="Breadcrumb">
+        <ol>
+          <li><a href="/">Home</a></li>
+          <li><a href="/blog/">Blog</a></li>
+          <li><span aria-current="page">Your MCP Tool Errors Are Written for the Wrong Reader</span></li>
+        </ol>
+      </div>
+      <h1 class="post-title">Your MCP Tool Errors Are Written for the Wrong Reader</h1>
+      <p class="post-meta">By CCA Practice Platforms · <time datetime="2026-09-04T09:00:00.000Z">September 4, 2026</time></p>
+    </header>
+    <div class="post-body">
+      <p>An agent called our calendar tool eleven times in ninety seconds. Same arguments, same failure, same response. It only stopped because the token budget ran out.</p>
+
+<p>The tool was working exactly as designed. It returned a 409 with <code>{"error": "Conflict"}</code>, which is a perfectly reasonable thing for an HTTP API to say to a human holding a browser's dev tools open. The human reads "Conflict," checks the calendar, sees the event already started, and does something else.</p>
+
+<p>Claude read "Conflict" and inferred that something transient had gone wrong. Transient things are worth retrying. So it retried.</p>
+
+<p>That's the whole bug. The error message was addressed to a reader who wasn't there.</p>
+
+<h2>Errors are prompts</h2>
+
+<p>The thing that took me embarrassingly long to internalise: in an agentic system, every string your tool returns is model input. Your error messages are prompts. You wrote them for a developer reading a log, and then you handed them to a language model as instructions about what to do next.</p>
+
+<p>A human reading <code>{"error": "Conflict"}</code> brings a mental model of your system, memory of the last time this happened, and the option of asking a colleague. The model brings none of that. It has your string and the tool schema. If the string doesn't say what went wrong or what to do instead, the model will guess — and the most available guess, given how much of the internet is retry logic, is "try again."</p>
+
+<p>Rewriting the response fixed it in one line:</p>
+
+<pre><code>{
+  "error": "event_already_started",
+  "message": "This event has already started and cannot be modified. Use update_event to change its end time, or create_event to schedule a new one.",
+  "retryable": false
+}</code></pre>
+
+<p>Three things changed. The error has a stable machine-readable code. The message names the constraint in plain language. And it points at the tool that <em>would</em> work.</p>
+
+<p>The agent stopped retrying immediately. Not because we added retry logic — because we removed the ambiguity that made retrying look sensible. Writing error messages for the model rather than the operator is the single highest-leverage change I've made to a tool surface, and it sits squarely inside what the CCAR-F exam (also written CCA-F) calls its <a href="/blog/tool-design-mcp-cca-domain-4/">tool design and MCP domain</a>, if you want the structured version of the same ground.</p>
+
+<h2>The three questions a tool error should answer</h2>
+
+<p>After rewriting about forty of these, the useful ones all answer the same three questions.</p>
+
+<p><strong>What class of failure is this?</strong> Not the HTTP status — a stable string the model can pattern-match on. <code>event_already_started</code> is a different beast from <code>rate_limited</code>, and both are 409-adjacent in a way that a status code flattens.</p>
+
+<p><strong>Is retrying meaningful?</strong> Say it explicitly. A <code>retryable</code> boolean does more work than any amount of message wording, because it removes the inference step entirely. Transient network failure: true. Business-rule violation: false. Rate limit: true, and include the wait.</p>
+
+<p><strong>What should happen instead?</strong> This is the one people skip, and it's the one that changes behaviour. An error that names the alternative tool converts a dead end into a next step. An error that doesn't leaves the model to invent one.</p>
+
+<p>None of this is novel API design. What's different is the cost of getting it wrong. A human hitting an unhelpful error loses thirty seconds. An agent hitting one can burn a context window, or — worse — take a plausible wrong action that no one notices until later.</p>
+
+<h2>Retries make this worse before they make it better</h2>
+
+<p>Once you've told the model which failures are retryable, you have to be sure a retry is actually safe. Ours wasn't.</p>
+
+<p>The same calendar tool had a <code>create_event</code> that was not idempotent. A retried call after a timeout produced two identical events. The failure mode was invisible in testing because our tests never timed out, and it was invisible in production because two identical calendar entries look like user error.</p>
+
+<p>The fix is the boring one: accept a client-supplied idempotency key, store it against the created resource, and return the original result on a repeat. But the general principle is worth stating, because it applies to every tool an agent can call more than once: designing tools so a retried call doesn't produce duplicate side effects is a prerequisite for telling a model that retrying is safe, not an optimisation to add later.</p>
+
+<p>If you mark something retryable and it isn't idempotent, you have built a duplication machine and given the model the keys.</p>
+
+<h2>The failure that returns nothing at all</h2>
+
+<p>There's a nastier cousin of the unhelpful error, and it's the one I'd look for first in any tool surface I hadn't written.</p>
+
+<p>A subagent fails. The wrapper catches the exception, logs it, and returns an empty array. Upstream, the orchestrator receives <code>[]</code> and treats it as a fact about the world: there are no results. It reports confidently that nothing matched.</p>
+
+<p>Nothing about that response says a failure occurred. It's the kind of thing I'd put on an <a href="/blog/cca-exam-anti-patterns/">anti-patterns list</a> and expect to keep finding anyway, because the code looks defensive — it <em>catches</em> the error, after all — and the caller has no way to distinguish "searched and found nothing" from "search never ran."</p>
+
+<p>I hit the same shape in a completely different context recently, where a search tool <a href="/blog/when-a-search-returns-a-false-zero/">returned a clean zero</a>. The lesson generalises: an empty result and a failed result must be distinguishable in the response, or every consumer downstream will treat the second as the first.</p>
+
+<p>The contract between an orchestrator and its subagents needs an explicit error signal, not just an implicit success channel. That's a design decision, and it belongs to <a href="/blog/cca-study-tips-domain-1-agentic-architecture/">agentic architecture and orchestration</a> rather than to whoever writes the subagent — it's easier to get right at the start than to retrofit once four call sites are treating <code>[]</code> as authoritative.</p>
+
+<p>If you want to see how this reads as an exam problem rather than an essay, we write scenario questions on exactly this in the <a href="/cca-practice-questions/">practice bank</a>. It's independent preparation material. We're not affiliated with Anthropic, and we neither sell nor administer the exam.</p>
+
+<h2>Schemas don't save you</h2>
+
+<p>A reasonable objection at this point: define a strict error schema, validate everything, done.</p>
+
+<p>A schema constrains the shape of what you return. It says nothing about whether the values inside it are useful. You can be perfectly compliant with an error contract and still return <code>{"code": "ERROR", "message": "Something went wrong", "retryable": true}</code> on a permanent business-rule failure — and you'll have built the retry loop I started this post with, but now with validation.</p>
+
+<p>This is the same trap <a href="/blog/prompt-engineering-structured-output-cca-domain-3/">structured output</a> sets: a schema enforces shape, not correctness. The validation passing tells you the envelope is right. It tells you nothing about the letter.</p>
+
+<h2>Where this lands in practice</h2>
+
+<p>The changes that actually moved behaviour, in the order I'd do them again:</p>
+
+<p>Give every failure a stable code that isn't an HTTP status. Add an explicit retryable flag rather than making the model infer one. Name the alternative action in the message. Make anything marked retryable genuinely idempotent. And make failure distinguishable from emptiness in every response shape you return.</p>
+
+<p>That's five changes, none of them clever. The reason they matter more in agentic systems than in ordinary APIs is that your error strings have been promoted from diagnostics to instructions, and nobody sends a memo when that happens.</p>
+
+<p>Worth reviewing your tool surface with that framing, if you haven't. The common design mistakes in MCP servers are mostly this class — decisions that were correct for a human consumer and became wrong the moment a model started reading them. And if you're working through tool granularity at the same time, it interacts with all of this: fewer, broader tools mean more failure modes crowded into a single error surface.</p>
+
+<hr>
+
+<p><em>Independent preparation material for the CCAR-F exam, also written as CCA-F. Not affiliated with Anthropic; we don't sell the exam and can't register you for it. The published exam guide weights Tool Design &amp; MCP at 18% of CCAR-F. Our <a href="/cca-practice-questions/">practice question bank</a> covers that domain with a full explanation on every question, and the <a href="/diagnostic/">free diagnostic</a> is ten questions and needs no account.</em></p>
+    </div>
+  </article>
+</main>
+<footer class="site-footer">
+<!-- cca:footer:start -->
+  <p style="margin:0 0 6px">&copy; 2026 CCA Practice Platforms</p>
+  <p style="margin:0 0 10px;font-size:.82rem"><a href="/">Home</a> &nbsp;&middot;&nbsp; <a href="/cca-foundations-exam/">Full Mock Exam</a> &nbsp;&middot;&nbsp; <a href="/?hub=practice-tests">Practice Tests</a> &nbsp;&middot;&nbsp; <a href="/cca-practice-questions/">Question Bank</a> &nbsp;&middot;&nbsp; <a href="/cca-exam-guide/">Guide</a> &nbsp;&middot;&nbsp; <a href="/diagnostic/">Diagnostic</a> &nbsp;&middot;&nbsp; <a href="/study-plan-generator/">Study Plan</a> &nbsp;&middot;&nbsp; <a href="/blog/">Blog</a> &nbsp;&middot;&nbsp; <a href="/faq/">FAQ</a> &nbsp;&middot;&nbsp; <a href="/register/">Exam Info</a></p>
+  <p style="max-width:620px;margin:0 auto;font-size:.85rem;line-height:1.65;color:#c8c8be">CCA Practice Platforms is an independent exam-preparation resource. We are not affiliated with, endorsed by, sponsored by, or authorized by Anthropic, and this is not the official Claude Certified Architect exam or certification. 'Claude', 'Claude Certified Architect', and 'CCA' are trademarks of Anthropic, PBC, used here only to identify the exam our materials help you prepare for.</p>
+  <p style="margin:8px 0 0;font-size:.82rem"><a href="/privacy/">Privacy Policy</a> &middot; <a href="/terms/">Terms of Service</a> &middot; <a href="/refund/">Refund Policy</a></p>
+  <p style="margin:8px 0 0;font-size:.82rem">Questions? <a href="mailto:support@claudecertifiedarchitects.com">support@claudecertifiedarchitects.com</a></p>
+<!-- cca:footer:end -->
+</footer>
+</body>
+</html>
