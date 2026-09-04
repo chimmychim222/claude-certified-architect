@@ -1494,8 +1494,10 @@ const NURTURE_DOMAIN_Q_COUNT = {
 // The sequence reads back diagnostic_leads' stored `weakestDomain`, which
 // diagnostic/index.html writes as the DOMAINS *label* rather than the bank key,
 // and one label is not its key. Resolve it so no domain depends on a fallback.
-// Scoped to the count lookup only — SAMPLE_QUESTIONS has the same miss and is
-// deliberately left alone; see the session report.
+// Applied to all three lookups (count, study tip, sample question). 2b60b22 scoped
+// it to the count and left STUDY_TIPS and SAMPLE_QUESTIONS missing on purpose, so
+// the Claude Code segment received the Agentic tip and sample from 19 Jun until the
+// tip text had a documentation fetch behind it (the sample's came at d60eb36).
 const NURTURE_DOMAIN_ALIASES = {
   'Claude Code Configuration & Workflows': 'Claude Code Configuration',
 };
@@ -1515,10 +1517,11 @@ const STUDY_TIPS = {
 
   'Claude Code Configuration':
     'Know CLAUDE.md inside-out: what goes in it (project scope, allowed commands, ' +
-    'never-touch files, conventions), how it differs from a system prompt, and how sub-agents ' +
-    'inherit or override it. Also know where MCP servers are configured ' +
-    '(.claude/settings.json). Exam questions hinge on the configuration hierarchy: global ' +
-    'settings vs. project settings vs. per-session overrides.',
+    'never-touch files, conventions), how it differs from a system prompt, and which ' +
+    'subagents load it. Also know where MCP servers are defined: project-scoped servers in ' +
+    '.mcp.json at the project root; local- and user-scoped servers in ~/.claude.json. ' +
+    'settings.json defines no servers, it only approves .mcp.json ones. Exam questions hinge ' +
+    'on the configuration hierarchy: user vs. project settings vs. per-session overrides.',
 
   'Prompt Engineering & Structured Output':
     'The most-tested technique is separating reasoning from output. Use a planning step ' +
@@ -1681,7 +1684,7 @@ function buildEmail1(results, unsubUrl) {
                            : `${NURTURE_BANK_TOTAL} questions across all five domains`;
   const bankPhraseHtml = N ? `<strong>${N} questions in ${domainH}</strong> alone`
                            : `<strong>${NURTURE_BANK_TOTAL} questions</strong> across all five domains`;
-  const tip    = own(STUDY_TIPS, domain) || STUDY_TIPS['Agentic Architecture & Orchestration'];
+  const tip    = own(STUDY_TIPS, nurtureDomainKey(domain)) || STUDY_TIPS['Agentic Architecture & Orchestration'];
   const cta    = nurtureCtaUrl('d1');
 
   const subject = 'What your CCA diagnostic actually told you';
@@ -1756,7 +1759,7 @@ function buildEmail2(results, unsubUrl) {
   const above  = gap <= 0;
   const domain = results.weakestDomain       || 'Agentic Architecture & Orchestration';
   const domainH = escHtml(domain), gapH = escHtml(gap);   // HTML-safe copies; the text branches keep the raw values
-  const sampleQ = own(SAMPLE_QUESTIONS, domain) || SAMPLE_QUESTIONS['Agentic Architecture & Orchestration'];
+  const sampleQ = own(SAMPLE_QUESTIONS, nurtureDomainKey(domain)) || SAMPLE_QUESTIONS['Agentic Architecture & Orchestration'];
   const correctLetter = OPT_LETTERS[sampleQ.correct];
   const cta = nurtureCtaUrl('d3');
 
