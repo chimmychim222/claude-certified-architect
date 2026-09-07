@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Google tag (gtag.js) -->
+<script>(function(w,d,s,i){w.dataLayer=w.dataLayer||[];function gtag(){w.dataLayer.push(arguments);}w.gtag=w.gtag||gtag;gtag('js',new Date());gtag('config',i);function gtagLoad(){var j=d.createElement(s);j.async=true;j.src='https://www.googletagmanager.com/gtag/js?id='+i;d.head.appendChild(j);}if(d.readyState==='complete'){gtagLoad();}else{w.addEventListener('load',gtagLoad);}})(window,document,'script','GT-K8FC4RXW');</script>
+<!-- End Google tag (gtag.js) -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Zero Is the Worst Return Value | CCA Prep</title>
+<meta name="description" content="Ten commands and three code shapes that return a clean zero for the wrong reason, all reproduced on one machine, and how the fix for one false zero caused the next.">
+<link rel="canonical" href="https://www.claudecertifiedarchitects.com/blog/zero-is-the-worst-return-value/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Zero Is the Worst Return Value">
+<meta property="og:description" content="Ten commands and three code shapes that return a clean zero for the wrong reason, all reproduced on one machine, and how the fix for one false zero caused the next.">
+<meta property="og:url" content="https://www.claudecertifiedarchitects.com/blog/zero-is-the-worst-return-value/">
+<meta property="og:site_name" content="CCA Practice Platforms">
+<meta property="og:image" content="https://www.claudecertifiedarchitects.com/cca-link-image-v3.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:alt" content="Claude Certified Architect field guide card: the published exam guide's 720/1000 pass mark, 60 questions, and the five domain weightings.">
+<meta property="article:published_time" content="2026-09-07T09:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-07T09:00:00.000Z">
+<meta property="article:section" content="CCA Exam Preparation">
+<meta name="author" content="CCA Practice Platforms">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Zero Is the Worst Return Value">
+<meta name="twitter:description" content="Ten commands and three code shapes that return a clean zero for the wrong reason, all reproduced on one machine, and how the fix for one false zero caused the next.">
+<meta name="twitter:image" content="https://www.claudecertifiedarchitects.com/cca-link-image-v3.jpg">
+<link rel="preconnect" href="https://www.googletagmanager.com">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"Zero Is the Worst Return Value","description":"Ten commands and three code shapes that return a clean zero for the wrong reason, all reproduced on one machine, and how the fix for one false zero caused the next.","url":"https://www.claudecertifiedarchitects.com/blog/zero-is-the-worst-return-value/","datePublished":"2026-09-07T09:00:00.000Z","dateModified":"2026-09-07T09:00:00.000Z","image":"https://www.claudecertifiedarchitects.com/cca-link-image-v3.jpg","publisher":{"@type":"Organization","name":"CCA Practice Platforms","url":"https://www.claudecertifiedarchitects.com"},"author":{"@type":"Organization","name":"CCA Practice Platforms","url":"https://www.claudecertifiedarchitects.com"},"isPartOf":{"@type":"WebSite","name":"CCA Practice Platforms","url":"https://www.claudecertifiedarchitects.com"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.claudecertifiedarchitects.com"},{"@type":"ListItem","position":2,"name":"Blog","item":"https://www.claudecertifiedarchitects.com/blog/"},{"@type":"ListItem","position":3,"name":"Zero Is the Worst Return Value","item":"https://www.claudecertifiedarchitects.com/blog/zero-is-the-worst-return-value/"}]}</script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --banner-h:0px;--bg:#f5f3ea;--surface:#fff;--surface3:#e8e5dc;--border:#d9d5ca;--border2:#c5c0b5;--text3:#6f6f66;
+  --text:#191918;--text2:#5a5a52;--text3:#6f6f66;
+  --accent:#d97757;--accent2:#a04f31;--accent3:#a8502f;--accent-text:#b04928;--accent-btn:#c4522c;
+  --radius:8px;
+}
+html{scroll-behavior:smooth}
+body{font-family:Georgia,'Times New Roman',serif;background:var(--bg);color:var(--text);line-height:1.7;overflow-x:hidden;min-height:100vh}
+a{color:var(--accent-text);text-decoration:underline;text-underline-offset:3px;transition:color .2s}
+a:hover{color:var(--accent3)}
+
+/* ── Nav ── */
+nav{position:fixed;top:var(--banner-h,0px);left:0;right:0;z-index:100;background:rgba(245,243,234,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+nav .inner{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;max-width:1100px;margin:0 auto;gap:12px}
+nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1rem;font-weight:600;color:var(--text);text-decoration:none;letter-spacing:-.3px;white-space:nowrap}
+.nav-links{flex:1;display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.nav-links a{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;padding:5px 10px;border-radius:6px;font-size:.85rem;color:var(--text2);text-decoration:none;transition:all .2s;white-space:nowrap}
+.nav-links a:hover{color:var(--text);background:rgba(0,0,0,.04)}
+.nav-links a.active{color:var(--text);font-weight:600}
+.nav-hamburger{display:none;flex-direction:column;justify-content:center;align-items:center;gap:5px;padding:6px;cursor:pointer;border:none;background:none;margin-left:auto;flex-shrink:0;min-width:44px;min-height:44px}
+.nav-hamburger span{display:block;width:22px;height:2px;background:var(--text);border-radius:2px;transition:transform .25s,opacity .25s}
+@media(max-width:640px){
+  nav .inner{flex-wrap:nowrap}
+  .nav-links{display:none !important;flex:none;position:absolute;top:100%;left:0;right:0;flex-direction:column;background:rgba(245,243,234,.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:12px 16px;gap:0;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+  .nav-links.open{display:flex !important}
+  .nav-links a{padding:12px 16px;border-radius:6px;width:100%;text-align:left;white-space:normal;min-height:44px;display:flex;align-items:center}
+  .nav-hamburger{display:flex !important}
+}
+
+/* ── Post page ── */
+.post-wrap{max-width:720px;margin:0 auto;padding:86px clamp(1.5rem,4vw,2.5rem) 80px}
+.back-link{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.88rem;color:var(--text3);text-decoration:none;display:inline-block;margin-bottom:24px;transition:color .2s}
+.back-link:hover{color:var(--accent-text)}
+.post-title{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:700;color:var(--text);line-height:1.15;letter-spacing:-.5px;margin-bottom:10px}
+.post-meta{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.85rem;color:var(--text3);padding-bottom:28px;border-bottom:1px solid var(--border);margin-bottom:32px}
+
+/* ── Post body typography ── */
+.post-body{font-size:1.05rem;line-height:1.78}
+.post-body h2{font-size:1.45rem;font-weight:700;color:var(--text);margin:2.2em 0 .65em;letter-spacing:-.3px;line-height:1.25}
+.post-body h3{font-size:1.15rem;font-weight:700;color:var(--text);margin:1.8em 0 .5em;line-height:1.3}
+.post-body p{margin-bottom:1.2em}
+.post-body ul,.post-body ol{margin:0 0 1.2em 1.4em}
+.post-body li{margin-bottom:.4em}
+.post-body strong{font-weight:700;color:var(--text)}
+.post-body code{font-family:'Courier New',monospace;font-size:.87em;background:#e8e5dc;padding:2px 6px;border-radius:4px;color:var(--accent2)}
+.post-body pre{background:#191918;color:#f5f3ea;padding:20px 24px;border-radius:var(--radius);overflow-x:auto;margin:1.5em 0;font-family:'Courier New',monospace;font-size:.87em;line-height:1.6}
+.post-body pre code{background:none;padding:0;color:inherit}
+.post-body blockquote{border-left:3px solid var(--accent);padding:10px 18px;margin:1.5em 0;color:var(--text2);font-style:italic}
+.post-body hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.post-body table{display:block;width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border-collapse:collapse;margin:1.5em 0;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.9rem}
+.post-body th{text-align:left;padding:10px 14px;border-bottom:2px solid var(--border);font-weight:600;color:var(--text)}
+.post-body td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text2)}
+
+/* ── Related articles (internal-linking block at end of each post) ── */
+.related-posts{margin-top:3em;padding-top:1.8em;border-top:1px solid var(--border)}
+.related-posts h2{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1.05rem;font-weight:700;color:var(--text);margin:0 0 .9em;letter-spacing:-.2px}
+.related-posts ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.6em}
+.related-posts li{margin:0}
+.related-posts a{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;color:var(--accent-text);text-decoration:none;font-weight:600;font-size:.95rem;line-height:1.4}
+.related-posts a:hover{text-decoration:underline}
+
+/* ── Blog index ── */
+.blog-wrap{max-width:720px;margin:0 auto;padding:96px clamp(1.5rem,4vw,2.5rem) 80px}
+.blog-header{margin-bottom:44px;padding-bottom:28px;border-bottom:1px solid var(--border)}
+.blog-header h1{font-size:clamp(2rem,4vw,2.75rem);font-weight:700;letter-spacing:-.5px;margin-bottom:8px}
+.blog-header p{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;color:var(--text2);font-size:.97rem}
+.post-list{display:flex;flex-direction:column;gap:0}
+.post-card{padding:28px 0;border-bottom:1px solid var(--border)}
+.post-card-date{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.82rem;color:var(--text3);margin-bottom:5px}
+.post-card-title{font-size:1.22rem;font-weight:700;margin-bottom:7px;line-height:1.3}
+.post-card-title a{color:var(--text);text-decoration:none;transition:color .2s}
+.post-card-title a:hover{color:var(--accent-text)}
+.post-card-desc{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;color:var(--text2);font-size:.93rem;line-height:1.55}
+.empty-state{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;color:var(--text3);padding:40px 0}
+
+/* ── Breadcrumb ── */
+.bc{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.82rem;padding:10px 0 4px}
+.bc ol{list-style:none;display:flex;align-items:center;gap:0;padding:0;margin:0}
+.bc li{display:flex;align-items:center}
+.bc li+li::before{content:"›";padding:0 6px;color:var(--text3);font-size:.9em}
+.bc a{color:var(--text3);text-decoration:none;transition:color .2s}
+.bc a:hover{color:var(--accent-text)}
+.bc [aria-current]{color:var(--text2);font-weight:500}
+
+/* ── Footer ── */
+.site-footer{background:#191918;color:#8a8a7f;padding:28px 24px;text-align:center;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.82rem;line-height:1.6}
+.site-footer a{color:#8a8a7f;text-underline-offset:3px}
+.site-footer a:hover{color:#f5f3ea}
+
+/* ── Compliance banner ── */
+#site-banner{position:fixed;top:0;left:0;right:0;z-index:101;background:var(--surface3,#e8e5dc);color:var(--text2,#5a5a52);font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.72rem;line-height:1.4;text-align:center;padding:7px 44px 7px 16px;border-bottom:1px solid var(--border2,#c5c0b5)}
+#site-banner-close{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3,#8a8a7f);font-size:1.1rem;line-height:1;cursor:pointer;padding:4px 7px;border-radius:4px;transition:color .15s;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center}
+#site-banner-close:hover{color:var(--text,#191918)}
+</style>
+</head>
+<body>
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GT-K8FC4RXW" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+<div id="site-banner" role="note" aria-label="Independence notice">Independent exam prep · Not affiliated with or endorsed by Anthropic · Not the official CCA exam or certification<button id="site-banner-close" aria-label="Dismiss notice">✕</button></div>
+<script>(function(){var b=document.getElementById("site-banner"),c=document.getElementById("site-banner-close");if(!b)return;if(localStorage.getItem("ccaBanner")==="0"){b.style.display="none";document.documentElement.style.setProperty("--banner-h","0px");return;}function setH(){document.documentElement.style.setProperty("--banner-h",b.offsetHeight+"px");}setH();window.addEventListener("resize",setH);c.addEventListener("click",function(){b.style.display="none";document.documentElement.style.setProperty("--banner-h","0px");localStorage.setItem("ccaBanner","0");});})()</script>
+<nav aria-label="Main navigation">
+  <div class="inner">
+    <!-- cca:logo:start --><link rel="preconnect" href="https://www.gstatic.com" crossorigin><script src="/nav-auth.js" defer></script><style>nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1rem;font-weight:600;color:var(--text);text-decoration:none;letter-spacing:-.3px;white-space:nowrap}nav .nav-links{flex:1}#nav-auth-static{margin-left:auto;display:flex;align-items:center;gap:8px;min-width:180px;justify-content:flex-end;flex-shrink:0}#nav-auth-static .nav-auth-login{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.8rem;font-weight:600;color:var(--text2);background:transparent;border:1px solid var(--border);border-radius:6px;text-decoration:none;white-space:nowrap;transition:all .2s}#nav-auth-static .nav-auth-signup{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.8rem;font-weight:700;color:var(--accent-text);background:transparent;border:1px solid var(--accent-text);border-radius:6px;text-decoration:none;white-space:nowrap;transition:all .2s}.nav-user-name{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.78rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px}.nav-logout-btn{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.75rem;font-weight:600;color:var(--text3);background:transparent;border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;white-space:nowrap;transition:all .2s}nav .nav-auth-btn{display:none}@media(max-width:640px){#nav-auth-static{margin-left:0;min-width:0;width:100%;flex-direction:column;align-items:flex-start;gap:4px}#nav-auth-static .nav-auth-login,#nav-auth-static .nav-auth-signup,#nav-auth-static .nav-logout-btn,#nav-auth-static .nav-user-name{border:none;color:var(--text2);font-size:.9rem;width:100%;padding:12px 16px;min-height:44px;display:flex;align-items:center;max-width:none}nav .nav-auth-btn{display:flex;align-items:center;color:var(--text2);text-decoration:none;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.9rem;min-height:44px}}@media(max-width:768px){.user-area{display:none!important}}</style><a href="/" class="logo">CCA Practice Platforms</a><!-- cca:logo:end -->
+    <div class="nav-links" id="blog-nav-links">
+      <a href="/cca-foundations-exam/">Full Mock Exam</a>
+      <a href="/?hub=practice-tests">Practice Tests</a>
+      <a href="/cca-practice-questions/">Question Bank</a>
+      <a href="/diagnostic/">Diagnostic</a>
+      <a href="/study-plan-generator/">Study Plan</a>
+      <span class="nav-sep" aria-hidden="true" style="flex:0 0 1px;align-self:stretch;background:var(--border);margin:4px 6px"></span>
+      <a href="/cca-exam-guide/">Guide</a>
+      <a href="/blog/" class="active">Blog</a>
+      <a href="/faq/">FAQ</a>
+      <a href="/register/" aria-label="Official Claude Certified Architect exam registration on Anthropic's site">Exam Info</a>
+      <div id="nav-auth-static"><a href="/?login=true" class="nav-auth-login">Log In</a><a href="/?signup=true" class="nav-auth-signup">Sign Up Free</a></div>
+      <script>(function(){try{var e=localStorage.getItem('cca_logged_in');if(!e)return;var c=document.getElementById('nav-auth-static');if(!c){var l=document.querySelector('a.nav-auth-login');if(!l)return;c=document.createElement('div');c.id='nav-auth-static';l.parentElement.insertBefore(c,l);c.appendChild(l);var s=document.querySelector('a.nav-auth-signup');if(s)c.appendChild(s);}c.innerHTML='<span class="nav-user-name" title="'+e+'">'+e.split('@')[0]+'</span>'+'<button class="nav-logout-btn" onclick="window.__navSO&&window.__navSO()">Log out</button>';}catch(x){}})()</script>
+    </div>
+    <button class="nav-hamburger" aria-label="Toggle menu"
+      onclick="document.getElementById('blog-nav-links').classList.toggle('open')">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+<main class="post-wrap">
+  <article>
+    <header>
+      <div class="bc" role="navigation" aria-label="Breadcrumb">
+        <ol>
+          <li><a href="/">Home</a></li>
+          <li><a href="/blog/">Blog</a></li>
+          <li><span aria-current="page">Zero Is the Worst Return Value</span></li>
+        </ol>
+      </div>
+      <h1 class="post-title">Zero Is the Worst Return Value</h1>
+      <p class="post-meta">By CCA Practice Platforms · <time datetime="2026-09-07T09:00:00.000Z">September 7, 2026</time></p>
+    </header>
+    <div class="post-body">
+      <p>I once wrote a working capability out of a system's study material because a search returned nothing.</p>
+
+<p>The question was whether a particular hook could rewrite a tool's output before the model saw it. I searched the codebase and the vendor documentation for the field name I remembered, <code>updatedOutput</code>. Zero hits, both places. I concluded the capability didn't exist, appended that conclusion as a "correction" in four places, and moved on.</p>
+
+<p>The field is called <code>updatedToolOutput</code>. The capability exists, is documented, and does exactly what I'd wanted. My search was correct, my regex was correct, and the answer I took away was the opposite of the truth.</p>
+
+<p>That's the shape this article is about. A search that finds nothing and a search that ran wrong return the same thing. Zero is a legitimate answer to a well-formed question, which means there is no signal in it — a true negative and a broken query are byte-identical at the call site.</p>
+
+<p>I started <a href="/blog/when-a-search-returns-a-false-zero/">keeping a list</a> the first week this cost me something. It had six entries then and has fifteen now. What follows is the part of it I could reproduce on the machine I'm writing this on, each command quoted as it behaved here, the mechanism behind each, and the discipline I now use instead of trusting a zero. It ends with the one that happened while this piece was being fact-checked.</p>
+
+<h2>The shell cases</h2>
+
+<p>These cost the most, because the shell tells you nothing went wrong. Everything below is Git Bash on Windows: bash 5.2.37 (MSYS), git 2.53.0.windows.2, GNU grep 3.0, findutils 4.10.0, curl 8.18.0, Node 24.14.1. Your versions will differ, and the whole point of the piece is that you should check rather than trust mine.</p>
+
+<p><strong>Two I've written up before, so one sentence each.</strong> Under MSYS, any argument token that starts with <code>/</code> is rewritten to a Windows path before a native executable sees it, so <code>git grep 'href="/blog/'</code> actually searches for <code>href="C:/Program Files/Git/blog/</code>, prints nothing and exits 1 — exactly what a real no-match does, so a converted pattern and a true negative are indistinguishable by exit code as well as by output, and <code>MSYS_NO_PATHCONV=1</code> is the fix (hold that thought). And <code>xargs -0 LC_ALL=C grep</code> tries to execute a program called <code>LC_ALL=C</code>: on findutils 4.10.0 that is loud — stderr says <code>xargs: LC_ALL=C: No such file or directory</code> and the exit code is 127 — and it becomes a clean zero only when the pipeline continues past <code>xargs</code> or stderr is dropped, which is how it once reported zero across a repo holding 218 matches. Both are in the earlier piece.</p>
+
+<p><strong><code>git log -G</code> with a Perl-style pattern.</strong> <code>-G</code> takes a POSIX <em>extended</em> regular expression. <code>\d</code>, <code>\w</code> and <code>\s</code> are not part of it, and neither is the basic-regex habit of escaping <code>|</code> and <code>{}</code>. Six patterns against one file in a repository where the right pattern lists 76 commits, each run as <code>git log --oneline -G '&lt;pattern&gt;' -- sitemap.xml | wc -l</code>:</p>
+
+<pre><code>&lt;lastmod&gt;2026-\d\d              0     # \d is not ERE
+&lt;lastmod&gt;2026-[0-9]\{2\}        0     # BRE interval, wrong flavour
+ogImage\|lastmod                  0     # BRE alternation, wrong flavour (run over sitemap.xml and posts/)
+&lt;lastmod&gt;2026-[0-9]{2}         76
+&lt;lastmod&gt;2026-[[:digit:]]{2}   76
+ogImage|lastmod                  77     # ERE alternation (same two paths)</code></pre>
+
+<p>The fix I first reached for, <code>--perl-regexp</code>, does nothing: the manual says it governs the "limiting patterns" — <code>--grep</code>, <code>--author</code> — not <code>-G</code>, and <code>git log --perl-regexp -G '&lt;lastmod&gt;2026-\d\d'</code> still returns 0 here. <code>--pickaxe-regex</code> is for <code>-S</code> and refuses to combine with <code>-G</code> at all. Write the extended regex:</p>
+
+<pre><code># 0 — \s and \d are not ERE
+git log --oneline -G '"date":\s*"\d+' -- posts | wc -l
+
+# 39
+git log --oneline -G '"date":[[:space:]]*"[0-9]+' -- posts | wc -l</code></pre>
+
+<p>This one is nastier than it looks because the same <code>\d</code> works in <code>grep -P</code> two lines earlier in the same script, so you carry a mental model that has already been validated.</p>
+
+<p><strong><code>node --check</code> as a verification step.</strong> It parses. It does not evaluate. A file with a temporal-dead-zone violation — a <code>const</code> referenced before its declaration is reached — parses cleanly and exits 0, then throws the moment it actually runs.</p>
+
+<pre><code>// tdz.js
+const items = ["a", "b"];
+items.forEach(x =&gt; LABELS.push(x));
+const LABELS = [];</code></pre>
+
+<pre><code>node --check tdz.js               # exit 0
+node -e "require('./tdz.js')"     # ReferenceError: Cannot access 'LABELS' before initialization, exit 1</code></pre>
+
+<p>I used <code>node --check</code> as a gate on generated code for weeks. It catches a missing operand (<code>const x = ;</code> fails it, I checked). It catches nothing about whether the file works.</p>
+
+<p><strong>Line-ending counts.</strong> <code>grep -c $'\r$'</code> is the folk way to count CRLF lines. On GNU grep 3.0 under MSYS it returns <strong>0</strong> for a file a byte scan shows to have 1,585 CRLF endings and no bare LF — this grep strips the CR from each line before matching, so the pattern can never fire. It also returns 0 on a pure-LF file. Same output, opposite files. <code>-U</code> keeps the bytes:</p>
+
+<pre><code>grep -c $'\r$' index.html            # 0      (file has 1,585 CRLF lines)
+grep -U -c $'\r$' index.html         # 1585   (-U: binary mode, CR preserved)
+grep -U -c $'\r$' blog/index.html    # 0      (pure LF — the negative control)</code></pre>
+
+<p><code>sed</code> strips the CR too: <code>sed -n 1p index.html | od -c</code> ends in a bare <code>\n</code> on that same CRLF file, so a <code>sed | od</code> pipeline reports LF for everything. Read the bytes directly, or use <code>-U</code>.</p>
+
+<p><strong><code>grep -P</code> on this locale.</strong> With <code>LANG</code> unset, <code>grep -P</code> refuses <em>every</em> pattern, not just exotic ones:</p>
+
+<pre><code>grep -c -P 'html' index.html
+# grep: -P supports only unibyte and UTF-8 locales     (stderr, exit 2, nothing on stdout)
+
+LC_ALL=C.UTF-8 grep -c -P 'html' index.html   # 8</code></pre>
+
+<p>Redirect stderr, or pipe the result into <code>wc -l</code>, and it is a clean zero.</p>
+
+<p><strong><code>od | grep -o '0d 0a'</code>.</strong> A tempting byte-level check for CRLF: dump hex, count the pairs. <code>od</code> emits sixteen bytes per output line, so any <code>0d 0a</code> pair that straddles a line boundary never matches. On the same 1,585-line file:</p>
+
+<pre><code>od -An -tx1 index.html | grep -o '0d 0a' | wc -l                                # 1487
+od -An -tx1 -w1 index.html | tr -d ' ' | tr '\n' ' ' | grep -o '0d 0a' | wc -l  # 1585</code></pre>
+
+<p>Not a zero this time — an undercount of 98, which is worse in one way: it looks like a measurement.</p>
+
+<p><strong><code>grep -c '\r'</code>.</strong> In a basic regular expression <code>\r</code> is the letter <code>r</code>. On a pure-LF, 401-line file it returned 317: every line containing an r. This is the saturated failure — the detector that fires on everything — and it is why the discipline below has a negative control as well as a positive one.</p>
+
+<p><strong><code>git show HEAD:file</code> as a baseline.</strong> Under <code>core.autocrlf=true</code> the blob is stored LF and the working tree is CRLF. <code>git show HEAD:index.html | wc -c</code> gives 135376; <code>wc -c &lt; index.html</code> gives 136961. The delta is 1,585 — exactly the line count. A byte comparison against the blob therefore reports every CRLF file as changed, and a "14-byte difference" on a block with fourteen newlines is not a difference at all. Compare LF-normalised content.</p>
+
+<h2>The fix that caused the next one</h2>
+
+<p>This is the best case on the list, and my first draft had it wrong.</p>
+
+<p>The <code>git grep</code> fix above is <code>MSYS_NO_PATHCONV=1</code>: stop the shell translating Unix-looking arguments before they reach a native executable. I exported it for every session that grepped HTML or JSON. Some weeks later a search-engine submission silently never ran, and it took a while to connect the two.</p>
+
+<p>Path conversion is also what turns <code>/dev/null</code> into <code>nul</code> for native programs. With the variable set, <code>curl.exe</code> receives the literal string <code>/dev/null</code>, cannot open it as a Windows path, and exits 23 — write error — after a complete, successful fetch. <code>-s</code> hides the message. <code>-w</code> prints the 200. And <code>&amp;&amp;</code> short-circuits.</p>
+
+<pre><code>MSYS_NO_PATHCONV=1 curl -s -o /dev/null -w 'HTTP %{http_code}\n' https://www.claudecertifiedarchitects.com/sitemap.xml &amp;&amp; echo "NEXT COMMAND RAN"
+# HTTP 200
+# (nothing else — $? is 23)
+
+MSYS_NO_PATHCONV=1 curl -sS -o /dev/null https://www.claudecertifiedarchitects.com/sitemap.xml
+# curl: (23) client returned ERROR on write of 8268 bytes
+
+curl -s -o /dev/null -w 'HTTP %{http_code}\n' https://www.claudecertifiedarchitects.com/sitemap.xml &amp;&amp; echo "NEXT COMMAND RAN"
+# HTTP 200
+# NEXT COMMAND RAN</code></pre>
+
+<p>Writing to <code>NUL</code> or to a real file works with the variable set; I ran both. So the fix for one false zero manufactured another, in a different tool, weeks later, with the visible output — an HTTP 200 — actively reassuring. A list of tools that lie is not a list of independent facts. The entries interact, and the fix column is where they do it.</p>
+
+<h2>The same shape in code</h2>
+
+<p>The shell cases are easier to spot once you know them. The ones that live in application code have cost me far more.</p>
+
+<p><strong>A lookup with a fallback.</strong> This one ran for eleven weeks in an email template.</p>
+
+<pre><code>const tip = own(STUDY_TIPS, domain) || STUDY_TIPS['Agentic Architecture'];</code></pre>
+
+<p><code>STUDY_TIPS</code> was keyed on <code>'Claude Code Configuration'</code>. The value stored against every affected record was <code>'Claude Code Configuration &amp; Workflows'</code> — the display label, not the key. The lookup missed, the <code>||</code> supplied a default, and every consumer downstream received a valid, well-formed, entirely wrong tip.</p>
+
+<p>167 emails went out that way: 85 carrying a study tip from the wrong domain, 82 carrying a sample question from the wrong domain, each under a heading naming the domain the reader had actually asked about. Nobody complained. The content was correct advice about something, and no recipient had any way to know what they were supposed to have received.</p>
+
+<p><code>||</code> on a lookup converts a miss into a value. If the key is expected to exist, the miss is a bug and needs to be loud:</p>
+
+<pre><code>const tip = own(STUDY_TIPS, domain);
+if (!tip) throw new Error(`no tip for domain: ${domain}`);</code></pre>
+
+<p><strong>A wrapper that catches and returns <code>[]</code>.</strong> The agentic version of the same thing — a subagent fails, the wrapper logs it and returns an empty array, and <a href="/blog/cca-exam-anti-patterns/">the orchestrator receives <code>[]</code> and treats it as a fact about the world</a> — which I <a href="/blog/mcp-tool-errors-wrong-reader/">wrote up last week</a> and won't repeat, beyond noting that it survives code review because the code looks defensive.</p>
+
+<p><strong>A script that fabricates a readout.</strong> The worst one I've written. An audit script was supposed to report stored state. It didn't merely always answer yes — it compared its input to itself and printed a plausible, well-formatted readout of state it had never read. Everything downstream <a href="/blog/coding-agent-summary-not-evidence/">consumed the readout as the check</a>.</p>
+
+<p>If you want to see how this reads as an exam problem rather than an essay, we write scenario questions on exactly this in the <a href="/cca-practice-questions/">practice bank</a>. It's independent preparation material. We're not affiliated with Anthropic, and we neither sell nor administer the exam.</p>
+
+<h2>The discipline</h2>
+
+<p>One rule, and it is not "be careful."</p>
+
+<p><strong>Never accept a zero you have not proved with a known-positive control.</strong></p>
+
+<p>Before you believe a search returned nothing, run the same detector against something you know it should find. If the control doesn't fire, the zero is meaningless and you have learned that instead — which is a result, and a cheap one.</p>
+
+<pre><code># the question: does git grep find the link?
+git grep -c 'href="/blog/' -- blog/index.html                        # (nothing), exit 1
+
+# the control: the MSYS grep binary, same file, same pattern
+grep -c 'href="/blog/' blog/index.html                               # 47
+
+# the question again, with the fix
+MSYS_NO_PATHCONV=1 git grep -c 'href="/blog/' -- blog/index.html     # blog/index.html:47</code></pre>
+
+<p>Two controls are better than one: a positive that must fire and a negative that must miss. The second catches detectors that match everything — <code>grep -c '\r'</code> above — which is the failure mode the first one can't see.</p>
+
+<p>The second half of the rule matters just as much, and it's the one I'm still bad at.</p>
+
+<p><strong>State the property your detector tests, then check that the detector tests that property — not the instance that made you look.</strong> When I found the <code>updatedOutput</code> error, I fixed the four places that carried it. I did not ask what else I'd written from the same guessed name on the same day. Closing an instance feels like closing a class, and the difference surfaces weeks later, by accident, usually in production.</p>
+
+<p>For the email lookup, the detector that would have caught it in June is, in outline, three lines: call the real render function once for each distinct value actually present in the datastore, and read the output.</p>
+
+<pre><code>for (const domain of await distinctStoredDomains()) {
+  console.log(domain, '→', buildEmail1({ weakestDomain: domain }).subject);
+}</code></pre>
+
+<p>That check now exists.</p>
+
+<h2>Where this costs more than it's worth</h2>
+
+<p>Controls are not free, and I don't run them on everything.</p>
+
+<p>If a zero is <em>cheap to be wrong about</em> — you're looking for a string you half-remember in a file you're about to read anyway — the control is ceremony. If a zero is <a href="/blog/disabled-workflow-still-load-bearing/"><em>loud when wrong</em></a> — the build fails, the tests go red, a human sees the empty page — the environment is already your control.</p>
+
+<p>The cases worth the discipline are the ones where a wrong zero is quiet and durable: an audit result written into documentation, a class-closure claim, an enum lookup with a fallback, anything an autonomous process consumes without a human between the query and the conclusion.</p>
+
+<p>There's an inverse failure worth mentioning too, since it cost me an hour last week. I compared two spreadsheet files cell by cell using a library's style objects, and every cell came back as different — including the empty ones — because those objects don't compare equal across two workbook instances. A detector that fires on everything is as useless as one that fires on nothing, and the negative control is what catches it.</p>
+
+<h2>Why this got worse, and what happened while this was being checked</h2>
+
+<p>All of the above predates LLM agents. What changed is who reads the zero.</p>
+
+<p>A human who gets an empty result brings context: they know roughly how many results to expect, they remember that this search worked yesterday, and they have the option of asking someone. A model has your string and nothing else. Hand it <code>[]</code> and it will report, fluently and confidently, that nothing matched — and then act on that.</p>
+
+<p>It happened during the fact-check for this article. To confirm the opening example, the hooks documentation was fetched through a tool that hands the page to a small model and asks it a question. Asked how many times <code>updatedToolOutput</code> appears, it answered: zero. It added, helpfully, that the page does not describe the hook modifying output. A <code>curl</code> of the same URL and a grep of the bytes: seven occurrences, including the table row that defines the field, with the control string <code>PostToolUse</code> at 58. The summariser had read part of the page and reported its absence as the page's. The false zero at the top of this piece was reproduced, by an agent, inside the session checking whether the piece was true, on the exact field name the piece is about.</p>
+
+<p>So in an agentic system, "nothing found" and "the search did not run" have to be told apart in the value that comes back — not in a log, not in an exit code the model never sees, and not by a reader who was not there.</p>
+
+<pre><code>{ "results": [], "status": "ok" }
+{ "results": [], "status": "error", "error": "upstream_timeout", "retryable": true }</code></pre>
+
+<p>Two different facts about the world. If your tool returns the first for both, every consumer downstream will eventually treat the second as the first, and the one reading it hardest is the one least equipped to notice.</p>
+
+<hr>
+
+<p><em>Every command above was run on the machine described at the top — Git Bash on Windows 11, bash 5.2.37 (MSYS), git 2.53.0.windows.2, GNU grep 3.0, findutils 4.10.0, curl 8.18.0, Node 24.14.1 — and is quoted as it behaved there. Behaviour varies by shell, tool version and platform; verify each on your own system before trusting the fix, which is the article's entire point. The 167 / 85 / 82 email figures come from the commit that fixed the lookup and the read-only count it recorded; the underlying export is not on disk, so treat them as reported rather than reproduced.</em></p>
+
+<p><em>Independent preparation material for the CCAR-F exam, also written as CCA-F. Not affiliated with Anthropic; we don't sell the exam and can't register you for it. The published exam guide weights Context Management &amp; Reliability at 15% of CCAR-F. Our <a href="/cca-practice-questions/">practice question bank</a> covers that domain with a full explanation on every question, and the <a href="/diagnostic/">free diagnostic</a> is ten questions and needs no account.</em></p>
+    </div>
+  </article>
+</main>
+<footer class="site-footer">
+<!-- cca:footer:start -->
+  <p style="margin:0 0 6px">&copy; 2026 CCA Practice Platforms</p>
+  <p style="margin:0 0 10px;font-size:.82rem"><a href="/">Home</a> &nbsp;&middot;&nbsp; <a href="/cca-foundations-exam/">Full Mock Exam</a> &nbsp;&middot;&nbsp; <a href="/?hub=practice-tests">Practice Tests</a> &nbsp;&middot;&nbsp; <a href="/cca-practice-questions/">Question Bank</a> &nbsp;&middot;&nbsp; <a href="/cca-exam-guide/">Guide</a> &nbsp;&middot;&nbsp; <a href="/diagnostic/">Diagnostic</a> &nbsp;&middot;&nbsp; <a href="/study-plan-generator/">Study Plan</a> &nbsp;&middot;&nbsp; <a href="/blog/">Blog</a> &nbsp;&middot;&nbsp; <a href="/faq/">FAQ</a> &nbsp;&middot;&nbsp; <a href="/register/">Exam Info</a></p>
+  <p style="max-width:620px;margin:0 auto;font-size:.85rem;line-height:1.65;color:#c8c8be">CCA Practice Platforms is an independent exam-preparation resource. We are not affiliated with, endorsed by, sponsored by, or authorized by Anthropic, and this is not the official Claude Certified Architect exam or certification. 'Claude', 'Claude Certified Architect', and 'CCA' are trademarks of Anthropic, PBC, used here only to identify the exam our materials help you prepare for.</p>
+  <p style="margin:8px 0 0;font-size:.82rem"><a href="/privacy/">Privacy Policy</a> &middot; <a href="/terms/">Terms of Service</a> &middot; <a href="/refund/">Refund Policy</a></p>
+  <p style="margin:8px 0 0;font-size:.82rem">Questions? <a href="mailto:support@claudecertifiedarchitects.com">support@claudecertifiedarchitects.com</a></p>
+<!-- cca:footer:end -->
+</footer>
+</body>
+</html>
