@@ -172,7 +172,7 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
     <div class="post-body">
 <p>A month ago I disabled a GitHub Actions workflow. It was the right call and I made it in about ninety seconds.</p>
 
-<p>The workflow pre-rendered static HTML for a site I run — read the JSON sources, generate the pages, commit the output back to the repo. It had started corrupting content. I reverted the damaged files by hand, went into the Actions tab, and switched it off. Then I got on with the day.</p>
+<p>The workflow pre-rendered static HTML for a site I run: read the JSON sources, generate the pages, commit the output back to the repo. It had started corrupting content. I reverted the damaged files by hand, went into the Actions tab, and switched it off. Then I got on with the day.</p>
 
 <p>Last week I went looking for why it was off.</p>
 
@@ -188,7 +188,7 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
   <li>Commits touching <code>.github/workflows/</code>: <strong>none</strong> since June.</li>
 </ul>
 
-<p>That is the complete record. A workflow that had never failed, switched off with no commit, no issue, and no note. From the outside — and from my own perspective a month later — it looked like somebody had flipped a toggle for no reason.</p>
+<p>That is the complete record. A workflow that had never failed, switched off with no commit, no issue, and no note. From the outside, and from my own perspective a month later, it looked like somebody had flipped a toggle for no reason.</p>
 
 <p>It took a working session to reconstruct the actual story, and I only got there because a commit message three weeks earlier happened to say <code>revert: undo prerender-bot re-poisoning</code>. Sixteen files restored by hand. The word <em>re-poisoning</em> implying it had happened before. That commit was the only surviving evidence of why the automation was untrustworthy.</p>
 
@@ -198,7 +198,7 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 
 <p>Here is what makes this more than a documentation lapse.</p>
 
-<p>The site's blog posts live as JSON. The pages a visitor loads are generated from that JSON by the build. So the build was not a convenience — it was the only path from source to published page.</p>
+<p>The site's blog posts live as JSON. The pages a visitor loads are generated from that JSON by the build. So the build was not a convenience. It was the only path from source to published page.</p>
 
 <p>When I disabled the workflow, I did not think of myself as disabling publishing. I thought of myself as stopping a bot from corrupting files. Both were true. Only one was intentional.</p>
 
@@ -212,17 +212,17 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 
 <p><strong>A component that fails loudly teaches you its dependencies. A component that is quietly absent teaches you nothing.</strong></p>
 
-<p>When a tool call errors, everything downstream learns something: the model sees a failure, a retry can fire, a human can be paged. When a tool is silently removed — deregistered, permission-revoked, quietly returning an empty result — the calling agent frequently proceeds as though nothing happened. It has no signal to react to. Absence is not an error, and most systems only handle errors.</p>
+<p>When a tool call errors, everything downstream learns something: the model sees a failure, a retry can fire, a human can be paged. When a tool is silently removed, whether deregistered, permission-revoked or quietly returning an empty result, the calling agent frequently proceeds as though nothing happened. It has no signal to react to. Absence is not an error, and most systems only handle errors.</p>
 
-<p>This is precisely why <a href="/blog/common-mcp-server-design-mistakes-how-to-avoid/">structured error responses</a> matter more than they look like they should. An MCP tool that returns a proper error object — <code>isError</code>, a category, a retryable flag — is telling the model something it can act on. A tool that returns an empty list because its backing service is switched off is telling the model that there are zero results, which is a <em>different claim</em>, and a false one.</p>
+<p>This is precisely why <a href="/blog/common-mcp-server-design-mistakes-how-to-avoid/">structured error responses</a> matter more than they look like they should. An MCP tool that returns a proper error object, with <code>isError</code>, a category and a retryable flag, is telling the model something it can act on. A tool that returns an empty list because its backing service is switched off is telling the model that there are zero results, which is a <em>different claim</em>, and a false one.</p>
 
-<p>The failure mode is identical to mine. Something was turned off deliberately, for good reasons, and the system it belonged to kept operating as though the change had not happened — because nothing in the design forced the change to be visible.</p>
+<p>The failure mode is identical to mine. Something was turned off deliberately, for good reasons, and the system it belonged to kept operating as though the change had not happened, because nothing in the design forced the change to be visible.</p>
 
 <h2>Three things I would tell my past self</h2>
 
 <p><strong>Record the reason at the moment of the decision, not the fix.</strong> I reverted the corrupted files properly. Sixteen files, clean commit, good message. What I did not do was write down why the automation could not be trusted, because at that moment it was so obvious to me that it did not feel like information. A month later it was the only thing I needed and the only thing missing.</p>
 
-<p><strong>A disabled component needs an owner and a re-entry condition.</strong> "Off until we work out what went wrong" is a plan. "Off" is a state. Mine had no condition attached, so there was nothing to satisfy and nothing to check — it simply stayed off, and the question of whether it should be back on never surfaced.</p>
+<p><strong>A disabled component needs an owner and a re-entry condition.</strong> "Off until we work out what went wrong" is a plan. "Off" is a state. Mine had no condition attached, so there was nothing to satisfy and nothing to check. It simply stayed off, and the question of whether it should be back on never surfaced.</p>
 
 <p><strong>Ask what the component was load-bearing for, not just what it did.</strong> I could have described what the workflow did in one sentence. I could not, at the moment of disabling it, have listed what depended on it. Those are different questions and only the second one predicts what breaks.</p>
 
@@ -230,21 +230,21 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 
 <p>One detail saved me a much worse week.</p>
 
-<p>When I finally sat down to work out whether the build was safe to run at all, the decisive question was whether it had ever written back to the source JSON — because if the corruption had reached source, the damage would have been unbounded and a month old.</p>
+<p>When I finally sat down to work out whether the build was safe to run at all, the decisive question was whether it had ever written back to the source JSON, because if the corruption had reached source, the damage would have been unbounded and a month old.</p>
 
 <p>It had not. The build only ever read from source and wrote to output. Six write targets, all generated files, no path back upstream.</p>
 
 <p>That was not luck, though I would like to claim it. It is the standard property that makes generated-artifact pipelines recoverable: <strong>the generator never mutates its input.</strong> Because that held, the corruption could only ever affect files that were reproducible from a source that was still intact, which is why sixteen files could be reverted by hand and the problem stayed contained.</p>
 
-<p>The same property is what makes an agent system debuggable. If your agent writes back into the context it reads from, or a tool mutates the record it was asked to summarise, you lose the ability to reason about what went wrong — because the evidence has been overwritten by the thing you are investigating. Read paths and write paths that stay separate are what let you answer the question "what actually happened" a month later.</p>
+<p>The same property is what makes an agent system debuggable. If your agent writes back into the context it reads from, or a tool mutates the record it was asked to summarise, you lose the ability to reason about what went wrong, because the evidence has been overwritten by the thing you are investigating. Read paths and write paths that stay separate are what let you answer the question "what actually happened" a month later.</p>
 
 <h2>Where this connects to the exam</h2>
 
-<p>The Claude Certified Architect – Foundations blueprint spends a lot of its weight on this distinction, and it took me a while to understand why. Structured error responses, deterministic guarantees over probabilistic compliance, human-in-the-loop checkpoints, scoped tool access — they can read like a list of best practices to memorise.</p>
+<p>The Claude Certified Architect – Foundations blueprint spends a lot of its weight on this distinction, and it took me a while to understand why. Structured error responses, deterministic guarantees over probabilistic compliance, human-in-the-loop checkpoints, scoped tool access: they can read like a list of best practices to memorise.</p>
 
 <p>They are all the same idea from different angles: <strong>the system should make its own state legible to whatever comes next, including you, later, with no memory of what you were thinking.</strong></p>
 
-<p>I disabled a workflow for an excellent reason and left no way for anyone — including me — to discover that reason. Every principle in that blueprint is a defence against some version of that.</p>
+<p>I disabled a workflow for an excellent reason and left no way for anyone, including me, to discover that reason. Every principle in that blueprint is a defence against some version of that.</p>
 
 <hr>
 

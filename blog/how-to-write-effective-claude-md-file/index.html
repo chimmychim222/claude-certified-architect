@@ -172,11 +172,11 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
     <div class="post-body">
       <h2>Understanding the CLAUDE.md File and Its Purpose</h2>
 
-<p>A CLAUDE.md file serves as a critical communication bridge between human developers and AI agents like Claude. Think of it as an instruction manual that sits at the root of your project directory, telling Claude exactly what your project does, how it's structured, and what coding standards to follow. For those preparing for the Claude Certified Architect (CCA) Foundations exam, mastering the art of writing effective CLAUDE.md files is essential—it demonstrates your ability to design systems that leverage AI assistance whilst maintaining code quality and project coherence.</p>
+<p>A CLAUDE.md file serves as a critical communication bridge between human developers and AI agents like Claude. Think of it as an instruction manual that sits at the root of your project directory, telling Claude exactly what your project does, how it's structured, and what coding standards to follow. For those preparing for the Claude Certified Architect (CCA) Foundations exam, mastering the art of writing effective CLAUDE.md files is essential. It demonstrates your ability to design systems that leverage AI assistance whilst maintaining code quality and project coherence.</p>
 
 <p>The fundamental purpose of a CLAUDE.md file is to provide persistent context that Claude can reference throughout your development session. Without this file, you'd need to repeatedly explain your project's architecture, conventions, and requirements every time you start a new conversation. This becomes particularly problematic when working on larger codebases where context matters significantly. A well-crafted CLAUDE.md file reduces friction, minimises errors, and ensures Claude's suggestions align with your project's specific needs and constraints.</p>
 
-<p>For CCA candidates, understanding CLAUDE.md files isn't merely about passing an exam—it's about demonstrating competency in one of the most practical aspects of working with AI agents. The exam tests your ability to structure information effectively, communicate technical requirements clearly, and anticipate the needs of both human collaborators and AI assistants. These skills translate directly into real-world scenarios where Claude becomes an integral part of your development workflow.</p>
+<p>For CCA candidates, understanding CLAUDE.md files isn't merely about passing an exam. It's about demonstrating competency in one of the most practical aspects of working with AI agents. The exam tests your ability to structure information effectively, communicate technical requirements clearly, and anticipate the needs of both human collaborators and AI assistants. These skills translate directly into real-world scenarios where Claude becomes an integral part of your development workflow.</p>
 
 <h2>Essential Components of a CLAUDE.md File</h2>
 
@@ -224,7 +224,7 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 
 <p>Be comprehensive: "Python 3.11, Flask 2.3.x, SQLAlchemy 2.0, PostgreSQL 14, Redis 7.0 for caching, Celery for background tasks, Docker for containerisation, pytest for testing, black for code formatting, mypy for type checking."</p>
 
-<p>If certain libraries should be avoided, state this explicitly: "Do not use pandas for data processing—we use Polars instead for better performance. Avoid the requests library; we standardise on httpx for both synchronous and asynchronous HTTP calls."</p>
+<p>If certain libraries should be avoided, state this explicitly: "Do not use pandas for data processing. We use Polars instead for better performance. Avoid the requests library; we standardise on httpx for both synchronous and asynchronous HTTP calls."</p>
 
 <h3>Development Workflow and Commands</h3>
 
@@ -252,7 +252,7 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 
 <h3>Update Your CLAUDE.md File Regularly</h3>
 
-<p>A CLAUDE.md file is a living document. As your project evolves, your CLAUDE.md file should evolve with it. When you make architectural changes, adopt new libraries, or establish new conventions, update the file immediately. An outdated CLAUDE.md file is worse than none at all—it actively misleads Claude and can result in suggestions that conflict with your current setup.</p>
+<p>A CLAUDE.md file is a living document. As your project evolves, your CLAUDE.md file should evolve with it. When you make architectural changes, adopt new libraries, or establish new conventions, update the file immediately. An outdated CLAUDE.md file is worse than none at all. It actively misleads Claude and can result in suggestions that conflict with your current setup.</p>
 
 <p>Consider adding a "Last Updated" date at the top of your CLAUDE.md file and treating updates as part of your standard development workflow. When you review pull requests, check whether the CLAUDE.md file needs updating based on the changes introduced.</p>
 
@@ -260,13 +260,13 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 
 <p>Structure your CLAUDE.md file with clear markdown headings. This helps both humans and Claude quickly locate relevant information. A well-organised file might follow this structure: Project Overview, Architecture, Technology Stack, Coding Standards, Testing Strategy, Development Workflow, Deployment Process, Common Pitfalls, and Additional Resources.</p>
 
-<p>Within each section, use subsections, bullet points, and numbered lists to break information into digestible chunks. Avoid long paragraphs of dense text—they're harder for Claude to parse efficiently and for humans to scan quickly.</p>
+<p>Within each section, use subsections, bullet points, and numbered lists to break information into digestible chunks. Avoid long paragraphs of dense text. They're harder for Claude to parse efficiently and for humans to scan quickly.</p>
 
 <h2>Common Mistakes and How to Avoid Them</h2>
 
 <h3>Being Too Generic</h3>
 
-<p>The most common mistake is writing a CLAUDE.md file that could apply to any project. Generic instructions like "Write clean code" or "Follow best practices" provide no actionable value. Claude already knows general best practices—what it needs from you is specific guidance about your project's unique requirements and constraints.</p>
+<p>The most common mistake is writing a CLAUDE.md file that could apply to any project. Generic instructions like "Write clean code" or "Follow best practices" provide no actionable value. Claude already knows general best practices. What it needs from you is specific guidance about your project's unique requirements and constraints.</p>
 
 <p>Transform generic statements into specific instructions. Instead of "Use appropriate error handling," write: "Wrap all external API calls in try-except blocks. Retry failed requests up to 3 times with exponential backoff. Log all retry attempts at INFO level. After 3 failures, log at ERROR level and raise a custom 'ServiceUnavailableError' exception."</p>
 
@@ -274,11 +274,11 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 
 <p>Whilst specificity is valuable, there's a point of diminishing returns. Don't document every function or describe every edge case. Focus on information that Claude can't easily infer from reading your code. Document the why and the what, not the how of every implementation detail.</p>
 
-<p>For instance, don't list every API endpoint in your CLAUDE.md file—Claude can discover those by examining your route definitions. Instead, document your API design principles: "API endpoints follow RESTful conventions. Use plural nouns for resources (/users, not /user). Nested resources should be limited to one level deep. Prefer query parameters for filtering and pagination."</p>
+<p>For instance, don't list every API endpoint in your CLAUDE.md file, since Claude can discover those by examining your route definitions. Instead, document your API design principles: "API endpoints follow RESTful conventions. Use plural nouns for resources (/users, not /user). Nested resources should be limited to one level deep. Prefer query parameters for filtering and pagination."</p>
 
 <h3>Forgetting About Human Readers</h3>
 
-<p>Remember that whilst the primary audience is Claude, humans will read this file too—particularly new team members or collaborators. Strike a balance between providing machine-parseable information and maintaining human readability. Use natural language, include context where helpful, and consider adding links to relevant documentation or resources.</p>
+<p>Remember that whilst the primary audience is Claude, humans will read this file too, particularly new team members or collaborators. Strike a balance between providing machine-parseable information and maintaining human readability. Use natural language, include context where helpful, and consider adding links to relevant documentation or resources.</p>
 
 <h3>Neglecting Security and Sensitive Information</h3>
 
@@ -302,7 +302,7 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 
 <h3>Known Issues and Workarounds</h3>
 
-<p>If your project has known limitations, technical debt, or requires specific workarounds, document them. This prevents Claude from suggesting "ideal" solutions that don't work within your constraints: "Our PostgreSQL version doesn't support certain JSON operations—use JSONB casting instead. The legacy authentication system requires specific header formats—see auth_utils.py for the wrapper function."</p>
+<p>If your project has known limitations, technical debt, or requires specific workarounds, document them. This prevents Claude from suggesting "ideal" solutions that don't work within your constraints: "Our PostgreSQL version doesn't support certain JSON operations. Use JSONB casting instead. The legacy authentication system requires specific header formats. See auth_utils.py for the wrapper function."</p>
 
 <h3>Integration Patterns</h3>
 
@@ -332,7 +332,7 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 
 <p><strong>Development Setup:</strong> Commands to install dependencies, configure environment, start development servers, and run tests.</p>
 
-<p><strong>Common Patterns:</strong> Frequently used patterns with brief examples—service layer structure, error handling, logging, API response formats.</p>
+<p><strong>Common Patterns:</strong> Frequently used patterns with brief examples: service layer structure, error handling, logging, API response formats.</p>
 
 <p><strong>Things to Avoid:</strong> Deprecated patterns, discouraged libraries, or anti-patterns specific to your project.</p>
 
@@ -346,7 +346,7 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 
 <p>When preparing for the exam, practise writing CLAUDE.md files for different types of projects: web applications, data pipelines, CLI tools, microservices. Each has unique documentation needs. Understanding these variations demonstrates broader competency.</p>
 
-<p>Remember that effective CLAUDE.md files reflect deeper understanding of both software engineering principles and AI collaboration patterns. They're not mere documentation—they're interfaces that shape how humans and AI work together. This perspective is central to the CCA certification philosophy.</p>
+<p>Remember that effective CLAUDE.md files reflect deeper understanding of both software engineering principles and AI collaboration patterns. They're not mere documentation. They're interfaces that shape how humans and AI work together. This perspective is central to the CCA certification philosophy.</p>
 
 <h2>Taking Your Skills to the Next Level</h2>
 
@@ -356,7 +356,7 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 
 <p>Consider documenting your learnings: which instructions worked particularly well, which created confusion, and how you resolved ambiguities. This reflective practice accelerates your development as a Claude architect and provides valuable study material for certification.</p>
 
-<p>Ready to test your understanding and prepare comprehensively for the CCA Foundations exam? Our platform offers extensive <a href="/cca-practice-questions/">practice questions</a> that cover CLAUDE.md files alongside all other essential topics. You'll find detailed explanations for every answer, helping you understand not just what's correct but why. Whether you're just beginning your preparation or looking to refine your skills before taking the <a href="/cca-foundations-exam/">CCA Foundations exam</a>, our resources provide the structured practice you need to succeed. Start with our comprehensive <a href="/cca-exam-guide/">exam guide</a> to understand what to expect, then dive into practice questions to build confidence and competency. Your journey to becoming a Claude Certified Architect starts with mastering fundamentals like CLAUDE.md files—and we're here to support you every step of the way.</p>
+<p>Ready to test your understanding and prepare comprehensively for the CCA Foundations exam? Our platform offers extensive <a href="/cca-practice-questions/">practice questions</a> that cover CLAUDE.md files alongside all other essential topics. You'll find detailed explanations for every answer, helping you understand not just what's correct but why. Whether you're just beginning your preparation or looking to refine your skills before taking the <a href="/cca-foundations-exam/">CCA Foundations exam</a>, our resources provide the structured practice you need to succeed. Start with our comprehensive <a href="/cca-exam-guide/">exam guide</a> to understand what to expect, then dive into practice questions to build confidence and competency. Your journey to becoming a Claude Certified Architect starts with mastering fundamentals like CLAUDE.md files, and we're here to support you every step of the way.</p>
     </div>
     <section class="related-posts" aria-label="Related articles">
       <h2>Related Articles</h2>
