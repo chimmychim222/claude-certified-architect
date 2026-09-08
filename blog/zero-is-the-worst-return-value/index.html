@@ -176,7 +176,7 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 
 <p>The field is called <code>updatedToolOutput</code>. The capability exists, is documented, and does exactly what I'd wanted. My search was correct, my regex was correct, and the answer I took away was the opposite of the truth.</p>
 
-<p>That's the shape this article is about. A search that finds nothing and a search that ran wrong return the same thing. Zero is a legitimate answer to a well-formed question, which means there is no signal in it — a true negative and a broken query are byte-identical at the call site.</p>
+<p>That's the shape this article is about. A search that finds nothing and a search that ran wrong return the same thing. Zero is a legitimate answer to a well-formed question, which means there is no signal in it. A true negative and a broken query are byte-identical at the call site.</p>
 
 <p>I started <a href="/blog/when-a-search-returns-a-false-zero/">keeping a list</a> the first week this cost me something. It had six entries then and has fifteen now. What follows is the part of it I could reproduce on the machine I'm writing this on, each command quoted as it behaved here, the mechanism behind each, and the discipline I now use instead of trusting a zero. It ends with the one that happened while this piece was being fact-checked.</p>
 
@@ -184,7 +184,7 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 
 <p>These cost the most, because the shell tells you nothing went wrong. Everything below is Git Bash on Windows: bash 5.2.37 (MSYS), git 2.53.0.windows.2, GNU grep 3.0, findutils 4.10.0, curl 8.18.0, Node 24.14.1. Your versions will differ, and the whole point of the piece is that you should check rather than trust mine.</p>
 
-<p><strong>Two I've written up before, so one sentence each.</strong> Under MSYS, any argument token that starts with <code>/</code> is rewritten to a Windows path before a native executable sees it, so <code>git grep 'href="/blog/'</code> actually searches for <code>href="C:/Program Files/Git/blog/</code>, prints nothing and exits 1 — exactly what a real no-match does, so a converted pattern and a true negative are indistinguishable by exit code as well as by output, and <code>MSYS_NO_PATHCONV=1</code> is the fix (hold that thought). And <code>xargs -0 LC_ALL=C grep</code> tries to execute a program called <code>LC_ALL=C</code>: on findutils 4.10.0 that is loud — stderr says <code>xargs: LC_ALL=C: No such file or directory</code> and the exit code is 127 — and it becomes a clean zero only when the pipeline continues past <code>xargs</code> or stderr is dropped, which is how it once reported zero across a repo holding 218 matches. Both are in the earlier piece.</p>
+<p><strong>Two I've written up before, so one sentence each.</strong> Under MSYS, any argument token that starts with <code>/</code> is rewritten to a Windows path before a native executable sees it, so <code>git grep 'href="/blog/'</code> actually searches for <code>href="C:/Program Files/Git/blog/</code>, prints nothing and exits 1, which is exactly what a real no-match does, so a converted pattern and a true negative are indistinguishable by exit code as well as by output, and <code>MSYS_NO_PATHCONV=1</code> is the fix (hold that thought). And <code>xargs -0 LC_ALL=C grep</code> tries to execute a program called <code>LC_ALL=C</code>: on findutils 4.10.0 that is loud: stderr says <code>xargs: LC_ALL=C: No such file or directory</code> and the exit code is 127. It becomes a clean zero only when the pipeline continues past <code>xargs</code> or stderr is dropped, which is how it once reported zero across a repo holding 218 matches. Both are in the earlier piece.</p>
 
 <p><strong><code>git log -G</code> with a Perl-style pattern.</strong> <code>-G</code> takes a POSIX <em>extended</em> regular expression. <code>\d</code>, <code>\w</code> and <code>\s</code> are not part of it, and neither is the basic-regex habit of escaping <code>|</code> and <code>{}</code>. Six patterns against one file in a repository where the right pattern lists 76 commits, each run as <code>git log --oneline -G '&lt;pattern&gt;' -- sitemap.xml | wc -l</code>:</p>
 
@@ -195,9 +195,9 @@ ogImage\|lastmod                  0     # BRE alternation, wrong flavour (run ov
 &lt;lastmod&gt;2026-[[:digit:]]{2}   76
 ogImage|lastmod                  77     # ERE alternation (same two paths)</code></pre>
 
-<p>The fix I first reached for, <code>--perl-regexp</code>, does nothing: the manual says it governs the "limiting patterns" — <code>--grep</code>, <code>--author</code> — not <code>-G</code>, and <code>git log --perl-regexp -G '&lt;lastmod&gt;2026-\d\d'</code> still returns 0 here. <code>--pickaxe-regex</code> is for <code>-S</code> and refuses to combine with <code>-G</code> at all. Write the extended regex:</p>
+<p>The fix I first reached for, <code>--perl-regexp</code>, does nothing: the manual says it governs the "limiting patterns" such as <code>--grep</code> and <code>--author</code>, not <code>-G</code>, and <code>git log --perl-regexp -G '&lt;lastmod&gt;2026-\d\d'</code> still returns 0 here. <code>--pickaxe-regex</code> is for <code>-S</code> and refuses to combine with <code>-G</code> at all. Write the extended regex:</p>
 
-<pre><code># 0 — \s and \d are not ERE
+<pre><code># 0: \s and \d are not ERE
 git log --oneline -G '"date":\s*"\d+' -- posts | wc -l
 
 # 39
@@ -205,7 +205,7 @@ git log --oneline -G '"date":[[:space:]]*"[0-9]+' -- posts | wc -l</code></pre>
 
 <p>This one is nastier than it looks because the same <code>\d</code> works in <code>grep -P</code> two lines earlier in the same script, so you carry a mental model that has already been validated.</p>
 
-<p><strong><code>node --check</code> as a verification step.</strong> It parses. It does not evaluate. A file with a temporal-dead-zone violation — a <code>const</code> referenced before its declaration is reached — parses cleanly and exits 0, then throws the moment it actually runs.</p>
+<p><strong><code>node --check</code> as a verification step.</strong> It parses. It does not evaluate. A file with a temporal-dead-zone violation, a <code>const</code> referenced before its declaration is reached, parses cleanly and exits 0, then throws the moment it actually runs.</p>
 
 <pre><code>// tdz.js
 const items = ["a", "b"];
@@ -217,11 +217,11 @@ node -e "require('./tdz.js')"     # ReferenceError: Cannot access 'LABELS' befor
 
 <p>I used <code>node --check</code> as a gate on generated code for weeks. It catches a missing operand (<code>const x = ;</code> fails it, I checked). It catches nothing about whether the file works.</p>
 
-<p><strong>Line-ending counts.</strong> <code>grep -c $'\r$'</code> is the folk way to count CRLF lines. On GNU grep 3.0 under MSYS it returns <strong>0</strong> for a file a byte scan shows to have 1,585 CRLF endings and no bare LF — this grep strips the CR from each line before matching, so the pattern can never fire. It also returns 0 on a pure-LF file. Same output, opposite files. <code>-U</code> keeps the bytes:</p>
+<p><strong>Line-ending counts.</strong> <code>grep -c $'\r$'</code> is the folk way to count CRLF lines. On GNU grep 3.0 under MSYS it returns <strong>0</strong> for a file a byte scan shows to have 1,585 CRLF endings and no bare LF. This grep strips the CR from each line before matching, so the pattern can never fire. It also returns 0 on a pure-LF file. Same output, opposite files. <code>-U</code> keeps the bytes:</p>
 
 <pre><code>grep -c $'\r$' index.html            # 0      (file has 1,585 CRLF lines)
 grep -U -c $'\r$' index.html         # 1585   (-U: binary mode, CR preserved)
-grep -U -c $'\r$' blog/index.html    # 0      (pure LF — the negative control)</code></pre>
+grep -U -c $'\r$' blog/index.html    # 0      (pure LF, the negative control)</code></pre>
 
 <p><code>sed</code> strips the CR too: <code>sed -n 1p index.html | od -c</code> ends in a bare <code>\n</code> on that same CRLF file, so a <code>sed | od</code> pipeline reports LF for everything. Read the bytes directly, or use <code>-U</code>.</p>
 
@@ -239,11 +239,11 @@ LC_ALL=C.UTF-8 grep -c -P 'html' index.html   # 8</code></pre>
 <pre><code>od -An -tx1 index.html | grep -o '0d 0a' | wc -l                                # 1487
 od -An -tx1 -w1 index.html | tr -d ' ' | tr '\n' ' ' | grep -o '0d 0a' | wc -l  # 1585</code></pre>
 
-<p>Not a zero this time — an undercount of 98, which is worse in one way: it looks like a measurement.</p>
+<p>Not a zero this time but an undercount of 98, which is worse in one way: it looks like a measurement.</p>
 
-<p><strong><code>grep -c '\r'</code>.</strong> In a basic regular expression <code>\r</code> is the letter <code>r</code>. On a pure-LF, 401-line file it returned 317: every line containing an r. This is the saturated failure — the detector that fires on everything — and it is why the discipline below has a negative control as well as a positive one.</p>
+<p><strong><code>grep -c '\r'</code>.</strong> In a basic regular expression <code>\r</code> is the letter <code>r</code>. On a pure-LF, 401-line file it returned 317: every line containing an r. This is the saturated failure, the detector that fires on everything, and it is why the discipline below has a negative control as well as a positive one.</p>
 
-<p><strong><code>git show HEAD:file</code> as a baseline.</strong> Under <code>core.autocrlf=true</code> the blob is stored LF and the working tree is CRLF. <code>git show HEAD:index.html | wc -c</code> gives 135376; <code>wc -c &lt; index.html</code> gives 136961. The delta is 1,585 — exactly the line count. A byte comparison against the blob therefore reports every CRLF file as changed, and a "14-byte difference" on a block with fourteen newlines is not a difference at all. Compare LF-normalised content.</p>
+<p><strong><code>git show HEAD:file</code> as a baseline.</strong> Under <code>core.autocrlf=true</code> the blob is stored LF and the working tree is CRLF. <code>git show HEAD:index.html | wc -c</code> gives 135376; <code>wc -c &lt; index.html</code> gives 136961. The delta is 1,585, exactly the line count. A byte comparison against the blob therefore reports every CRLF file as changed, and a "14-byte difference" on a block with fourteen newlines is not a difference at all. Compare LF-normalised content.</p>
 
 <h2>The fix that caused the next one</h2>
 
@@ -251,11 +251,11 @@ od -An -tx1 -w1 index.html | tr -d ' ' | tr '\n' ' ' | grep -o '0d 0a' | wc -l  
 
 <p>The <code>git grep</code> fix above is <code>MSYS_NO_PATHCONV=1</code>: stop the shell translating Unix-looking arguments before they reach a native executable. I exported it for every session that grepped HTML or JSON. Some weeks later a search-engine submission silently never ran, and it took a while to connect the two.</p>
 
-<p>Path conversion is also what turns <code>/dev/null</code> into <code>nul</code> for native programs. With the variable set, <code>curl.exe</code> receives the literal string <code>/dev/null</code>, cannot open it as a Windows path, and exits 23 — write error — after a complete, successful fetch. <code>-s</code> hides the message. <code>-w</code> prints the 200. And <code>&amp;&amp;</code> short-circuits.</p>
+<p>Path conversion is also what turns <code>/dev/null</code> into <code>nul</code> for native programs. With the variable set, <code>curl.exe</code> receives the literal string <code>/dev/null</code>, cannot open it as a Windows path, and exits 23, a write error, after a complete, successful fetch. <code>-s</code> hides the message. <code>-w</code> prints the 200. And <code>&amp;&amp;</code> short-circuits.</p>
 
 <pre><code>MSYS_NO_PATHCONV=1 curl -s -o /dev/null -w 'HTTP %{http_code}\n' https://www.claudecertifiedarchitects.com/sitemap.xml &amp;&amp; echo "NEXT COMMAND RAN"
 # HTTP 200
-# (nothing else — $? is 23)
+# (nothing else: $? is 23)
 
 MSYS_NO_PATHCONV=1 curl -sS -o /dev/null https://www.claudecertifiedarchitects.com/sitemap.xml
 # curl: (23) client returned ERROR on write of 8268 bytes
@@ -264,7 +264,7 @@ curl -s -o /dev/null -w 'HTTP %{http_code}\n' https://www.claudecertifiedarchite
 # HTTP 200
 # NEXT COMMAND RAN</code></pre>
 
-<p>Writing to <code>NUL</code> or to a real file works with the variable set; I ran both. So the fix for one false zero manufactured another, in a different tool, weeks later, with the visible output — an HTTP 200 — actively reassuring. A list of tools that lie is not a list of independent facts. The entries interact, and the fix column is where they do it.</p>
+<p>Writing to <code>NUL</code> or to a real file works with the variable set; I ran both. So the fix for one false zero manufactured another, in a different tool, weeks later, with the visible output, an HTTP 200, actively reassuring. A list of tools that lie is not a list of independent facts. The entries interact, and the fix column is where they do it.</p>
 
 <h2>The same shape in code</h2>
 
@@ -274,7 +274,7 @@ curl -s -o /dev/null -w 'HTTP %{http_code}\n' https://www.claudecertifiedarchite
 
 <pre><code>const tip = own(STUDY_TIPS, domain) || STUDY_TIPS['Agentic Architecture'];</code></pre>
 
-<p><code>STUDY_TIPS</code> was keyed on <code>'Claude Code Configuration'</code>. The value stored against every affected record was <code>'Claude Code Configuration &amp; Workflows'</code> — the display label, not the key. The lookup missed, the <code>||</code> supplied a default, and every consumer downstream received a valid, well-formed, entirely wrong tip.</p>
+<p><code>STUDY_TIPS</code> was keyed on <code>'Claude Code Configuration'</code>. The value stored against every affected record was <code>'Claude Code Configuration &amp; Workflows'</code>, the display label rather than the key. The lookup missed, the <code>||</code> supplied a default, and every consumer downstream received a valid, well-formed, entirely wrong tip.</p>
 
 <p>167 emails went out that way: 85 carrying a study tip from the wrong domain, 82 carrying a sample question from the wrong domain, each under a heading naming the domain the reader had actually asked about. Nobody complained. The content was correct advice about something, and no recipient had any way to know what they were supposed to have received.</p>
 
@@ -283,9 +283,9 @@ curl -s -o /dev/null -w 'HTTP %{http_code}\n' https://www.claudecertifiedarchite
 <pre><code>const tip = own(STUDY_TIPS, domain);
 if (!tip) throw new Error(`no tip for domain: ${domain}`);</code></pre>
 
-<p><strong>A wrapper that catches and returns <code>[]</code>.</strong> The agentic version of the same thing — a subagent fails, the wrapper logs it and returns an empty array, and <a href="/blog/cca-exam-anti-patterns/">the orchestrator receives <code>[]</code> and treats it as a fact about the world</a> — which I <a href="/blog/mcp-tool-errors-wrong-reader/">wrote up last week</a> and won't repeat, beyond noting that it survives code review because the code looks defensive.</p>
+<p><strong>A wrapper that catches and returns <code>[]</code>.</strong> The agentic version of the same thing: a subagent fails, the wrapper logs it and returns an empty array, and <a href="/blog/cca-exam-anti-patterns/">the orchestrator receives <code>[]</code> and treats it as a fact about the world</a>. I <a href="/blog/mcp-tool-errors-wrong-reader/">wrote that up last week</a> and won't repeat it, beyond noting that it survives code review because the code looks defensive.</p>
 
-<p><strong>A script that fabricates a readout.</strong> The worst one I've written. An audit script was supposed to report stored state. It didn't merely always answer yes — it compared its input to itself and printed a plausible, well-formatted readout of state it had never read. Everything downstream <a href="/blog/coding-agent-summary-not-evidence/">consumed the readout as the check</a>.</p>
+<p><strong>A script that fabricates a readout.</strong> The worst one I've written. An audit script was supposed to report stored state. It didn't merely always answer yes. It compared its input to itself and printed a plausible, well-formatted readout of state it had never read. Everything downstream <a href="/blog/coding-agent-summary-not-evidence/">consumed the readout as the check</a>.</p>
 
 <p>If you want to see how this reads as an exam problem rather than an essay, we write scenario questions on exactly this in the <a href="/cca-practice-questions/">practice bank</a>. It's independent preparation material. We're not affiliated with Anthropic, and we neither sell nor administer the exam.</p>
 
@@ -295,7 +295,7 @@ if (!tip) throw new Error(`no tip for domain: ${domain}`);</code></pre>
 
 <p><strong>Never accept a zero you have not proved with a known-positive control.</strong></p>
 
-<p>Before you believe a search returned nothing, run the same detector against something you know it should find. If the control doesn't fire, the zero is meaningless and you have learned that instead — which is a result, and a cheap one.</p>
+<p>Before you believe a search returned nothing, run the same detector against something you know it should find. If the control doesn't fire, the zero is meaningless and you have learned that instead, which is a result, and a cheap one.</p>
 
 <pre><code># the question: does git grep find the link?
 git grep -c 'href="/blog/' -- blog/index.html                        # (nothing), exit 1
@@ -306,11 +306,11 @@ grep -c 'href="/blog/' blog/index.html                               # 47
 # the question again, with the fix
 MSYS_NO_PATHCONV=1 git grep -c 'href="/blog/' -- blog/index.html     # blog/index.html:47</code></pre>
 
-<p>Two controls are better than one: a positive that must fire and a negative that must miss. The second catches detectors that match everything — <code>grep -c '\r'</code> above — which is the failure mode the first one can't see.</p>
+<p>Two controls are better than one: a positive that must fire and a negative that must miss. The second catches detectors that match everything, like <code>grep -c '\r'</code> above, which is the failure mode the first one can't see.</p>
 
 <p>The second half of the rule matters just as much, and it's the one I'm still bad at.</p>
 
-<p><strong>State the property your detector tests, then check that the detector tests that property — not the instance that made you look.</strong> When I found the <code>updatedOutput</code> error, I fixed the four places that carried it. I did not ask what else I'd written from the same guessed name on the same day. Closing an instance feels like closing a class, and the difference surfaces weeks later, by accident, usually in production.</p>
+<p><strong>State the property your detector tests, then check that the detector tests that property and not the instance that made you look.</strong> When I found the <code>updatedOutput</code> error, I fixed the four places that carried it. I did not ask what else I'd written from the same guessed name on the same day. Closing an instance feels like closing a class, and the difference surfaces weeks later, by accident, usually in production.</p>
 
 <p>For the email lookup, the detector that would have caught it in June is, in outline, three lines: call the real render function once for each distinct value actually present in the datastore, and read the output.</p>
 
@@ -324,21 +324,21 @@ MSYS_NO_PATHCONV=1 git grep -c 'href="/blog/' -- blog/index.html     # blog/inde
 
 <p>Controls are not free, and I don't run them on everything.</p>
 
-<p>If a zero is <em>cheap to be wrong about</em> — you're looking for a string you half-remember in a file you're about to read anyway — the control is ceremony. If a zero is <a href="/blog/disabled-workflow-still-load-bearing/"><em>loud when wrong</em></a> — the build fails, the tests go red, a human sees the empty page — the environment is already your control.</p>
+<p>If a zero is <em>cheap to be wrong about</em>, because you're looking for a string you half-remember in a file you're about to read anyway, the control is ceremony. If a zero is <a href="/blog/disabled-workflow-still-load-bearing/"><em>loud when wrong</em></a>, because the build fails, the tests go red and a human sees the empty page, the environment is already your control.</p>
 
 <p>The cases worth the discipline are the ones where a wrong zero is quiet and durable: an audit result written into documentation, a class-closure claim, an enum lookup with a fallback, anything an autonomous process consumes without a human between the query and the conclusion.</p>
 
-<p>There's an inverse failure worth mentioning too, since it cost me an hour last week. I compared two spreadsheet files cell by cell using a library's style objects, and every cell came back as different — including the empty ones — because those objects don't compare equal across two workbook instances. A detector that fires on everything is as useless as one that fires on nothing, and the negative control is what catches it.</p>
+<p>There's an inverse failure worth mentioning too, since it cost me an hour last week. I compared two spreadsheet files cell by cell using a library's style objects, and every cell came back as different, including the empty ones, because those objects don't compare equal across two workbook instances. A detector that fires on everything is as useless as one that fires on nothing, and the negative control is what catches it.</p>
 
 <h2>Why this got worse, and what happened while this was being checked</h2>
 
 <p>All of the above predates LLM agents. What changed is who reads the zero.</p>
 
-<p>A human who gets an empty result brings context: they know roughly how many results to expect, they remember that this search worked yesterday, and they have the option of asking someone. A model has your string and nothing else. Hand it <code>[]</code> and it will report, fluently and confidently, that nothing matched — and then act on that.</p>
+<p>A human who gets an empty result brings context: they know roughly how many results to expect, they remember that this search worked yesterday, and they have the option of asking someone. A model has your string and nothing else. Hand it <code>[]</code> and it will report, fluently and confidently, that nothing matched. Then it will act on that.</p>
 
 <p>It happened during the fact-check for this article. To confirm the opening example, the hooks documentation was fetched through a tool that hands the page to a small model and asks it a question. Asked how many times <code>updatedToolOutput</code> appears, it answered: zero. It added, helpfully, that the page does not describe the hook modifying output. A <code>curl</code> of the same URL and a grep of the bytes: seven occurrences, including the table row that defines the field, with the control string <code>PostToolUse</code> at 58. The summariser had read part of the page and reported its absence as the page's. The false zero at the top of this piece was reproduced, by an agent, inside the session checking whether the piece was true, on the exact field name the piece is about.</p>
 
-<p>So in an agentic system, "nothing found" and "the search did not run" have to be told apart in the value that comes back — not in a log, not in an exit code the model never sees, and not by a reader who was not there.</p>
+<p>So in an agentic system, "nothing found" and "the search did not run" have to be told apart in the value that comes back: not in a log, not in an exit code the model never sees, and not by a reader who was not there.</p>
 
 <pre><code>{ "results": [], "status": "ok" }
 { "results": [], "status": "error", "error": "upstream_timeout", "retryable": true }</code></pre>
@@ -347,7 +347,7 @@ MSYS_NO_PATHCONV=1 git grep -c 'href="/blog/' -- blog/index.html     # blog/inde
 
 <hr>
 
-<p><em>Every command above was run on the machine described at the top — Git Bash on Windows 11, bash 5.2.37 (MSYS), git 2.53.0.windows.2, GNU grep 3.0, findutils 4.10.0, curl 8.18.0, Node 24.14.1 — and is quoted as it behaved there. Behaviour varies by shell, tool version and platform; verify each on your own system before trusting the fix, which is the article's entire point. The 167 / 85 / 82 email figures come from the commit that fixed the lookup and the read-only count it recorded; the underlying export is not on disk, so treat them as reported rather than reproduced.</em></p>
+<p><em>Every command above was run on the machine described at the top and is quoted as it behaved there: Git Bash on Windows 11, bash 5.2.37 (MSYS), git 2.53.0.windows.2, GNU grep 3.0, findutils 4.10.0, curl 8.18.0, Node 24.14.1. Behaviour varies by shell, tool version and platform; verify each on your own system before trusting the fix, which is the article's entire point. The 167 / 85 / 82 email figures come from the commit that fixed the lookup and the read-only count it recorded; the underlying export is not on disk, so treat them as reported rather than reproduced.</em></p>
 
 <p><em>Independent preparation material for the CCAR-F exam, also written as CCA-F. Not affiliated with Anthropic; we don't sell the exam and can't register you for it. The published exam guide weights Context Management &amp; Reliability at 15% of CCAR-F. Our <a href="/cca-practice-questions/">practice question bank</a> covers that domain with a full explanation on every question, and the <a href="/diagnostic/">free diagnostic</a> is ten questions and needs no account.</em></p>
     </div>
