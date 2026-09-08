@@ -52,7 +52,8 @@
  *
  * Controls run on every invocation, before any repo file is read, and abort
  * on mismatch (exit 2): a synthetic positive that must count exactly 7 across
- * the raw, entity and escape forms and classify prose 4 / code 1 / blockquote 1,
+ * the raw, entity and escape forms and classify prose 5 / code 1 / blockquote 1
+ * (prose = 1 raw + 3 entities + 1 escape; corrected 8 Sep 2026, the header said 4),
  * and a synthetic negative carrying en-dashes, hyphens, the bare word "mdash"
  * and "u2014" with no backslash that must count 0. Both results are printed.
  *
