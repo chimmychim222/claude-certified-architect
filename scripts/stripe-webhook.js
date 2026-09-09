@@ -490,8 +490,12 @@ app.post(
               stripeSessionId: session.id,
               createdAt:       admin.firestore.FieldValue.serverTimestamp(),
               // Lifecycle: unclaimed -> contacted (a human emailed them) ->
-              // abandoned. Terminal states stop the alert; nothing is ever
-              // deleted, so a buyer turning up in six months still claims.
+              // abandoned. Terminal states stop the alert and never delete, so
+              // a buyer turning up in six months still claims. The record IS
+              // deleted on a successful /claim-enrollment, by the two
+              // direct-enrol paths above, and by the zombie guard in
+              // findStalePendingEnrollments once an enrolled account exists at
+              // this email (non-terminal records only).
               // Records written before this field existed read as unclaimed.
               status:          'unclaimed',
             },
@@ -589,17 +593,16 @@ app.post('/claim-enrollment', async (req, res) => {
       return res.json({ ok: true, enrolled: false });
     }
 
-    // SECURITY: Firebase email/password sign-up does not prove inbox
-    // ownership — anyone can register an account using a stranger's email
-    // address. Without this gate, an attacker who merely knows (or guesses)
-    // a real purchaser's email could sign up *as* them, claim the pending
-    // enrollment under the attacker's own uid, and — because claiming
-    // deletes the pending record — permanently destroy the real purchaser's
-    // only path to the access they paid for. email_verified is Firebase's
-    // proof that the token holder actually controls that inbox (they clicked
-    // a link sent to it), which is exactly the property we need here.
+    // No email_verified gate. Stripe has already charged a card against this
+    // address, and demanding a second proof of the same address stranded five
+    // password sign-ups (Jul-Sep 2026) while Google sign-ups claimed instantly.
+    // The impostor it guarded against (sign up under a buyer's address after
+    // they pay, before they sign up) can already reach the same result in the
+    // other order through the webhook's direct-enrol path, which has no such
+    // check; and the real buyer recovers the account by password reset.
+    // Logged, not blocked, so a dispute can be traced in the Render log.
     if (!decoded.email_verified) {
-      return res.json({ ok: true, enrolled: false, reason: 'unverified_email' });
+      console.log(`[claim] unverified account claiming pending enrollment: ${email} (${uid})`);
     }
 
     const pending        = pendingDoc.data();
@@ -1054,10 +1057,10 @@ app.post('/pre-checkout', express.json(), async (req, res) => {
 // pending_enrollments records are created when the webhook can't find a
 // matching Firebase account (the customer paid before signing up — see the
 // stash logic above). The expected reconciliation path is: they create or
-// log into an account with the same email, verify it, and /claim-enrollment
-// applies the purchase. A record still sitting here ~48h later usually means
-// that path stalled — they never came back, signed up with a different
-// email, or are stuck on the email_verified gate without realizing why.
+// log into an account with the same email and /claim-enrollment applies the
+// purchase (no email_verified gate since Sep 2026 — see that handler). A
+// record still sitting here ~48h later usually means that path stalled —
+// they never came back, or signed up with a different email.
 // That's a real "paid and got nothing" situation that deserves a human to
 // look at it (and possibly enroll them manually), not silent data rot.
 //
