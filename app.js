@@ -1549,12 +1549,19 @@ function unmatchedPaymentMsg() {
 // received; activation is just slower than the poll window (Render cold start).
 // Softer tone: reassure, don't alarm. The localStorage flag set by
 // flagPaymentNeedsReview still prevents a second checkout attempt.
-function paymentActivationTimeoutMsg() {
+// Body/Msg split on the same pattern as unmatchedPaymentBody/Msg: the modal
+// host on /diagnostic/ cannot carry paymentDismissBtn(), whose onclick
+// hardcodes #success-banner.
+function paymentActivationTimeoutBody() {
   return "<strong>Your payment was received ✓</strong> — account activation is taking a little longer than usual. " +
     "Please <button onclick=\"window.location.reload()\" style=\"color:var(--green);text-decoration:underline;background:none;border:none;cursor:pointer;font-size:inherit;padding:0;min-height:44px\">reload this page</button> " +
     "in a minute or two. If you still don’t have access after 5 minutes, email " +
     "<a href=\"mailto:support@claudecertifiedarchitects.com\" style=\"color:var(--green);text-decoration:underline\">support@claudecertifiedarchitects.com</a> " +
-    "with your receipt and we’ll activate manually." + paymentDismissBtn();
+    "with your receipt and we’ll activate manually.";
+}
+
+function paymentActivationTimeoutMsg() {
+  return paymentActivationTimeoutBody() + paymentDismissBtn();
 }
 
 // Local-state setter for `enrolled` that funnels through the guarded,
@@ -2282,20 +2289,38 @@ function openPaymentModal() {
         else window.location.href = '/';
       } else if (result.reason === 'pending_purchase') {
         // Server found an unclaimed pending_enrollments record for this
-        // account's verified email — they already paid once under this
-        // email; sending them to Stripe again would double-charge them.
-        // Same "verify to unlock" guidance claimPendingEnrollment's
-        // unverified_email path already shows elsewhere, not a new UI.
+        // account's email — they already paid once under this email; sending
+        // them to Stripe again would double-charge them.
+        //
+        // /claim-enrollment no longer gates on email_verified (Sep 2026), so a
+        // record still standing here means the sign-in claim has not run yet
+        // or failed transiently (cold start, network). Retry it now rather
+        // than telling a buyer who is a second away from enrolment to verify
+        // an address that no longer needs verifying. attemptPendingClaim
+        // enrols, navigates to the dashboard and confirms on success; on
+        // failure the payment is known to be received, so show the same
+        // "received, reload, else support" copy the post-checkout poll uses,
+        // through paymentBlockHost() so /diagnostic/ gets the modal panel.
         //
         // Sizes the second invisible block. Unlike the localStorage gate this
         // one is server-side and account-keyed, so it follows the buyer across
-        // browsers; and on /diagnostic/ showPendingVerificationBanner() returns
-        // immediately (no #success-banner), leaving this exit completely dead.
+        // browsers.
         if (typeof gtag !== 'undefined') {
           gtag('event', 'payment_blocked_pending', { page_path: location.pathname });
         }
         closeAuthModal();
-        showPendingVerificationBanner(currentUser);
+        const showActivationPending = () => {
+          const host = paymentBlockHost();
+          if (!host) return;
+          host.innerHTML = host.id === 'success-banner' ? paymentActivationTimeoutMsg() : paymentActivationTimeoutBody();
+          showPaymentBlock(host, 'Payment received');
+        };
+        attemptPendingClaim(currentUser)
+          .then(claim => { if (!claim.enrolled) showActivationPending(); })
+          .catch(e => {
+            console.warn('[Enrollment] pending-purchase claim retry failed:', e.message);
+            showActivationPending();
+          });
       } else if (result.reason === 'recent_session') {
         // The checkout_intents/{uid} doc is stale — the user likely returned
         // from Stripe without paying and is trying again. Delete it and proceed
