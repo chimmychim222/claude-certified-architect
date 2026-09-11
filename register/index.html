@@ -62,6 +62,7 @@ nav .nav-links a.nav-cta:hover{background:var(--accent2);color:#fff}
 .hero .badge{display:inline-block;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--accent-text);background:rgba(217,119,87,.1);border:1px solid rgba(217,119,87,.25);border-radius:20px;padding:4px 14px;margin-bottom:16px}
 .hero h1{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:700;line-height:1.15;margin-bottom:14px;color:var(--text)}
 .hero p{font-size:1.05rem;color:var(--text2);max-width:560px;margin:0 auto}
+.hero .hero-fees{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.9rem;font-weight:600;color:var(--text);margin-top:14px}
 
 /* OVERVIEW GRID */
 .overview-section{padding:8px 0 16px}
@@ -82,6 +83,8 @@ nav .nav-links a.nav-cta:hover{background:var(--accent2);color:#fff}
 .register-card-body p{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.9rem;color:var(--text2);margin-bottom:14px;line-height:1.5}
 .register-card-body a.reg-link{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.92rem;font-weight:700;color:var(--accent-text);text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:color .2s}
 .register-card-body a.reg-link:hover{color:var(--accent2)}
+.register-card-body .reg-aside{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.85rem;color:var(--text3);margin:12px 0 0;line-height:1.5}
+.register-card-body .reg-aside a{color:var(--accent-text);font-weight:600}
 
 /* DIVIDER + PREP SECTION */
 .prep-section{padding:32px 0 60px}
@@ -108,7 +111,7 @@ footer a:hover{color:var(--accent-text)}
 .hamburger.open span:nth-child(3){transform:rotate(-45deg) translate(5px,-5px)}
 
 
-/* OFFER BANNER — high conversion block between hero and overview */
+/* OFFER BANNER: conversion block below the register card. It sat between hero and overview from c676693 (23 Jun 2026) until adde7cc (5 Aug 2026) moved it here, exam facts before the pitch. */
 .offer-banner{background:linear-gradient(135deg,rgba(196,82,44,.07) 0%,rgba(196,82,44,.02) 100%);border-top:1px solid rgba(196,82,44,.22);border-bottom:1px solid rgba(196,82,44,.22);padding:34px 0 38px;margin-bottom:4px;text-align:center}
 .offer-eyebrow{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--accent-text);margin-bottom:9px}
 .offer-headline{font-size:clamp(1.5rem,3vw,2.1rem);font-weight:700;color:var(--text);margin-bottom:13px;line-height:1.2;font-family:Georgia,'Times New Roman',serif}
@@ -198,7 +201,8 @@ footer a:hover{color:var(--accent-text)}
   <div class="container">
     <div class="badge">Independent CCA-F Practice Tests</div>
     <h1>Register for the CCA Foundations Exam</h1>
-    <p>The CCAR-F exam (also written CCA-F) costs $125 USD. Registration is through Anthropic's certification portal, and the exam is delivered by Pearson VUE — online proctored or at a test centre.</p>
+    <p>The CCAR-F exam (also written CCA-F) costs $125 USD per attempt, and a retake costs the full fee again. Registration is through Anthropic's portal and Pearson VUE. Before you book, a free 10-question diagnostic shows where you stand, and the full practice bank is $49, less than a second attempt.</p>
+    <p class="hero-fees">One attempt: $125 · Two attempts: $250 · $49 of practice plus one attempt: $174</p>
   </div>
 </section>
 
@@ -286,6 +290,7 @@ footer a:hover{color:var(--accent-text)}
           Go to Registration Portal
           <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         </a>
+        <p class="reg-aside">Not sure you are ready? <a href="/diagnostic/">Take the free 10-question diagnostic</a> before you book. No account needed.</p>
       </div>
     </div>
 
@@ -323,7 +328,7 @@ footer a:hover{color:var(--accent-text)}
         <li><span>This practice platform — paid to us</span><span class="fee-amt">$49</span></li>
       </ul>
       <p class="fee-note">We don't sell the exam and we can't register you for it — that's done through the Anthropic Partner Academy and Pearson VUE. What $49 buys is 400 practice questions and a full timed simulation, so your first attempt is your only attempt.</p>
-      <p class="fee-math">Pass first time: $125 · Fail once: $250 · Practice first, then pass: $174</p>
+      <p class="fee-math">One attempt: $125 · Two attempts: $250 · $49 of practice plus one attempt: $174</p>
     </div>
     <div class="offer-strip-ctas">
       <a href="/diagnostic/" class="btn-primary" style="padding:11px 22px;font-size:.88rem">Free diagnostic</a>
