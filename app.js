@@ -5385,7 +5385,18 @@ function toggleSampleQ(btn) {
     card.classList.add('sq-revealed', 'sq-answered');
   }
   answer.classList.toggle('sq-visible', !open);
-  if (!open) answer.scrollIntoView({ block: 'nearest' }); // the panel opens below the button, which on a phone is often the last thing on screen
+  if (!open) {
+    // The panel opens below the button, which on a phone is often the last thing
+    // on screen. 'nearest' brings it in without moving a panel already in view,
+    // but a panel taller than the space under the fixed header ends up with its
+    // top behind the header (nearest aligns the bottom edge). In that case align
+    // the top instead; .sq-answer's scroll-margin-top (index.html) carries the
+    // header height from --banner-h and --nav-h, so the verdict lands just under it.
+    answer.scrollIntoView({ block: 'nearest' });
+    var rootStyle = getComputedStyle(document.documentElement);
+    var headerH = (parseFloat(rootStyle.getPropertyValue('--banner-h')) || 0) + (parseFloat(rootStyle.getPropertyValue('--nav-h')) || 64);
+    if (answer.getBoundingClientRect().top < headerH) answer.scrollIntoView({ block: 'start' });
+  }
   btn.classList.toggle('open', !open);
   btn.setAttribute('aria-expanded', String(!open));
   answer.setAttribute('aria-hidden', String(open));
