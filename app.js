@@ -5361,6 +5361,11 @@ function toggleSampleQ(btn) {
   var textEl = btn.querySelector('.sq-toggle-text');
   var open = answer.classList.contains('sq-visible');
   if (!open) {
+    // A multiple-response card is graded here, on request, not on its last
+    // click: the engine grades at finishTest, and Show answer is the sample's
+    // equivalent. Single-select cards were graded on their click already.
+    var need = parseInt(card.getAttribute('data-select') || '1', 10);
+    if (need > 1 && !card.classList.contains('sq-answered')) gradeSampleAnswerMulti(card, need);
     // Update result label if user already made a guess
     var label = card.querySelector('.sq-answer-label');
     var result = card.getAttribute('data-result');
@@ -5384,9 +5389,10 @@ function toggleSampleQ(btn) {
 }
 
 // Click an option to attempt answer.
-// data-select="N" on the card marks a multiple-response item: the card stays
-// open until N options are chosen, and it is graded on the whole set. Cards
-// without the attribute keep the original single-select behaviour untouched.
+// data-select="N" on the card marks a multiple-response item: N is the cap,
+// the card stays open, and the whole set is graded when Show answer is
+// clicked. Cards without the attribute keep the original single-select
+// behaviour untouched: they lock and grade on the first click.
 function selectSampleAnswer(li) {
   var card = li.closest('.sq-card');
   if (card.classList.contains('sq-answered')) return;
@@ -5400,25 +5406,40 @@ function selectSampleAnswer(li) {
   // sq-revealed NOT added here — correct answer hidden until Show answer clicked
 }
 
-// Multiple-response sample: toggle choices until `need` are selected, then
-// grade the set. Nothing is revealed here — Show answer still does that.
+// Multiple-response sample, on the engine's convention (toggleAnswer, above):
+// add until `need` are chosen, remove at any time, and at the cap refuse a
+// further add and say so in the engine's own words, "deselect one to change".
+// Nothing is graded here. gradeSampleAnswerMulti() runs from Show answer, and
+// the card locks there, where the single-select cards already lock on reveal.
 function selectSampleAnswerMulti(card, li, need) {
-  li.classList.toggle('sq-chosen');
   var chosen = card.querySelectorAll('.sq-options li.sq-chosen');
+  if (!li.classList.contains('sq-chosen') && chosen.length >= need) return;
+  li.classList.toggle('sq-chosen');
+  chosen = card.querySelectorAll('.sq-options li.sq-chosen');
   var note = card.querySelector('.sq-mr-note');
-  if (chosen.length < need) {
-    if (note) note.textContent = chosen.length
-      ? chosen.length + ' of ' + need + ' selected'
-      : 'Select ' + (need === 2 ? 'two' : need) + ' answers';
-    return;
+  if (!note) return;
+  if (!chosen.length) {
+    note.textContent = 'Select ' + (need === 2 ? 'two' : need) + ' answers';
+  } else if (chosen.length < need) {
+    note.textContent = chosen.length + ' of ' + need + ' selected. Click a selected answer again to deselect it.';
+  } else {
+    note.textContent = need + ' of ' + need + ' selected. Deselect one to change, or click Show answer to check.';
   }
-  card.classList.add('sq-answered');
-  var allCorrect = true;
+}
+
+// Grades the multiple-response sample when the reader asks for the answer.
+// No pick means no verdict, as on the single-select cards. A partial pick is
+// graded wrong, matching isCorrect(): the count must equal the key count.
+function gradeSampleAnswerMulti(card, need) {
+  var chosen = card.querySelectorAll('.sq-options li.sq-chosen');
+  if (!chosen.length) return;
+  var allCorrect = chosen.length === need;
   Array.prototype.forEach.call(chosen, function (el) {
     if (!el.classList.contains('sq-correct')) { el.classList.add('sq-selected'); allCorrect = false; }
   });
   card.setAttribute('data-result', allCorrect ? 'correct' : 'wrong');
-  if (note) note.textContent = need + ' of ' + need + ' selected';
+  var note = card.querySelector('.sq-mr-note');
+  if (note) note.textContent = chosen.length + ' of ' + need + ' selected';
 }
 
 // Shuffle sample question cards on every page load
