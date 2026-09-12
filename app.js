@@ -4919,7 +4919,10 @@ function renderQuestion() {
       const selected = Array.isArray(t.answers[t.current]) ? t.answers[t.current].includes(i) : i === t.answers[t.current];
       if (isOptionCorrect(q, i)) cls = ' correct';
       else if (selected) cls = ' incorrect';
-      html += `<button class="option${cls}" disabled>${String.fromCharCode(65+i)}. ${opt}</button>`;
+      // user-selected carries the "Your answer" tag (index.html, .option.user-selected::after),
+      // the same marking reviewTest gives a paid attempt: a chosen key and an
+      // unchosen key are otherwise painted alike once both read as correct.
+      html += `<button class="option${cls}${selected ? ' user-selected' : ''}" disabled>${String.fromCharCode(65+i)}. ${opt}</button>`;
     });
     const questionCorrect = isCorrect(q, t.answers[t.current]);
     html += `<div class="q-explanation">
