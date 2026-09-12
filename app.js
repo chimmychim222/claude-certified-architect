@@ -5446,15 +5446,19 @@ function selectSampleAnswerMulti(card, li, need) {
 function gradeSampleAnswerMulti(card, need) {
   var chosen = card.querySelectorAll('.sq-options li.sq-chosen');
   if (!chosen.length) return;
-  var allCorrect = chosen.length === need;
+  var allCorrect = chosen.length === need, wrongPick = false;
   Array.prototype.forEach.call(chosen, function (el) {
-    if (!el.classList.contains('sq-correct')) { el.classList.add('sq-selected'); allCorrect = false; }
+    if (!el.classList.contains('sq-correct')) { el.classList.add('sq-selected'); allCorrect = false; wrongPick = true; }
   });
   card.setAttribute('data-result', allCorrect ? 'correct' : 'wrong');
   var note = card.querySelector('.sq-mr-note');
-  if (note) note.textContent = allCorrect ? 'Correct.' : (need > 1
-    ? 'Incorrect. The correct answers are highlighted in green, yours in pink.'
-    : 'Incorrect. The correct answer is highlighted in green, yours in pink.');
+  // Wrong with no wrong pick means fewer picks than the cap, which only a
+  // multiple-response card can reach: a single-select card holds at most one
+  // chosen option, and one chosen option is either the key or a wrong pick.
+  if (note) note.textContent = allCorrect ? 'Correct.'
+    : !wrongPick ? 'Incorrect. The correct answers are highlighted in green. You selected fewer than the question asks for.'
+    : need > 1 ? 'Incorrect. The correct answers are highlighted in green, yours in pink.'
+    : 'Incorrect. The correct answer is highlighted in green, yours in pink.';
 }
 
 // Shuffle sample question cards on every page load
