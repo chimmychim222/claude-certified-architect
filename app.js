@@ -5364,11 +5364,10 @@ function toggleSampleQ(btn) {
   var textEl = btn.querySelector('.sq-toggle-text');
   var open = answer.classList.contains('sq-visible');
   if (!open) {
-    // A multiple-response card is graded here, on request, not on its last
-    // click: the engine grades at finishTest, and Show answer is the sample's
-    // equivalent. Single-select cards were graded on their click already.
+    // Every card is graded here, on request, never on a click: the engine
+    // grades at finishTest, and Show answer is the sample's equivalent.
     var need = parseInt(card.getAttribute('data-select') || '1', 10);
-    if (need > 1 && !card.classList.contains('sq-answered')) gradeSampleAnswerMulti(card, need);
+    if (!card.classList.contains('sq-answered')) gradeSampleAnswerMulti(card, need);
     // Update result label if user already made a guess
     var label = card.querySelector('.sq-answer-label');
     var result = card.getAttribute('data-result');
@@ -5404,37 +5403,35 @@ function toggleSampleQ(btn) {
 }
 
 // Click an option to attempt answer.
-// data-select="N" on the card marks a multiple-response item: N is the cap,
-// the card stays open, and the whole set is graded when Show answer is
-// clicked. Cards without the attribute keep the original single-select
-// behaviour untouched: they lock and grade on the first click.
+// data-select="N" on the card is the cap, 1 when absent. Every card stays open
+// until Show answer: pick, change or clear, then it is graded on reveal, as the
+// engine allows changes until a test is finished.
 function selectSampleAnswer(li) {
   var card = li.closest('.sq-card');
   if (card.classList.contains('sq-answered')) return;
-  var need = parseInt(card.getAttribute('data-select') || '1', 10);
-  if (need > 1) { selectSampleAnswerMulti(card, li, need); return; }
-  card.classList.add('sq-answered');
-  var isCorrect = li.classList.contains('sq-correct');
-  card.setAttribute('data-result', isCorrect ? 'correct' : 'wrong');
-  li.classList.add('sq-chosen');
-  if (!isCorrect) li.classList.add('sq-selected');
-  // sq-revealed NOT added here — correct answer hidden until Show answer clicked
+  selectSampleAnswerMulti(card, li, parseInt(card.getAttribute('data-select') || '1', 10));
 }
 
-// Multiple-response sample, on the engine's convention (toggleAnswer, above):
-// add until `need` are chosen, remove at any time, and at the cap refuse a
-// further add and say so in the engine's own words, "deselect one to change".
-// Nothing is graded here. gradeSampleAnswerMulti() runs from Show answer, and
-// the card locks there, where the single-select cards already lock on reveal.
+// Sample selection, on the engine's convention (toggleAnswer, above): add
+// until `need` are chosen, remove at any time. At the cap a single-select
+// card MOVES the selection to the clicked option; a multiple-response card
+// refuses the add and says so in the engine's own words, "deselect one to
+// change". Nothing is graded here. gradeSampleAnswerMulti() runs from Show
+// answer, and the card locks there.
 function selectSampleAnswerMulti(card, li, need) {
   var chosen = card.querySelectorAll('.sq-options li.sq-chosen');
-  if (!li.classList.contains('sq-chosen') && chosen.length >= need) return;
+  if (!li.classList.contains('sq-chosen') && chosen.length >= need) {
+    if (need > 1) return;
+    Array.prototype.forEach.call(chosen, function (el) { el.classList.remove('sq-chosen'); });
+  }
   li.classList.toggle('sq-chosen');
   chosen = card.querySelectorAll('.sq-options li.sq-chosen');
   var note = card.querySelector('.sq-mr-note');
   if (!note) return;
   if (!chosen.length) {
-    note.textContent = 'Select ' + (need === 2 ? 'two' : need) + ' answers';
+    note.textContent = need === 1 ? 'Select one answer' : 'Select ' + (need === 2 ? 'two' : need) + ' answers';
+  } else if (need === 1) {
+    note.textContent = 'Answer selected. Click another to change it, or Show answer to check.';
   } else if (chosen.length < need) {
     note.textContent = chosen.length + ' of ' + need + ' selected. Click a selected answer again to deselect it.';
   } else {
@@ -5442,9 +5439,10 @@ function selectSampleAnswerMulti(card, li, need) {
   }
 }
 
-// Grades the multiple-response sample when the reader asks for the answer.
-// No pick means no verdict, as on the single-select cards. A partial pick is
-// graded wrong, matching isCorrect(): the count must equal the key count.
+// Grades a sample card when the reader asks for the answer. No pick means no
+// verdict. A partial pick is graded wrong, matching isCorrect(): the count
+// must equal the key count. The note nearest the options carries the verdict;
+// the label inside the answer panel carries it too.
 function gradeSampleAnswerMulti(card, need) {
   var chosen = card.querySelectorAll('.sq-options li.sq-chosen');
   if (!chosen.length) return;
@@ -5454,7 +5452,9 @@ function gradeSampleAnswerMulti(card, need) {
   });
   card.setAttribute('data-result', allCorrect ? 'correct' : 'wrong');
   var note = card.querySelector('.sq-mr-note');
-  if (note) note.textContent = chosen.length + ' of ' + need + ' selected';
+  if (note) note.textContent = allCorrect ? 'Correct.' : (need > 1
+    ? 'Incorrect. The correct answers are highlighted in green, yours in pink.'
+    : 'Incorrect. The correct answer is highlighted in green, yours in pink.');
 }
 
 // Shuffle sample question cards on every page load
