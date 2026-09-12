@@ -5385,6 +5385,7 @@ function toggleSampleQ(btn) {
     card.classList.add('sq-revealed', 'sq-answered');
   }
   answer.classList.toggle('sq-visible', !open);
+  if (!open) answer.scrollIntoView({ block: 'nearest' }); // the panel opens below the button, which on a phone is often the last thing on screen
   btn.classList.toggle('open', !open);
   btn.setAttribute('aria-expanded', String(!open));
   answer.setAttribute('aria-hidden', String(open));
