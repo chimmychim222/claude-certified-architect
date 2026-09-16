@@ -1708,6 +1708,13 @@ function renderAuthWelcome(pendingUnverified) {
   } else {
     if (buyBtn) buyBtn.style.display = '';
     if (pendingMsg) pendingMsg.style.display = 'none';
+    // Third state, additive: the buy button above stays visible. Restored
+    // 16 Sep 2026 from ce058a2, which 94dedc5 removed after three same-address
+    // false positives in twelve hours from rendering to every new signup. Now
+    // gated on local evidence of a Stripe return, so a signup that never
+    // visited checkout never sees it. Row 301's equality check lives in the
+    // route (scripts/stripe-webhook.js, /link-purchase-request).
+    if (hasLocalPurchaseEvidence()) renderAlreadyPaidPrompt(panel, buyBtn);
   }
   panel.style.display = 'block';
   // The signup that produced this panel was not aborted by a dismissal, so
@@ -1715,6 +1722,121 @@ function renderAuthWelcome(pendingUnverified) {
   // back rather than telling a brand-new customer nothing; see
   // ensureAuthModalVisible.
   ensureAuthModalVisible();
+}
+
+// Local evidence that THIS browser returned from Stripe checkout without an
+// account: window.__pendingPurchaseShown and PENDING_PURCHASE_KEY are set only
+// by the anonymous ?paid=true return (see the DOMContentLoaded restore block
+// and the anonParams handling in onAuthStateChanged) and cleared only by
+// markEnrolled(). The signup path already reads the same two sources to pick
+// the verification continueUrl. A free signup with no Stripe visit has
+// neither, and that population produced every one of the three false
+// positives that led to 94dedc5.
+function hasLocalPurchaseEvidence() {
+  if (window.__pendingPurchaseShown) return true;
+  try { return localStorage.getItem(PENDING_PURCHASE_KEY) === '1'; } catch (e) { return false; }
+}
+
+// The third state for the welcome panel. The two branches in renderAuthWelcome
+// cover "we found your purchase" and "you are new", and the guest who paid
+// under one address and then signed in under another falls between them: no
+// pending_enrollments record matches the token's email, so they are handed the
+// $49 button with nothing on screen acknowledging the charge they already made.
+// Additive: the button stays where it was. Grants nothing: it collects one
+// string and hands it to a human, and the copy says so.
+//
+// Built here rather than in markup because #auth-welcome is static in two files
+// (index.html, diagnostic/index.html) and one JS source keeps them from
+// drifting. No paymentBlockHost() needed: unlike #success-banner, #auth-welcome
+// exists in both files, so this renders on /diagnostic/ unchanged.
+function renderAlreadyPaidPrompt(panel, buyBtn) {
+  if (document.getElementById('auth-welcome-paid-prompt')) return;
+
+  const wrap = document.createElement('div');
+  wrap.id = 'auth-welcome-paid-prompt';
+  wrap.className = 'form-group';
+  wrap.style.cssText = 'margin:0 0 14px;text-align:left';
+  wrap.innerHTML =
+    '<p style="color:var(--text2);font-size:.85rem;line-height:1.5;margin:0 0 8px">' +
+      '<strong>Already paid?</strong> If you checked out under a different email address, tell us which one. ' +
+      'One of our operatives will compare it with the payment record and will email you at both addresses. ' +
+      'Access is not switched on automatically. You can also email ' +
+      '<a href="mailto:support@claudecertifiedarchitects.com" style="color:var(--green);text-decoration:underline">' +
+      'support@claudecertifiedarchitects.com</a> directly.' +
+    '</p>' +
+    '<div style="display:flex;gap:8px;align-items:stretch">' +
+      '<input id="auth-welcome-paid-email" type="email" autocomplete="email" ' +
+        'placeholder="Email used at checkout" aria-label="Email address used at checkout" ' +
+        'style="flex:1;min-width:0;font-size:.85rem;min-height:44px">' +
+      '<button type="button" id="auth-welcome-paid-btn" class="btn-secondary" ' +
+        'style="padding:0 14px;font-size:.85rem;min-height:44px;white-space:nowrap">Send</button>' +
+    '</div>' +
+    '<p id="auth-welcome-paid-status" role="status" aria-live="polite" ' +
+      'style="color:var(--text2);font-size:.8rem;line-height:1.5;margin:8px 0 0;display:none"></p>';
+
+  if (buyBtn) buyBtn.insertAdjacentElement('beforebegin', wrap);
+  else panel.appendChild(wrap);
+
+  document.getElementById('auth-welcome-paid-btn')
+    .addEventListener('click', submitPurchaseLinkRequest);
+
+  // The denominator: new signups who see the prompt at all, against which
+  // purchase_link_requested is the hit rate. Since the render is gated on local
+  // purchase evidence, this now counts signups that returned from Stripe.
+  if (typeof gtag !== 'undefined') {
+    gtag('event', 'already_paid_prompt_shown', { page_path: location.pathname });
+  }
+}
+
+// Posts the checkout address the visitor names to /link-purchase-request. That
+// endpoint writes a record and alerts a human unless the named address equals
+// the account address (row 301's equality check). It does not enrol anyone, and
+// nothing here should ever be changed to expect that it might.
+async function submitPurchaseLinkRequest() {
+  const input  = document.getElementById('auth-welcome-paid-email');
+  const btn    = document.getElementById('auth-welcome-paid-btn');
+  const status = document.getElementById('auth-welcome-paid-status');
+  if (!input || !status) return;
+
+  const show = function(msg) { status.textContent = msg; status.style.display = 'block'; };
+  const value = (input.value || '').trim();
+
+  if (!value || value.indexOf('@') < 1) {
+    show('Please enter the email address you used at checkout.');
+    input.focus();
+    return;
+  }
+  if (!currentUser) {
+    show('Please sign in first, then tell us which address you used.');
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+  try {
+    const token = await fbAuth.getIdToken(currentUser);
+    const resp  = await fetch(WEBHOOK_BASE + '/link-purchase-request', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body:    JSON.stringify({ checkoutEmail: value })
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+
+    input.parentElement.style.display = 'none';
+    show('Thanks. We have both addresses. One of our operatives will check the payment record and email you. ' +
+         'Please do not pay again in the meantime.');
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'purchase_link_requested', { page_path: location.pathname });
+    }
+  } catch (e) {
+    // Never dead-end someone who has already paid once. A cold Render dyno or a
+    // dropped connection must not leave them staring at the $49 button with the
+    // impression that telling us failed, so this falls back to the address in
+    // the copy above rather than reporting a bare error.
+    console.warn('[link-request] submit failed:', e.message);
+    show('We could not send that just now. Please email ' +
+         'support@claudecertifiedarchitects.com with both email addresses. Please do not pay again.');
+    if (btn) { btn.disabled = false; btn.textContent = 'Send'; }
+  }
 }
 
 // Extracted from unlock-now-btn's click handler below. Also used by the

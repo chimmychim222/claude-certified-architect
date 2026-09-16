@@ -666,10 +666,12 @@ app.post('/claim-enrollment', async (req, res) => {
 // the request path writes one, and the route below no longer overwrites one.
 const PURCHASE_LINK_TERMINAL_STATUSES = ['linked', 'rejected'];
 
-// NO CALLER SINCE 2026-08-25. The client prompt that posted here was removed
-// from app.js, so nothing on the site reaches this route — but a valid ID token
-// and curl still do, so the collection can still grow. It and the admin reader
-// below are retained for the records already written.
+// CALLER RESTORED 2026-09-16. Uncalled from 94dedc5 (25 Aug) until then: the
+// client prompt that posts here was removed after three same-address false
+// positives from rendering to every new signup. It is back in app.js
+// (renderAlreadyPaidPrompt), gated on local evidence of a Stripe return, and
+// the equality check below stops the same-address shape from alerting. A valid
+// ID token and curl reach this route as they always did.
 // POST /link-purchase-request
 // Header: Authorization: Bearer <Firebase ID token>
 // Body:   { checkoutEmail: string }
@@ -784,7 +786,18 @@ app.post('/link-purchase-request', express.json(), async (req, res) => {
   const sameClaim   = !!prior && prior.checkoutEmail === checkoutEmail;
   const inCooldown  = lastAlertedMs !== null &&
                       lastAlertedMs > Date.now() - STALE_PENDING_ALERT_COOLDOWN_MS;
-  const shouldAlert = priorReadFailed || !sameClaim || !inCooldown;
+
+  // THE EQUALITY CHECK, specified 25 Aug 2026 (calendar row 301) and built on
+  // 16 Sep 2026. A visitor naming their own account address has told us nothing
+  // a human can act on: the webhook already looked that address up when the
+  // purchase came in, and /claim-enrollment looks it up on every page load.
+  // Every one of ce058a2's three live firings was this shape, and the alerts
+  // they produced are why the prompt was removed. Recorded, never alerted: the
+  // record still lands (the admin listing surfaces sameAddress), the visitor
+  // still gets ok, and the client copy still holds. A record whose two
+  // addresses differ alerts exactly as before.
+  const sameAddress = !!accountEmail && accountEmail === checkoutEmail;
+  const shouldAlert = !sameAddress && (priorReadFailed || !sameClaim || !inCooldown);
 
   try {
     // Doc id = uid, so someone who submits twice overwrites their own record
@@ -819,6 +832,8 @@ app.post('/link-purchase-request', express.json(), async (req, res) => {
       .then(() => ref.update({ lastAlertedAt: admin.firestore.FieldValue.serverTimestamp() })
         .catch(err => console.warn('[link-request] lastAlertedAt update failed for', uid, ':', err.message)))
       .catch(err => console.error('[link-request] alert failed:', err.message));
+  } else if (sameAddress) {
+    console.log(`[link-request] alert suppressed (checkout address equals account address): uid=${uid}`);
   } else {
     console.log(`[link-request] alert suppressed (same address, within cooldown): uid=${uid}`);
   }
