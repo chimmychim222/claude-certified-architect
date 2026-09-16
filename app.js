@@ -1759,7 +1759,7 @@ function renderAlreadyPaidPrompt(panel, buyBtn) {
   wrap.innerHTML =
     '<p style="color:var(--text2);font-size:.85rem;line-height:1.5;margin:0 0 8px">' +
       '<strong>Already paid?</strong> If you checked out under a different email address, tell us which one. ' +
-      'One of our operatives will compare it with the payment record and will email you at both addresses. ' +
+      'We compare it with the payment record and email you at both addresses. ' +
       'Access is not switched on automatically. You can also email ' +
       '<a href="mailto:support@claudecertifiedarchitects.com" style="color:var(--green);text-decoration:underline">' +
       'support@claudecertifiedarchitects.com</a> directly.' +
@@ -1822,7 +1822,7 @@ async function submitPurchaseLinkRequest() {
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
 
     input.parentElement.style.display = 'none';
-    show('Thanks. We have both addresses. One of our operatives will check the payment record and email you. ' +
+    show('Thanks. We have both addresses. We will check the payment record and email you. ' +
          'Please do not pay again in the meantime.');
     if (typeof gtag !== 'undefined') {
       gtag('event', 'purchase_link_requested', { page_path: location.pathname });
