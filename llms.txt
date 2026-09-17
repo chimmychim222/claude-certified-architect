@@ -43,6 +43,7 @@ CCA Practice Platforms (claudecertifiedarchitects.com) provides unofficial pract
 - [CCA Exam Retake Policy: Cost, Wait Time, and Strategy](https://www.claudecertifiedarchitects.com/blog/cca-exam-retake-policy-cost-wait-time-strategy/): Learn about the CCA exam retake policy, including wait periods, additional costs, score validity, and proven strategies to pass on your second attempt.
 - [CCA Domain Weighting Strategy: How to Focus Your Study Time](https://www.claudecertifiedarchitects.com/blog/cca-domain-weighting-strategy-focus-study-time/): The CCA Foundations exam weights its five domains differently — from Agentic Architecture (27%) down to Context Management (15%). Here's how to allocate your study time by domain weight for the highest expected score.
 - [Guarantee or accuracy: a CCAR-F question type](https://www.claudecertifiedarchitects.com/blog/guarantee-or-accuracy-ccar-f-question-type/): One option adds an instruction, another adds a hook, gate or schema. Where the guide scopes each, where our bank keys each, and the test that tells them apart.
+- [CCAR-F (CCA-F) exam dumps: do they exist, and would they help?](https://www.claudecertifiedarchitects.com/blog/ccar-f-exam-dumps/): CCAR-F (CCA-F) exam dumps: why the published exam design works against them, what the guide does not say, and what prepares a candidate instead.
 
 ## Certification Value & Career
 
