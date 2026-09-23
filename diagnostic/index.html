@@ -705,7 +705,9 @@ function showResults() {
   else                                   headline = "Good start — let's fill those gaps";
   document.getElementById('results-headline').textContent = headline;
 
-  // Weakest domain
+  // Weakest domain: lowest percentage wins, and a tie between equally low
+  // domains goes to the higher exam weight, because that domain is worth
+  // more marks on the real exam. The selection itself is unchanged.
   let weakest = DOMAINS[0];
   DOMAINS.forEach(d => {
     const s = domScore[d.key];
@@ -717,19 +719,34 @@ function showResults() {
   const ws = domScore[weakest.key];
   const wpct = ws.total > 0 ? Math.round((ws.correct / ws.total) * 100) : 0;
 
+  // A perfect sample has no weakest domain. The tie-break above resolves a
+  // five-way tie to the highest-weighted domain, so until 23 Sep 2026 every
+  // 10/10 was told its weakest area was a domain it had just scored 100% in:
+  // 134 of 501 stored leads, 26.75%. Nothing rendered below may name a domain
+  // the visitor answered perfectly.
+  const noWeakArea = DOMAINS.every(d => {
+    const s = domScore[d.key];
+    return s.total > 0 && s.correct === s.total;
+  });
+
   if (typeof gtag !== 'undefined') {
     gtag('event', 'diagnostic_complete', { weak_domain: weakest.label });
   }
 
-  document.getElementById('weak-callout').innerHTML =
-    '<div class="weak-callout-icon">🎯</div>' +
-    '<div class="weak-callout-body">' +
-    '<h3>Your weakest area: ' + weakest.label + '</h3>' +
-    '<p>You scored <strong>' + ws.correct + ' out of ' + ws.total + ' (' + wpct + '%)</strong> here. ' +
-    'This domain accounts for <strong>' + weakest.pct + '% of the real exam</strong> — ' +
-    'strengthening it will have the biggest impact on your final score.</p>' +
-    '<p><a href="/study-plan-generator/?weak=' + (DOMAINS.indexOf(weakest) + 1) + '">Build a free study plan weighted toward this domain →</a></p>' +
-    '</div>';
+  document.getElementById('weak-callout').innerHTML = noWeakArea
+    ? '<div class="weak-callout-icon">🎯</div>' +
+      '<div class="weak-callout-body">' +
+      '<h3>No weak areas in this sample</h3>' +
+      '<p>You answered all 10 correctly. This diagnostic samples 2 questions per domain, so it cannot tell you much at this level. The real exam is longer and the scenarios are harder.</p>' +
+      '</div>'
+    : '<div class="weak-callout-icon">🎯</div>' +
+      '<div class="weak-callout-body">' +
+      '<h3>Your weakest area: ' + weakest.label + '</h3>' +
+      '<p>You scored <strong>' + ws.correct + ' out of ' + ws.total + ' (' + wpct + '%)</strong> here. ' +
+      'This domain accounts for <strong>' + weakest.pct + '% of the real exam</strong> — ' +
+      'strengthening it will have the biggest impact on your final score.</p>' +
+      '<p><a href="/study-plan-generator/?weak=' + (DOMAINS.indexOf(weakest) + 1) + '">Build a free study plan weighted toward this domain →</a></p>' +
+      '</div>';
 
   // Personalized one-liner for the primary offer card directly below — ties
   // the visitor's own weakest domain (and its real exam weight, just shown
@@ -742,13 +759,17 @@ function showResults() {
     document.getElementById('cta-headline').textContent = ctaOver
       ? 'You’re at passing level — lock it in with more practice'
       : 'Close that gap before the real exam';
-    document.getElementById('cta-personal-line').innerHTML = ctaOver
-      ? 'You scored <strong>' + estimatedScore + ' / 1,000</strong> — at passing level on this short sample. But the real exam is 60 broader questions. Lock it in with <strong>' + ctaN + ' more in your weakest area, ' + weakest.label + '</strong>.'
-      : 'You scored <strong>' + estimatedScore + ' / 1,000</strong> — <strong>' + ctaGap + ' points below passing</strong>. Your weakest domain is <strong>' + weakest.label + '</strong>; the full bank has <strong>' + ctaN + ' questions</strong> targeting exactly that. Don’t walk into the real exam unprepared.';
+    document.getElementById('cta-personal-line').innerHTML = noWeakArea
+      ? 'You scored <strong>' + estimatedScore + ' / 1,000</strong> on all 10 questions. The real exam is 60 questions across a broader range of difficulty, so the useful next step is practice at full exam length across all five domains.'
+      : ctaOver
+        ? 'You scored <strong>' + estimatedScore + ' / 1,000</strong> — at passing level on this short sample. But the real exam is 60 broader questions. Lock it in with <strong>' + ctaN + ' more in your weakest area, ' + weakest.label + '</strong>.'
+        : 'You scored <strong>' + estimatedScore + ' / 1,000</strong> — <strong>' + ctaGap + ' points below passing</strong>. Your weakest domain is <strong>' + weakest.label + '</strong>; the full bank has <strong>' + ctaN + ' questions</strong> targeting exactly that. Don’t walk into the real exam unprepared.';
     document.getElementById('cta-anchor-line').textContent = 'The official exam costs $125 and has a mandatory waiting period between retakes — $49 now is cheap insurance against an attempt you can’t immediately redo.';
   } catch(e) {
     document.getElementById('cta-headline').textContent = 'Close the gap with the full 400-question bank — $49';
-    document.getElementById('cta-personal-line').innerHTML = 'Your diagnostic shows <strong>' + (weakest && weakest.label || 'your weakest domain') + '</strong> as your weakest area. The full 400-question bank gives you focused, domain-weighted practice to close that gap before exam day.';
+    document.getElementById('cta-personal-line').innerHTML = noWeakArea
+      ? 'You answered all 10 correctly. The full 400-question bank gives you longer, harder practice across all five domains at their real exam weightings.'
+      : 'Your diagnostic shows <strong>' + (weakest && weakest.label || 'your weakest domain') + '</strong> as your weakest area. The full 400-question bank gives you focused, domain-weighted practice to close that gap before exam day.';
     document.getElementById('cta-anchor-line').textContent = '';
   }
 
