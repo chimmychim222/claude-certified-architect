@@ -62,6 +62,7 @@ CCA Practice Platforms (claudecertifiedarchitects.com) provides unofficial pract
 - [CCAO-F vs CCAR-F: which Claude certification should you take?](https://www.claudecertifiedarchitects.com/blog/ccao-f-vs-ccar-f-claude-certification/): CCAO-F is the Claude Certified Associate – Foundations exam; CCAR-F (CCA-F) is the Architect one. What the two official guides state about audience, blueprint, fee and format, and how to choose between them.
 - [CCDV-F vs CCAR-F: 53 items, 8 domains, same $125 fee](https://www.claudecertifiedarchitects.com/blog/ccdv-f-vs-ccar-f-claude-developer-exam/): CCDV-F is the Claude Certified Developer – Foundations exam; CCAR-F is the Architect one. Same $125 fee and 120 minutes, but 53 items against 60, eight content domains against five, and blueprints published at different resolutions.
 - [How to List the CCAR-F (CCA-F) on a Resume and LinkedIn](https://www.claudecertifiedarchitects.com/blog/ccar-f-resume-linkedin/): How to list the CCAR-F (CCA-F) on a resume and LinkedIn: the exact name, code and issuer from the exam guide, the 12-month expiry, and the Credly badge.
+- [CCAR-F Renewal: How to Keep Your Claude Certification Active](https://www.claudecertifiedarchitects.com/blog/ccar-f-credential-renewal/): The Claude Certified Architect credential lasts 12 months. Renewing on time is free and not proctored. Here is what the official documents say to do.
 
 ## Claude Development Skills
 
