@@ -1457,18 +1457,28 @@ app.post('/diagnostic-email', diagJson, async (req, res) => {
       .map(d => `  • ${d.label}: ${d.correct}/${d.total} (${d.pct}%) — ${d.examWeight}% of exam`)
       .join('\n');
 
+    // A perfect sample (every domain correct equals its total) has no weakest
+    // area. results.weakestDomain is the label the validator requires, not a
+    // finding, so it is not named here. Freeze exception 3, 28 Sep 2026.
+    const perfect = Array.isArray(results.domains) && results.domains.length > 0 &&
+      results.domains.every(d => d.total > 0 && d.correct === d.total);
+    const verdictOut  = perfect ? '✅ Strong result on this sample.' : verdict;
+    const weakestLine = perfect
+      ? "Weakest area: none on this sample. You answered all 10 questions correctly, but with two questions per domain, a sample this small can’t show whether you’re ready for the real exam’s 60 questions. Treat it as a strong start rather than a verdict."
+      : `Weakest area: ${results.weakestDomain} (${results.weakestDomainWeight}% of the real exam)`;
+
     const text = `Hi,
 
 Here are your CCA Diagnostic Quiz results:
 
-${verdict}
+${verdictOut}
 
 Estimated score: ${score} / 1,000  (passing mark: ${passMark})
 
 Domain breakdown:
 ${domainRows}
 
-Weakest area: ${results.weakestDomain} (${results.weakestDomainWeight}% of the real exam)
+${weakestLine}
 
 Want to close the gap? The full 400-question practice bank covers every domain at real exam weightings, with detailed explanations for every answer.
 
@@ -1695,6 +1705,14 @@ function buildEmail1(results, unsubUrl) {
   const domain = results.weakestDomain       || 'Agentic Architecture & Orchestration';
   const weight = results.weakestDomainWeight || 27;
   const domainH = escHtml(domain), scoreH = escHtml(score), gapH = escHtml(gap), weightH = escHtml(weight); // HTML-safe copies
+  // Perfect sample: every domain correct equals its total. No weakest area is
+  // named, the bank paragraph is dropped (the copy below carries the offer), and the above-pass
+  // weakest-area sentence is replaced. Freeze exception 3, 28 Sep 2026.
+  const perfect = Array.isArray(results.domains) && results.domains.length > 0 &&
+    results.domains.every(d => d.total > 0 && d.correct === d.total);
+  const weightC  = own(DIAG_DOMAIN_WEIGHTS, domain) || weight;   // the label's published exam share
+  const weightCH = escHtml(weightC);
+  const perfectCopy = "You got every question right on the diagnostic. That’s a strong start, but it was 10 questions, two per domain. The real exam is 60 scenario-based questions in 120 minutes, and one strong run on a small sample doesn’t show how you’ll do across all of them. The full practice bank has " + NURTURE_BANK_TOTAL + " questions across all five domains, so you can find out where you really stand before exam day.";
   const N      = own(NURTURE_DOMAIN_Q_COUNT, nurtureDomainKey(domain)) || null;
   // An unresolved domain publishes the bank total, not a guessed per-domain
   // count. The old `|| 80` was exact for one domain and wrong for the other four.
@@ -1712,27 +1730,30 @@ function buildEmail1(results, unsubUrl) {
     ? `Your result: ${score}/1,000 — above the 720 passing standard on a 10-question sample.\nYour weakest domain: ${domain} (${weight}% of the real exam).`
     : `Your result: ${score}/1,000 — ${gap} points below the 720 passing standard.\nYour weakest domain: ${domain} (${weight}% of the real exam).`;
   const context = above
-    ? `\nThe real exam is 60 questions drawn from a much larger pool, covering harder scenarios than a short sample can surface. Your weakest area — ${domain} (${weight}% of the exam) — is where the full exam will probe hardest.\n`
+    ? `\nYour weakest area on the diagnostic was ${domain}, which makes up ${weightC}% of the real exam. It’s also worth knowing that two questions per domain is a small sample, so even a passing score here can’t show how you’ll do across the real exam’s 60 questions.\n`
     : `\n${domain} accounts for ${weight}% of your actual exam score. Closing that domain first gives you the biggest return on your study time.\n`;
+  const scoreLineOut = perfect ? `Your result: ${score}/1,000, above the 720 passing standard on a 10-question sample.` : scoreLine;
+  const contextOut   = perfect ? `\n${perfectCopy}\n` : context;
   const ctaCopy = above
     ? `The full bank has ${bankPhrase} — run a timed simulation and confirm your readiness before you book.`
     : `The full bank has ${bankPhrase}, every answer fully explained. That’s where the gap closes — not from rereading docs, but from scenario-based practice exactly like the real exam.`;
+  const ctaCopyOut = perfect ? null : ctaCopy;   // null lines are dropped from the array below
 
   const text = [
     'Hi,',
     '',
     'You took the CCA Foundations Diagnostic and asked for your results. Here’s what those numbers mean — plus one study tip worth more than the score alone.',
     '',
-    scoreLine,
-    context,
+    scoreLineOut,
+    contextOut,
     `── Study tip for ${domain} ──`,
     '',
     tip,
     '',
     '── What to do next ──',
     '',
-    ctaCopy,
-    '',
+    ctaCopyOut,
+    (perfect ? null : ''),
     `Close the gap — $49:\n${cta}`,
     '',
     'Good luck,',
@@ -1742,15 +1763,17 @@ function buildEmail1(results, unsubUrl) {
     'CCA Practice Platforms — independent practice prep, not affiliated with or endorsed by Anthropic.',
     'Reply-To: support@claudecertifiedarchitects.com',
     `To stop receiving these emails: ${unsubUrl}`,
-  ].join('\n');
+  ].filter(l => l !== null).join('\n');
 
   // ── HTML ──
   const scoreHtml = above
     ? eP(`Your result: <strong>${scoreH}/1,000</strong> — above the 720 passing standard on a 10-question sample. Your weakest domain: <strong>${domainH}</strong> (${weightH}% of the real exam).`)
     : eP(`Your result: <strong>${scoreH}/1,000</strong> — <strong>${gapH} points below</strong> the 720 passing standard. Your weakest domain: <strong>${domainH}</strong> (${weightH}% of the real exam).`);
   const contextHtml = above
-    ? eP(`The real exam is 60 questions drawn from a much larger pool. Your weakest area — <strong>${domainH}</strong> (${weightH}% of the exam) — is where the full exam will probe hardest.`)
+    ? eP(`Your weakest area on the diagnostic was <strong>${domainH}</strong>, which makes up ${weightCH}% of the real exam. It’s also worth knowing that two questions per domain is a small sample, so even a passing score here can’t show how you’ll do across the real exam’s 60 questions.`)
     : eP(`${domainH} accounts for <strong>${weightH}%</strong> of your actual exam score. Closing that domain first gives you the biggest return on your study time.`);
+  const scoreHtmlOut   = perfect ? eP(`Your result: <strong>${scoreH}/1,000</strong>, above the 720 passing standard on a 10-question sample.`) : scoreHtml;
+  const contextHtmlOut = perfect ? eP(perfectCopy) : contextHtml;
   const tipBlock =
     `<div style="background:#f5f3ea;border-left:3px solid #c4522c;padding:14px 18px;margin:20px 0;border-radius:0 6px 6px 0">` +
     `<p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#b04928;margin:0 0 8px">Study tip — ${domainH}</p>` +
@@ -1763,7 +1786,7 @@ function buildEmail1(results, unsubUrl) {
   const bodyHtml =
     eP('Hi,') +
     eP('You took the CCA Foundations Diagnostic and asked for your results. Here’s what those numbers mean — plus one study tip worth more than the score alone.') +
-    scoreHtml + contextHtml + tipBlock + ctaHtml +
+    scoreHtmlOut + contextHtmlOut + tipBlock + (perfect ? '' : ctaHtml) +
     eBtn('Close the gap — $49', cta);
 
   return { subject, text, html: emailWrap(bodyHtml, unsubUrl) };
@@ -1778,6 +1801,16 @@ function buildEmail2(results, unsubUrl) {
   const domain = results.weakestDomain       || 'Agentic Architecture & Orchestration';
   const domainH = escHtml(domain), gapH = escHtml(gap);   // HTML-safe copies; the text branches keep the raw values
   const sampleQ = own(SAMPLE_QUESTIONS, nurtureDomainKey(domain)) || SAMPLE_QUESTIONS['Agentic Architecture & Orchestration'];
+  // Perfect sample: the question is presented as a sample from the exam's
+  // largest domain, read from DIAG_DOMAIN_WEIGHTS, not as the candidate's
+  // weakest area. Same question either way. Freeze exception 3, 28 Sep 2026.
+  const perfect = Array.isArray(results.domains) && results.domains.length > 0 &&
+    results.domains.every(d => d.total > 0 && d.correct === d.total);
+  const [largestLabel, largestWeight] = Object.entries(DIAG_DOMAIN_WEIGHTS).reduce((a, b) => (b[1] > a[1] ? b : a));
+  const largestLabelH = escHtml(largestLabel), largestWeightH = escHtml(largestWeight);
+  const sampleLabel = perfect
+    ? `── Sample question from ${largestLabel}, the largest domain on the exam at ${largestWeight}% ──`
+    : `── Sample question (${domain}) ──`;
   const correctLetter = OPT_LETTERS[sampleQ.correct];
   const cta = nurtureCtaUrl('d3');
 
@@ -1796,7 +1829,7 @@ function buildEmail2(results, unsubUrl) {
     '',
     '$49 for 400 practice questions is the straightforward hedge against that outcome. Here’s a taste of what those questions look like:',
     '',
-    `── Sample question (${domain}) ──`,
+    sampleLabel,
     '',
     sampleQ.q,
     '',
@@ -1843,11 +1876,16 @@ function buildEmail2(results, unsubUrl) {
     `<table width="100%" cellpadding="0" cellspacing="4" border="0">${optRows}</table>` +
     `<p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.8rem;color:#5a5a52;line-height:1.55;margin:14px 0 0;border-top:1px solid #d9d5ca;padding-top:12px"><strong>Why:</strong> ${sampleQ.explain}</p>` +
     `</div>`;
+  // The heading is swapped after the block is built so the non-perfect
+  // heading line above stays exactly as it was.
+  const questionBlockOut = perfect
+    ? questionBlock.replace(/Sample question [^<]*<\/p>/, `Sample question from ${largestLabelH}, the largest domain on the exam at ${largestWeightH}%</p>`)
+    : questionBlock;
 
   const bodyHtml =
     eP('Hi,') + stakesHtml +
     eP('$49 for 400 practice questions is the straightforward hedge. Here’s a taste:') +
-    questionBlock +
+    questionBlockOut +
     eP('400 questions like this, across all five domains. Every answer fully explained — not just what’s right, but why each wrong option is wrong.') +
     eP('$49. 10-day money-back guarantee: if you are not satisfied, email us for a full refund.', 'font-weight:700') +
     eBtn('Unlock access — $49', cta);
@@ -1891,6 +1929,11 @@ function buildEmail3(results, unsubUrl) {
     'Reply-To: support@claudecertifiedarchitects.com',
     `To stop receiving these emails: ${unsubUrl}`,
   ].join('\n');
+  // Perfect sample: the guarantee names no domain. Swapped after the text is
+  // built so the existing line stays as it was. Freeze exception 3, 28 Sep 2026.
+  const perfect = Array.isArray(results.domains) && results.domains.length > 0 &&
+    results.domains.every(d => d.total > 0 && d.correct === d.total);
+  const textOut = perfect ? text.replace(`confident in ${domain},`, 'confident going into the exam,') : text;
 
   // ── HTML ──
   const openingHtml = above
@@ -1904,15 +1947,16 @@ function buildEmail3(results, unsubUrl) {
     `<strong style="color:#1a4d3a">10-day money-back guarantee.</strong> Try the full 400-question bank for a week. ` +
     `If you don’t feel more confident in ${domainH}, get a full refund: email us within 10 days of purchase.</p>` +
     `</div>`;
+  const riskBlockOut = perfect ? riskBlock.replace(`confident in ${domainH},`, 'confident going into the exam,') : riskBlock;
 
   const bodyHtml =
     eP('Hi,') + openingHtml +
     eP('The full practice bank is the best thing you can add at this stage: 400 scenario-based questions, domain-weighted exactly like the real exam, every answer fully explained.') +
-    riskBlock +
+    riskBlockOut +
     eP('If now isn’t the right time, come back when you’re ready. Good luck with the exam.') +
     eBtn('Close the gap — $49', cta);
 
-  return { subject, text, html: emailWrap(bodyHtml, unsubUrl) };
+  return { subject, text: textOut, html: emailWrap(bodyHtml, unsubUrl) };
 }
 
 // ── GET /unsubscribe ──────────────────────────────────────────────────────────
