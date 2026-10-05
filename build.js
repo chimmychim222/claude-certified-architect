@@ -135,7 +135,7 @@ function renderFooter(year) {
     `<div class="links-row">${links}</div>\n` +
     `<p class="footer-disclaimer">CCA Practice Platforms is an independent exam-preparation resource. We are not affiliated with, endorsed by, sponsored by, or authorized by Anthropic, and this is not the official Claude Certified Architect exam or certification. 'Claude', 'Claude Certified Architect', and 'CCA' are trademarks of Anthropic, PBC, used here only to identify the exam our materials help you prepare for.</p>\n` +
     `<p style="margin-top:8px;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.78rem;color:var(--text3)"><a href="/privacy/">Privacy Policy</a> &middot; <a href="/terms/">Terms of Service</a> &middot; <a href="/refund/">Refund Policy</a></p>\n` +
-    `<p style="margin-top:8px">© ${year} CCA Practice Platforms · Questions? <a href="mailto:support@claudecertifiedarchitects.com">support@claudecertifiedarchitects.com</a></p>`
+    `<p style="margin-top:8px">© ${year} CCA Practice Platforms · 361 Falls Rd #831, Grafton, WI 53024, USA · Questions? <a href="mailto:support@claudecertifiedarchitects.com">support@claudecertifiedarchitects.com</a></p>`
   );
 }
 
@@ -881,7 +881,7 @@ function blogFooter() {
     .join(' &nbsp;&middot;&nbsp; ');
   return `<footer class="site-footer">
 <!-- cca:footer:start -->
-  <p style="margin:0 0 6px">&copy; ${year} CCA Practice Platforms</p>
+  <p style="margin:0 0 6px">&copy; ${year} CCA Practice Platforms &middot; 361 Falls Rd #831, Grafton, WI 53024, USA</p>
   <p style="margin:0 0 10px;font-size:.82rem">${links}</p>
   <p style="max-width:620px;margin:0 auto;font-size:.85rem;line-height:1.65;color:#c8c8be">CCA Practice Platforms is an independent exam-preparation resource. We are not affiliated with, endorsed by, sponsored by, or authorized by Anthropic, and this is not the official Claude Certified Architect exam or certification. 'Claude', 'Claude Certified Architect', and 'CCA' are trademarks of Anthropic, PBC, used here only to identify the exam our materials help you prepare for.</p>
   <p style="margin:8px 0 0;font-size:.82rem"><a href="/privacy/">Privacy Policy</a> &middot; <a href="/terms/">Terms of Service</a> &middot; <a href="/refund/">Refund Policy</a></p>
