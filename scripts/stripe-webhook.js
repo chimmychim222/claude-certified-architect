@@ -1432,12 +1432,18 @@ app.post('/diagnostic-email', diagJson, async (req, res) => {
   }));
 
   // 2. Persist to Firestore (non-blocking)
+  // The unsubscribe token is issued here so the results email carries the same
+  // link the nurture sequence reuses (runNurtureSequence step 7 keeps an
+  // existing lead.unsubToken). Freeze exception 7, Build Schedule row 570.
+  const unsubToken = crypto.randomBytes(20).toString('hex');
+  const unsubUrl   = `https://claude-certified-architect.onrender.com/unsubscribe?token=${unsubToken}`;
   try {
     await db.collection('diagnostic_leads').add({
       email,
       results:     results || null,
       submittedAt: admin.firestore.FieldValue.serverTimestamp(),
       source:      'diagnostic',
+      unsubToken,
     });
   } catch (err) {
     console.error('Firestore write failed (lead still logged):', err.message);
@@ -1485,12 +1491,16 @@ Want to close the gap? The full 400-question practice bank covers every domain a
 👉 ${nurtureCtaUrl('results')}
 
 Good luck with your studies!
-— CCA Practice Platforms`;
+— CCA Practice Platforms
+
+CCA Practice Platforms, 361 Falls Rd #831, Grafton, WI 53024, USA
+To stop receiving these emails: ${unsubUrl}`;
 
     await sendViaResend({
       to:      email,
       subject: `Your CCA Diagnostic Results — ${score}/1,000`,
       text,
+      listUnsubscribeUrl: unsubUrl,
     });
   }
 
@@ -1644,6 +1654,19 @@ const SEQUENCE_START = new Date(process.env.SEQUENCE_START || '2026-06-19T00:00:
 const STAGE_ORDER       = ['d1', 'd3', 'd7'];
 const STAGE_MIN_AGE_MS  = { d1: 22 * 3600000, d3: 70 * 3600000, d7: 166 * 3600000 };
 
+// Backlog safety (freeze exception 7, Build Schedule row 570). The daily send
+// was off from 27 Sep to 8 Oct 2026, and a resumed run must not send a pile of
+// stale emails or two emails to one person on consecutive days.
+//   - A stage more than STAGE_MAX_LATE_MS past its minimum age is skipped, never
+//     sent late, and the lead's sequence is closed: sequenceClosed records which
+//     stage and why, and a closed lead is skipped on every later run.
+//   - A later stage waits STAGE_MIN_GAP_MS after the previous send (step 2 is
+//     48h after step 1 by design, step 3 is 96h after step 2), so a lead that
+//     fell behind keeps the designed spacing instead of compressing it.
+//   - One email per lead per run was already the case and is unchanged.
+const STAGE_MAX_LATE_MS = 7 * 24 * 3600000;
+const STAGE_MIN_GAP_MS  = { d1: 0, d3: 48 * 3600000, d7: 96 * 3600000 };
+
 const SITE_URL    = 'https://www.claudecertifiedarchitects.com';
 const OPT_LETTERS = ['A', 'B', 'C', 'D', 'E'];
 
@@ -1670,6 +1693,7 @@ ${bodyHtml}
   <tr><td style="border-top:1px solid #d9d5ca;padding:16px 28px;background:#f5f3ea">
     <p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.68rem;color:#6f6f66;margin:0 0 5px;line-height:1.5">
       CCA Practice Platforms — independent practice prep, not affiliated with or endorsed by Anthropic.<br>
+      CCA Practice Platforms, 361 Falls Rd #831, Grafton, WI 53024, USA<br>
       Questions? <a href="mailto:support@claudecertifiedarchitects.com" style="color:#6f6f66">support@claudecertifiedarchitects.com</a>
     </p>
     <p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.68rem;color:#6f6f66;margin:0">
@@ -1761,6 +1785,7 @@ function buildEmail1(results, unsubUrl) {
     '',
     '─────────────────────────────────────────',
     'CCA Practice Platforms — independent practice prep, not affiliated with or endorsed by Anthropic.',
+    'CCA Practice Platforms, 361 Falls Rd #831, Grafton, WI 53024, USA',
     'Reply-To: support@claudecertifiedarchitects.com',
     `To stop receiving these emails: ${unsubUrl}`,
   ].filter(l => l !== null).join('\n');
@@ -1851,6 +1876,7 @@ function buildEmail2(results, unsubUrl) {
     '',
     '─────────────────────────────────────────',
     'Independent practice prep, not affiliated with or endorsed by Anthropic.',
+    'CCA Practice Platforms, 361 Falls Rd #831, Grafton, WI 53024, USA',
     'Reply-To: support@claudecertifiedarchitects.com',
     `To stop receiving these emails: ${unsubUrl}`,
   ].join('\n');
@@ -1907,8 +1933,8 @@ function buildEmail3(results, unsubUrl) {
 
   // ── plain text ──
   const opening = above
-    ? `A week ago you scored above the 720 passing standard on a short diagnostic sample.\n\nThe real exam is 60 questions — broader, harder, drawn from a much larger pool. A passing sample is a good sign, not a guarantee.`
-    : `A week ago you were ${gap} points below the 720 passing standard, with ${domain} as your weakest area.\n\nThat gap doesn’t close on its own.`;
+    ? `When you took the diagnostic, you scored above the 720 passing standard on a short diagnostic sample.\n\nThe real exam is 60 questions — broader, harder, drawn from a much larger pool. A passing sample is a good sign, not a guarantee.`
+    : `When you took the diagnostic, you were ${gap} points below the 720 passing standard, with ${domain} as your weakest area.\n\nThat gap doesn’t close on its own.`;
 
   const text = [
     'Hi,',
@@ -1926,6 +1952,7 @@ function buildEmail3(results, unsubUrl) {
     '',
     '─────────────────────────────────────────',
     'Independent practice prep, not affiliated with or endorsed by Anthropic.',
+    'CCA Practice Platforms, 361 Falls Rd #831, Grafton, WI 53024, USA',
     'Reply-To: support@claudecertifiedarchitects.com',
     `To stop receiving these emails: ${unsubUrl}`,
   ].join('\n');
@@ -1937,8 +1964,8 @@ function buildEmail3(results, unsubUrl) {
 
   // ── HTML ──
   const openingHtml = above
-    ? eP('A week ago you scored above the 720 passing standard on a short sample. The real exam is 60 questions — broader, harder, drawn from a much larger pool. A passing sample is a good sign, not a guarantee.')
-    : eP(`A week ago you were <strong>${gapH} points below the 720 passing standard</strong>, with <strong>${domainH}</strong> as your weakest area.`) +
+    ? eP('When you took the diagnostic, you scored above the 720 passing standard on a short sample. The real exam is 60 questions — broader, harder, drawn from a much larger pool. A passing sample is a good sign, not a guarantee.')
+    : eP(`When you took the diagnostic, you were <strong>${gapH} points below the 720 passing standard</strong>, with <strong>${domainH}</strong> as your weakest area.`) +
       eP('That gap doesn’t close on its own.');
 
   const riskBlock =
@@ -1975,11 +2002,18 @@ app.get('/unsubscribe', async (req, res) => {
       // Already unsubscribed or invalid token — treat as success to avoid leaking info
       return res.send(unsubPage('You are unsubscribed. You will not receive further emails from us.', true));
     }
-    await snap.docs[0].ref.set(
-      { unsubscribed: true, unsubscribedAt: admin.firestore.FieldValue.serverTimestamp() },
-      { merge: true }
-    );
-    console.log('[unsub] Unsubscribed token:', token);
+    // Flag every lead doc under this address, not only the doc the token
+    // belongs to: one submission per doc, so an address can hold several.
+    const stamp   = { unsubscribed: true, unsubscribedAt: admin.firestore.FieldValue.serverTimestamp() };
+    const first   = snap.docs[0];
+    const targets = new Map([[first.id, first.ref]]);
+    const rawEmail = first.data().email;
+    if (typeof rawEmail === 'string' && rawEmail) {
+      const siblings = await db.collection('diagnostic_leads').where('email', '==', rawEmail).get();
+      siblings.forEach(d => targets.set(d.id, d.ref));
+    }
+    await Promise.all([...targets.values()].map(ref => ref.set(stamp, { merge: true })));
+    console.log('[unsub] Unsubscribed token:', token, `(${targets.size} lead doc(s) under the address)`);
     return res.send(unsubPage('Done — you\'ve been unsubscribed. You won\'t receive any further CCA study emails from us.', true));
   } catch (err) {
     console.error('[unsub] Error:', err.message);
@@ -2013,8 +2047,10 @@ a{color:#b04928}
 
 // The sequence itself, run AFTER /nurture-send has responded. Logs a start
 // line and a finish line with counts; a throw is logged by the caller's catch.
-async function runNurtureSequence(dryRun) {
-  console.log(`[nurture] Run started — dryRun=${dryRun} sequenceStart=${SEQUENCE_START.toISOString()}`);
+// `only`, when set, is a Set of lower-cased addresses: every other lead is
+// skipped as not_in_only. Used for test sends to owner addresses.
+async function runNurtureSequence(dryRun, only) {
+  console.log(`[nurture] Run started — dryRun=${dryRun} only=${only ? only.size : 'all'} sequenceStart=${SEQUENCE_START.toISOString()}`);
 
   const result = { ok: true, dryRun, sent: 0, skipped: 0, errors: 0, details: [] };
 
@@ -2027,6 +2063,14 @@ async function runNurtureSequence(dryRun) {
   }
 
   const now = Date.now();
+
+  // An address unsubscribes once. Several addresses hold more than one lead
+  // doc (one submission per doc), so the skip is by address, not by doc.
+  const unsubscribedEmails = new Set();
+  snap.forEach(d => {
+    const l = d.data();
+    if (l.unsubscribed && l.email) unsubscribedEmails.add(String(l.email).toLowerCase().trim());
+  });
 
   for (const doc of snap.docs) {
     const lead  = doc.data();
@@ -2049,15 +2093,79 @@ async function runNurtureSequence(dryRun) {
         continue;
       }
 
-      // 3. Unsubscribed?
-      if (lead.unsubscribed) {
+      // Test sends: only the listed addresses are considered.
+      if (only && !only.has(email)) {
+        result.skipped++;
+        result.details.push({ email, action: 'skip', stage: null, reason: 'not_in_only' });
+        continue;
+      }
+
+      // 3. Unsubscribed? By address, so a second lead doc under the same
+      //    address is silent too.
+      if (lead.unsubscribed || unsubscribedEmails.has(email)) {
         console.log(`${tag} skip: unsubscribed`);
         result.skipped++;
         result.details.push({ email, action: 'skip', stage: null, reason: 'unsubscribed' });
         continue;
       }
 
-      // 4. Buyer suppression — check pending_enrollments then enrolled users
+      // 4. Find the earliest unsent stage that is now due, under the backlog
+      //    rule above. Runs before the buyer lookups so those cost reads only
+      //    for the few leads that are actually due.
+      if (lead.sequenceClosed) {
+        result.skipped++;
+        result.details.push({ email, action: 'skip', stage: null, reason: 'closed:' + lead.sequenceClosed });
+        continue;
+      }
+      const ageMs      = now - submittedAt.getTime();
+      const sentStages = lead.sequenceSent || [];
+      const lastSentMs = (lead.lastNurtureAt && typeof lead.lastNurtureAt.toMillis === 'function') ? lead.lastNurtureAt.toMillis() : 0;
+      let stageToSend  = null;
+      let lateStage    = null;
+      let tooSoonStage = null;
+
+      for (const stage of STAGE_ORDER) {
+        if (sentStages.includes(stage)) continue;
+        if (ageMs < STAGE_MIN_AGE_MS[stage]) break;                                           // not due; no later stage can be
+        if (ageMs - STAGE_MIN_AGE_MS[stage] > STAGE_MAX_LATE_MS) { lateStage = stage; break; } // overdue: skip and close
+        if (lastSentMs && now - lastSentMs < STAGE_MIN_GAP_MS[stage]) { tooSoonStage = stage; break; }
+        stageToSend = stage;
+        break;
+      }
+
+      if (lateStage) {
+        const lateDays = ((ageMs - STAGE_MIN_AGE_MS[lateStage]) / 86400000).toFixed(1);
+        console.log(`${tag} skip: overdue (${lateStage} is ${lateDays}d past due; sequence closed)`);
+        if (!dryRun) {
+          await doc.ref.set({
+            sequenceClosed:   'overdue:' + lateStage,
+            sequenceClosedAt: admin.firestore.FieldValue.serverTimestamp(),
+          }, { merge: true });
+        }
+        result.skipped++;
+        result.details.push({ email, action: 'skip', stage: lateStage, reason: 'overdue' });
+        continue;
+      }
+      if (tooSoonStage) {
+        const sinceH = Math.round((now - lastSentMs) / 3600000);
+        console.log(`${tag} skip: too_soon (${tooSoonStage} waits ${STAGE_MIN_GAP_MS[tooSoonStage] / 3600000}h after the previous send; ${sinceH}h so far)`);
+        result.skipped++;
+        result.details.push({ email, action: 'skip', stage: tooSoonStage, reason: 'too_soon' });
+        continue;
+      }
+      if (!stageToSend) {
+        const ageH = Math.round(ageMs / 3600000);
+        console.log(`${tag} skip: no_due_stage (age=${ageH}h sent=[${sentStages.join(',')}])`);
+        result.skipped++;
+        result.details.push({ email, action: 'skip', stage: null, reason: 'no_due_stage' });
+        continue;
+      }
+
+      // 5. Buyer suppression: pending_enrollments, then users.enrolled by the
+      //    stored address, then the Auth custom claim. The claim lives on the
+      //    account, and the webhook overwrites users.email with the checkout
+      //    address at enrolment, so a buyer whose checkout address differs from
+      //    the address on the lead is caught by the claim lookup.
       const pendingDoc = await db.collection('pending_enrollments').doc(email).get();
       if (pendingDoc.exists) {
         console.log(`${tag} skip: buyer_pending`);
@@ -2072,24 +2180,17 @@ async function runNurtureSequence(dryRun) {
         result.details.push({ email, action: 'skip', stage: null, reason: 'buyer_enrolled' });
         continue;
       }
-
-      // 5. Find the earliest unsent stage that is now due
-      const ageMs      = now - submittedAt.getTime();
-      const sentStages = lead.sequenceSent || [];
-      let stageToSend  = null;
-
-      for (const stage of STAGE_ORDER) {
-        if (ageMs >= STAGE_MIN_AGE_MS[stage] && !sentStages.includes(stage)) {
-          stageToSend = stage;
-          break;
-        }
+      let claimEnrolled = false;
+      try {
+        const authUser = await auth.getUserByEmail(email);
+        claimEnrolled = !!(authUser.customClaims && authUser.customClaims.enrolled === true);
+      } catch (err) {
+        if (err.code !== 'auth/user-not-found') throw err;   // no account is the normal case
       }
-
-      if (!stageToSend) {
-        const ageH = Math.round(ageMs / 3600000);
-        console.log(`${tag} skip: no_due_stage (age=${ageH}h sent=[${sentStages.join(',')}])`);
+      if (claimEnrolled) {
+        console.log(`${tag} skip: buyer_claim`);
         result.skipped++;
-        result.details.push({ email, action: 'skip', stage: null, reason: 'no_due_stage' });
+        result.details.push({ email, action: 'skip', stage: null, reason: 'buyer_claim' });
         continue;
       }
 
@@ -2157,6 +2258,7 @@ async function runNurtureSequence(dryRun) {
 // Called once daily by cron-job.org. Auth: ?secret= (what the job uses today,
 // deprecated because it lands in request logs) or the x-nurture-secret header.
 // Dry-run: add ?dryRun=true to log decisions without sending or writing state.
+// Test sends: add ?only=a@x.com,b@y.com to consider those addresses alone.
 //
 // RESPONDS FIRST, THEN PROCESSES. cron-job.org's free plan times out at 30 s and
 // a cold-start run takes ~100 s, so the job reported "Failed (timeout)" daily
@@ -2176,13 +2278,19 @@ app.post('/nurture-send', express.json(), async (req, res) => {
     console.warn('[nurture] DEPRECATED: secret supplied as ?secret= (it lands in request logs). Move the cron job to the x-nurture-secret header; the query form still works until then.');
   }
   const dryRun = req.query.dryRun === 'true' || req.query.dryRun === '1';
+  // only=a@x.com,b@y.com restricts the run to those addresses (test sends).
+  let only = null;
+  if (typeof req.query.only === 'string' && req.query.only.trim()) {
+    only = new Set(req.query.only.split(',').map(s => s.toLowerCase().trim()).filter(s => s.includes('@')));
+    if (only.size === 0) only = null;
+  }
 
   // 2. Respond now. Nothing after this line reaches the caller.
-  res.json({ ok: true, started: true, dryRun });
+  res.json({ ok: true, started: true, dryRun, only: only ? only.size : null });
 
   // 3. Run. The catch is what stops a throw in the background portion from
   //    becoming an unhandled rejection that takes the process down.
-  runNurtureSequence(dryRun)
+  runNurtureSequence(dryRun, only)
     .catch(err => console.error('[nurture] FAILED after response —', (err && err.message) || err));
 });
 
