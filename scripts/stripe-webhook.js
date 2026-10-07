@@ -1454,13 +1454,13 @@ app.post('/diagnostic-email', diagJson, async (req, res) => {
     const score    = results.estimatedScore || 0;
     const passMark = results.passScore || 720;
     const verdict  = score >= passMark
-      ? '✅ Strong result — you look ready!'
+      ? '✅ Strong result: you look ready!'
       : score >= passMark * 0.85
-        ? "🟡 Close — a bit more practice and you'll be there"
-        : '🔴 Good start — let\'s fill those gaps';
+        ? "🟡 Close: a bit more practice and you'll be there"
+        : '🔴 Good start: let\'s fill those gaps';
 
     const domainRows = (results.domains || [])
-      .map(d => `  • ${d.label}: ${d.correct}/${d.total} (${d.pct}%) — ${d.examWeight}% of exam`)
+      .map(d => `  • ${d.label}: ${d.correct}/${d.total} (${d.pct}%), ${d.examWeight}% of exam`)
       .join('\n');
 
     // A perfect sample (every domain correct equals its total) has no weakest
@@ -1491,14 +1491,14 @@ Want to close the gap? The full 400-question practice bank covers every domain a
 👉 ${nurtureCtaUrl('results')}
 
 Good luck with your studies!
-— CCA Practice Platforms
+CCA Practice Platforms
 
 CCA Practice Platforms, 361 Falls Rd #831, Grafton, WI 53024, USA
 To stop receiving these emails: ${unsubUrl}`;
 
     await sendViaResend({
       to:      email,
-      subject: `Your CCA Diagnostic Results — ${score}/1,000`,
+      subject: `Your CCA Diagnostic Results: ${score}/1,000`,
       text,
       listUnsubscribeUrl: unsubUrl,
     });
@@ -1547,7 +1547,7 @@ const NURTURE_BANK_TOTAL = Object.values(NURTURE_DOMAIN_Q_COUNT).reduce((a, b) =
 // One specific, actionable study tip per domain
 const STUDY_TIPS = {
   'Agentic Architecture & Orchestration':
-    'Focus on where to place human-in-the-loop checkpoints — the exam tests this precisely. ' +
+    'Focus on where to place human-in-the-loop checkpoints: the exam tests this precisely. ' +
     'The rule: any action that is hard to reverse (writing data, spending money, scheduling ' +
     'real-world events) needs human approval before execution. Read-only calls are generally ' +
     'safe to run automatically. Practice sketching a ReAct loop (Reason → Act → ' +
@@ -1692,7 +1692,7 @@ ${bodyHtml}
   </td></tr>
   <tr><td style="border-top:1px solid #d9d5ca;padding:16px 28px;background:#f5f3ea">
     <p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.68rem;color:#6f6f66;margin:0 0 5px;line-height:1.5">
-      CCA Practice Platforms — independent practice prep, not affiliated with or endorsed by Anthropic.<br>
+      CCA Practice Platforms: independent practice prep, not affiliated with or endorsed by Anthropic.<br>
       CCA Practice Platforms, 361 Falls Rd #831, Grafton, WI 53024, USA<br>
       Questions? <a href="mailto:support@claudecertifiedarchitects.com" style="color:#6f6f66">support@claudecertifiedarchitects.com</a>
     </p>
@@ -1751,22 +1751,22 @@ function buildEmail1(results, unsubUrl) {
 
   // ── plain text ──
   const scoreLine = above
-    ? `Your result: ${score}/1,000 — above the 720 passing standard on a 10-question sample.\nYour weakest domain: ${domain} (${weight}% of the real exam).`
-    : `Your result: ${score}/1,000 — ${gap} points below the 720 passing standard.\nYour weakest domain: ${domain} (${weight}% of the real exam).`;
+    ? `Your result: ${score}/1,000, above the 720 passing standard on a 10-question sample.\nYour weakest domain: ${domain} (${weight}% of the real exam).`
+    : `Your result: ${score}/1,000, ${gap} points below the 720 passing standard.\nYour weakest domain: ${domain} (${weight}% of the real exam).`;
   const context = above
     ? `\nYour weakest area on the diagnostic was ${domain}, which makes up ${weightC}% of the real exam. It’s also worth knowing that two questions per domain is a small sample, so even a passing score here can’t show how you’ll do across the real exam’s 60 questions.\n`
     : `\n${domain} accounts for ${weight}% of your actual exam score. Closing that domain first gives you the biggest return on your study time.\n`;
   const scoreLineOut = perfect ? `Your result: ${score}/1,000, above the 720 passing standard on a 10-question sample.` : scoreLine;
   const contextOut   = perfect ? `\n${perfectCopy}\n` : context;
   const ctaCopy = above
-    ? `The full bank has ${bankPhrase} — run a timed simulation and confirm your readiness before you book.`
-    : `The full bank has ${bankPhrase}, every answer fully explained. That’s where the gap closes — not from rereading docs, but from scenario-based practice exactly like the real exam.`;
+    ? `The full bank has ${bankPhrase}. Run a timed simulation and confirm your readiness before you book.`
+    : `The full bank has ${bankPhrase}, every answer fully explained. That’s where the gap closes: not from rereading docs, but from scenario-based practice exactly like the real exam.`;
   const ctaCopyOut = perfect ? null : ctaCopy;   // null lines are dropped from the array below
 
   const text = [
     'Hi,',
     '',
-    'You took the CCA Foundations Diagnostic and asked for your results. Here’s what those numbers mean — plus one study tip worth more than the score alone.',
+    'You took the CCA Foundations Diagnostic and asked for your results. Here’s what those numbers mean, plus one study tip worth more than the score alone.',
     '',
     scoreLineOut,
     contextOut,
@@ -1778,13 +1778,13 @@ function buildEmail1(results, unsubUrl) {
     '',
     ctaCopyOut,
     (perfect ? null : ''),
-    `Close the gap — $49:\n${cta}`,
+    `Close the gap ($49):\n${cta}`,
     '',
     'Good luck,',
-    '— CCA Practice Platforms',
+    'CCA Practice Platforms',
     '',
     '─────────────────────────────────────────',
-    'CCA Practice Platforms — independent practice prep, not affiliated with or endorsed by Anthropic.',
+    'CCA Practice Platforms: independent practice prep, not affiliated with or endorsed by Anthropic.',
     'CCA Practice Platforms, 361 Falls Rd #831, Grafton, WI 53024, USA',
     'Reply-To: support@claudecertifiedarchitects.com',
     `To stop receiving these emails: ${unsubUrl}`,
@@ -1792,8 +1792,8 @@ function buildEmail1(results, unsubUrl) {
 
   // ── HTML ──
   const scoreHtml = above
-    ? eP(`Your result: <strong>${scoreH}/1,000</strong> — above the 720 passing standard on a 10-question sample. Your weakest domain: <strong>${domainH}</strong> (${weightH}% of the real exam).`)
-    : eP(`Your result: <strong>${scoreH}/1,000</strong> — <strong>${gapH} points below</strong> the 720 passing standard. Your weakest domain: <strong>${domainH}</strong> (${weightH}% of the real exam).`);
+    ? eP(`Your result: <strong>${scoreH}/1,000</strong>, above the 720 passing standard on a 10-question sample. Your weakest domain: <strong>${domainH}</strong> (${weightH}% of the real exam).`)
+    : eP(`Your result: <strong>${scoreH}/1,000</strong>, <strong>${gapH} points below</strong> the 720 passing standard. Your weakest domain: <strong>${domainH}</strong> (${weightH}% of the real exam).`);
   const contextHtml = above
     ? eP(`Your weakest area on the diagnostic was <strong>${domainH}</strong>, which makes up ${weightCH}% of the real exam. It’s also worth knowing that two questions per domain is a small sample, so even a passing score here can’t show how you’ll do across the real exam’s 60 questions.`)
     : eP(`${domainH} accounts for <strong>${weightH}%</strong> of your actual exam score. Closing that domain first gives you the biggest return on your study time.`);
@@ -1801,18 +1801,18 @@ function buildEmail1(results, unsubUrl) {
   const contextHtmlOut = perfect ? eP(perfectCopy) : contextHtml;
   const tipBlock =
     `<div style="background:#f5f3ea;border-left:3px solid #c4522c;padding:14px 18px;margin:20px 0;border-radius:0 6px 6px 0">` +
-    `<p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#b04928;margin:0 0 8px">Study tip — ${domainH}</p>` +
+    `<p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#b04928;margin:0 0 8px">Study tip: ${domainH}</p>` +
     `<p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.88rem;color:#191918;line-height:1.65;margin:0">${tip}</p>` +
     `</div>`;
   const ctaHtml = above
-    ? eP(`The full bank has ${bankPhraseHtml} — run a timed simulation before you book.`)
+    ? eP(`The full bank has ${bankPhraseHtml}. Run a timed simulation before you book.`)
     : eP(`The full bank has ${bankPhraseHtml}, every answer fully explained. That’s where this gap closes.`);
 
   const bodyHtml =
     eP('Hi,') +
-    eP('You took the CCA Foundations Diagnostic and asked for your results. Here’s what those numbers mean — plus one study tip worth more than the score alone.') +
+    eP('You took the CCA Foundations Diagnostic and asked for your results. Here’s what those numbers mean, plus one study tip worth more than the score alone.') +
     scoreHtmlOut + contextHtmlOut + tipBlock + (perfect ? '' : ctaHtml) +
-    eBtn('Close the gap — $49', cta);
+    eBtn('Close the gap: $49', cta);
 
   return { subject, text, html: emailWrap(bodyHtml, unsubUrl) };
 }
@@ -1843,8 +1843,8 @@ function buildEmail2(results, unsubUrl) {
 
   // ── plain text ──
   const stakesPara = above
-    ? `Your diagnostic showed you at passing level on a 10-question sample. The real exam is 60 questions at a harder difficulty curve — and it costs $125 (USD) to sit. A mandatory waiting period applies between attempts, so an underprepared attempt costs both the registration fee and weeks before you can retry.`
-    : `You’re currently ${gap} points below the 720 passing standard. The real CCA Foundations exam costs $125 (USD) — and a mandatory waiting period applies between attempts. Sitting it underprepared means losing both the fee and weeks before you can retry.`;
+    ? `Your diagnostic showed you at passing level on a 10-question sample. The real exam is 60 questions at a harder difficulty curve, and it costs $125 (USD) to sit. A mandatory waiting period applies between attempts, so an underprepared attempt costs both the registration fee and weeks before you can retry.`
+    : `You’re currently ${gap} points below the 720 passing standard. The real CCA Foundations exam costs $125 (USD), and a mandatory waiting period applies between attempts. Sitting it underprepared means losing both the fee and weeks before you can retry.`;
   const optText = sampleQ.options.map((o, i) => `  ${OPT_LETTERS[i]}. ${o}`).join('\n');
 
   const text = [
@@ -1866,13 +1866,13 @@ function buildEmail2(results, unsubUrl) {
     '',
     '── The full bank ──',
     '',
-    '400 questions exactly like this, across all five exam domains. Every answer includes a full explanation — not just what’s right, but why each wrong option is wrong.',
+    '400 questions exactly like this, across all five exam domains. Every answer includes a full explanation: not just what’s right, but why each wrong option is wrong.',
     '',
     '$49. 10-day money-back guarantee: if you are not satisfied, email us for a full refund.',
     '',
     `Unlock access:\n${cta}`,
     '',
-    '— CCA Practice Platforms',
+    'CCA Practice Platforms',
     '',
     '─────────────────────────────────────────',
     'Independent practice prep, not affiliated with or endorsed by Anthropic.',
@@ -1883,8 +1883,8 @@ function buildEmail2(results, unsubUrl) {
 
   // ── HTML ──
   const stakesHtml = above
-    ? eP(`Your diagnostic showed you at passing level on a short sample. The real exam is 60 questions at a harder curve — and it costs <strong>$125 (USD)</strong>. A mandatory waiting period applies between attempts, so one underprepared attempt costs both the fee and weeks of time.`)
-    : eP(`You’re currently <strong>${gapH} points below the 720 passing standard</strong>. The real CCA Foundations exam costs <strong>$125 (USD)</strong> — and a mandatory waiting period applies between attempts. Sitting it underprepared means losing both the fee and weeks before you can retry.`);
+    ? eP(`Your diagnostic showed you at passing level on a short sample. The real exam is 60 questions at a harder curve, and it costs <strong>$125 (USD)</strong>. A mandatory waiting period applies between attempts, so one underprepared attempt costs both the fee and weeks of time.`)
+    : eP(`You’re currently <strong>${gapH} points below the 720 passing standard</strong>. The real CCA Foundations exam costs <strong>$125 (USD)</strong>, and a mandatory waiting period applies between attempts. Sitting it underprepared means losing both the fee and weeks before you can retry.`);
 
   const optRows = sampleQ.options.map((o, i) => {
     const isCorrect = i === sampleQ.correct;
@@ -1897,7 +1897,7 @@ function buildEmail2(results, unsubUrl) {
 
   const questionBlock =
     `<div style="background:#f5f3ea;border:1px solid #d9d5ca;border-radius:8px;padding:20px;margin:24px 0">` +
-    `<p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#b04928;margin:0 0 10px">Sample question — ${domainH}</p>` +
+    `<p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#b04928;margin:0 0 10px">Sample question: ${domainH}</p>` +
     `<p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.88rem;font-weight:600;color:#191918;line-height:1.6;margin:0 0 14px">${sampleQ.q}</p>` +
     `<table width="100%" cellpadding="0" cellspacing="4" border="0">${optRows}</table>` +
     `<p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.8rem;color:#5a5a52;line-height:1.55;margin:14px 0 0;border-top:1px solid #d9d5ca;padding-top:12px"><strong>Why:</strong> ${sampleQ.explain}</p>` +
@@ -1905,16 +1905,16 @@ function buildEmail2(results, unsubUrl) {
   // The heading is swapped after the block is built so the non-perfect
   // heading line above stays exactly as it was.
   const questionBlockOut = perfect
-    ? questionBlock.replace(/Sample question [^<]*<\/p>/, `Sample question from ${largestLabelH}, the largest domain on the exam at ${largestWeightH}%</p>`)
+    ? questionBlock.replace(/Sample question[^<]*<\/p>/, `Sample question from ${largestLabelH}, the largest domain on the exam at ${largestWeightH}%</p>`)
     : questionBlock;
 
   const bodyHtml =
     eP('Hi,') + stakesHtml +
     eP('$49 for 400 practice questions is the straightforward hedge. Here’s a taste:') +
     questionBlockOut +
-    eP('400 questions like this, across all five domains. Every answer fully explained — not just what’s right, but why each wrong option is wrong.') +
+    eP('400 questions like this, across all five domains. Every answer fully explained: not just what’s right, but why each wrong option is wrong.') +
     eP('$49. 10-day money-back guarantee: if you are not satisfied, email us for a full refund.', 'font-weight:700') +
-    eBtn('Unlock access — $49', cta);
+    eBtn('Unlock access: $49', cta);
 
   return { subject, text, html: emailWrap(bodyHtml, unsubUrl) };
 }
@@ -1929,11 +1929,11 @@ function buildEmail3(results, unsubUrl) {
   const domainH = escHtml(domain), gapH = escHtml(gap);   // HTML-safe copies; the text branches keep the raw values
   const cta    = nurtureCtaUrl('d7');
 
-  const subject = above ? 'One week on — is your CCA prep locked in?' : 'Your CCA gap is still open';
+  const subject = above ? 'One week on: is your CCA prep locked in?' : 'Your CCA gap is still open';
 
   // ── plain text ──
   const opening = above
-    ? `When you took the diagnostic, you scored above the 720 passing standard on a short diagnostic sample.\n\nThe real exam is 60 questions — broader, harder, drawn from a much larger pool. A passing sample is a good sign, not a guarantee.`
+    ? `When you took the diagnostic, you scored above the 720 passing standard on a short diagnostic sample.\n\nThe real exam is 60 questions: broader, harder, drawn from a much larger pool. A passing sample is a good sign, not a guarantee.`
     : `When you took the diagnostic, you were ${gap} points below the 720 passing standard, with ${domain} as your weakest area.\n\nThat gap doesn’t close on its own.`;
 
   const text = [
@@ -1941,14 +1941,14 @@ function buildEmail3(results, unsubUrl) {
     '',
     opening,
     '',
-    'If you’ve been studying, great — the full practice bank is the best thing you can add at this point: 400 scenario-based questions, domain-weighted exactly like the real exam, every answer fully explained.',
+    'If you’ve been studying, great. The full practice bank is the best thing you can add at this point: 400 scenario-based questions, domain-weighted exactly like the real exam, every answer fully explained.',
     '',
     `If now isn’t the right time, that’s fine. Come back when you’re ready:\n${cta}`,
     '',
-    `If you want to close the gap: $49, 10-day money-back guarantee. Try it for a week — if you don’t feel more confident in ${domain}, email us within 10 days of purchase for a full refund.`,
+    `If you want to close the gap: $49, 10-day money-back guarantee. Try it for a week. If you don’t feel more confident in ${domain}, email us within 10 days of purchase for a full refund.`,
     '',
     'Good luck with the exam.',
-    '— CCA Practice Platforms',
+    'CCA Practice Platforms',
     '',
     '─────────────────────────────────────────',
     'Independent practice prep, not affiliated with or endorsed by Anthropic.',
@@ -1964,7 +1964,7 @@ function buildEmail3(results, unsubUrl) {
 
   // ── HTML ──
   const openingHtml = above
-    ? eP('When you took the diagnostic, you scored above the 720 passing standard on a short sample. The real exam is 60 questions — broader, harder, drawn from a much larger pool. A passing sample is a good sign, not a guarantee.')
+    ? eP('When you took the diagnostic, you scored above the 720 passing standard on a short sample. The real exam is 60 questions: broader, harder, drawn from a much larger pool. A passing sample is a good sign, not a guarantee.')
     : eP(`When you took the diagnostic, you were <strong>${gapH} points below the 720 passing standard</strong>, with <strong>${domainH}</strong> as your weakest area.`) +
       eP('That gap doesn’t close on its own.');
 
@@ -1981,7 +1981,7 @@ function buildEmail3(results, unsubUrl) {
     eP('The full practice bank is the best thing you can add at this stage: 400 scenario-based questions, domain-weighted exactly like the real exam, every answer fully explained.') +
     riskBlockOut +
     eP('If now isn’t the right time, come back when you’re ready. Good luck with the exam.') +
-    eBtn('Close the gap — $49', cta);
+    eBtn('Close the gap: $49', cta);
 
   return { subject, text: textOut, html: emailWrap(bodyHtml, unsubUrl) };
 }
@@ -2014,7 +2014,7 @@ app.get('/unsubscribe', async (req, res) => {
     }
     await Promise.all([...targets.values()].map(ref => ref.set(stamp, { merge: true })));
     console.log('[unsub] Unsubscribed token:', token, `(${targets.size} lead doc(s) under the address)`);
-    return res.send(unsubPage('Done — you\'ve been unsubscribed. You won\'t receive any further CCA study emails from us.', true));
+    return res.send(unsubPage('Done. You\'ve been unsubscribed. You won\'t receive any further CCA study emails from us.', true));
   } catch (err) {
     console.error('[unsub] Error:', err.message);
     return res.status(500).send(unsubPage('Something went wrong. Email support@claudecertifiedarchitects.com to unsubscribe manually.', false));
@@ -2026,7 +2026,7 @@ function unsubPage(message, success) {
   const title = success ? 'Unsubscribed' : 'Problem';
   return `<!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>${title} — CCA Practice Platforms</title>
+<title>${title}: CCA Practice Platforms</title>
 <style>
 body{margin:0;padding:40px 20px;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;background:#f5f3ea;color:#191918;text-align:center}
 .card{max-width:440px;margin:0 auto;background:#fff;border:1px solid #d9d5ca;border-radius:10px;padding:36px 32px}
@@ -2040,7 +2040,7 @@ a{color:#b04928}
   <h1>${title}</h1>
   <p>${message}</p>
   <p><a href="${SITE_URL}/">← Back to CCA Practice Platforms</a></p>
-  <p style="font-size:.72rem;color:#8a8a7f">Independent practice prep — not affiliated with or endorsed by Anthropic.</p>
+  <p style="font-size:.72rem;color:#8a8a7f">Independent practice prep, not affiliated with or endorsed by Anthropic.</p>
 </div>
 </body></html>`;
 }
