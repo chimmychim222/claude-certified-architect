@@ -455,7 +455,7 @@ footer a{color:var(--text3);text-decoration:underline}
         <span class="cta-feat">Lifetime access</span>
         <span class="cta-feat">10-day money-back guarantee</span>
       </div>
-      <button type="button" class="btn-primary btn-cta-main" onclick="buyNow()">Unlock full access — $49</button>
+      <button type="button" class="btn-primary btn-cta-main" onclick="buyNow()">Unlock full access: $49</button>
       <p class="cta-retake"><a href="#" onclick="retakeDiagnostic();return false;">Retake with new questions</a></p>
     </div>
 
@@ -763,8 +763,8 @@ function showResults() {
       ? 'You scored <strong>' + estimatedScore + ' / 1,000</strong> on all 10 questions. The real exam is 60 questions across a broader range of difficulty, so the useful next step is practice at full exam length across all five domains.'
       : ctaOver
         ? 'You scored <strong>' + estimatedScore + ' / 1,000</strong> — at passing level on this short sample. But the real exam is 60 broader questions. Lock it in with <strong>' + ctaN + ' more in your weakest area, ' + weakest.label + '</strong>.'
-        : 'You scored <strong>' + estimatedScore + ' / 1,000</strong> — <strong>' + ctaGap + ' points below passing</strong>. Your weakest domain is <strong>' + weakest.label + '</strong>; the full bank has <strong>' + ctaN + ' questions</strong> targeting exactly that. Don’t walk into the real exam unprepared.';
-    document.getElementById('cta-anchor-line').textContent = 'The official exam costs $125 and has a mandatory waiting period between retakes — $49 now is cheap insurance against an attempt you can’t immediately redo.';
+        : 'You scored <strong>' + estimatedScore + ' / 1,000</strong>, <strong>' + ctaGap + ' points below passing</strong>. Your weakest domain is <strong>' + weakest.label + '</strong>; the full bank has <strong>' + ctaN + ' questions</strong> targeting exactly that. Don’t walk into the real exam unprepared.';
+    document.getElementById('cta-anchor-line').textContent = 'The official exam costs $125 and has a mandatory waiting period between retakes, so $49 now is cheap insurance against an attempt you can’t immediately redo.';
   } catch(e) {
     document.getElementById('cta-headline').textContent = 'Close the gap with the full 400-question bank — $49';
     document.getElementById('cta-personal-line').innerHTML = noWeakArea
