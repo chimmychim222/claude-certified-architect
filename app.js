@@ -780,17 +780,26 @@ function initAuthListener() {
 
 function updateDashCards() {
   // card-deep, card-full and card-domain: fully locked unless enrolled
+  // The button label follows enrollment too. index.html ships the
+  // non-enrolled label ('Unlock for $49'), the state every crawler and every
+  // visitor before auth resolves is in; the Start label is restored here for
+  // an enrolled account. Handlers are untouched: a non-enrolled click still
+  // reaches openPaymentModal() through startTest()'s guard or the card.
+  const startLabels = { 'card-deep': 'Start Practice', 'card-domain': 'Start Drill', 'card-full': 'Start Exam' };
   ['card-deep','card-full','card-domain'].forEach(id => {
     const card = document.getElementById(id);
     if (!card) return;
     const badge = card.querySelector('.lock-badge');
+    const btn = card.querySelector('button');
     if (enrolled) {
       card.classList.remove('locked');
       card.onclick = null; // clear any stale locked-state handler so button clicks don't bubble to showSection('home')
       if (badge) { badge.textContent = 'ENROLLED'; badge.classList.add('unlocked'); }
+      if (btn) btn.textContent = startLabels[id];
     } else {
       card.classList.add('locked');
       if (badge) { badge.textContent = 'LOCKED'; badge.classList.remove('unlocked'); }
+      if (btn) btn.textContent = 'Unlock for $49';
     }
   });
 
@@ -861,7 +870,7 @@ function updatePricingCTAs() {
       heroBtn.onclick = goToDashboard;
       heroBtn.classList.add('btn-enrolled');
     } else {
-      heroBtn.textContent = 'Enroll Now — $49';
+      heroBtn.textContent = 'Enroll Now: $49';
       heroBtn.onclick = () => openPaymentModal();
       heroBtn.classList.remove('btn-enrolled');
     }

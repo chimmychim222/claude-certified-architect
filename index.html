@@ -242,8 +242,9 @@ section .section-sub{color:var(--text2);margin-bottom:40px;font-size:1rem}
    640px override further down, where the base padding drops to 20px. */
 .dash-card.locked{position:relative;cursor:pointer;padding-bottom:84px}
 .dash-card.locked button{pointer-events:none}
-.dash-card.locked::after{content:'🔒 Enroll to unlock';position:absolute;bottom:0;left:0;right:0;padding:14px;text-align:center;background:linear-gradient(transparent,rgba(245,243,234,.95) 40%);border-radius:0 0 var(--radius) var(--radius);font-size:1rem;font-weight:600;color:var(--accent-text);cursor:pointer;pointer-events:auto;z-index:2;letter-spacing:.3px}
+.dash-card.locked::after{content:'🔒 Included in the $49 practice bank';position:absolute;bottom:0;left:0;right:0;padding:8px 14px 28px;line-height:1.25;text-align:center;background:linear-gradient(transparent,rgba(245,243,234,.95) 40%);border-radius:0 0 var(--radius) var(--radius);font-size:1rem;font-weight:600;color:var(--accent-text);cursor:pointer;pointer-events:auto;z-index:2;letter-spacing:.3px}
 .dash-card.locked:hover::after{color:var(--accent2)}
+.dash-card.locked::before{content:'10-day money-back guarantee';position:absolute;bottom:9px;left:14px;right:14px;text-align:center;font-size:.72rem;line-height:1.4;font-weight:500;color:var(--text3);z-index:3;pointer-events:none}
 
 /* ── TEST INTERFACE ── */
 .test-view{display:none}
@@ -502,7 +503,7 @@ footer .footer-disclaimer{color:var(--text2);font-size:.875rem;line-height:1.65;
   /* Dashboard */
   .dash-grid{grid-template-columns:1fr}
   .dash-card{padding:20px}
-  .dash-card.locked{padding-bottom:76px} /* 20px base padding + 56px strip */
+  .dash-card.locked{padding-bottom:76px} /* 20px base padding + 56px strip when line 1 fits on one line (it does at 375px); a two-line line 1 reaches 76px, still inside the 84px desktop reserve */
 
   /* Progress */
   .progress-summary-grid{grid-template-columns:1fr}
@@ -993,7 +994,7 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
            button so an enrolled visitor sees nothing but their dashboard
            link here — no leftover purchase-prompt copy. -->
       <span id="hero-enroll-prompt">Already sure you want full access?</span>
-      <button class="btn-primary" id="hero-enroll-btn" onclick="openPaymentModal()">Enroll Now — $49</button>
+      <button class="btn-primary" id="hero-enroll-btn" onclick="openPaymentModal()">Enroll Now: $49</button>
     </div>
   </div>
 </section>
@@ -1238,11 +1239,11 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
         </select>
       </div>
       <ul class="features">
-        <li>Multiple-choice and multiple-response questions, matching the mixed format described in the official exam guide</li>
         <li>400 scenario-based practice questions, every one with a written explanation</li>
+        <li>Full-length practice exam (120 minutes, 60 questions)</li>
+        <li>Multiple-choice and multiple-response questions, matching the mixed format described in the official exam guide</li>
         <li>5 modules covering all CCAR-F exam domains</li>
         <li>Timed practice sessions: 20 min, 40 min, 60 min</li>
-        <li>Full-length practice exam (120 minutes, 60 questions)</li>
         <li>Domain-weighted scoring matching the published exam guide (Agentic 27%, Claude Code 20%, Prompting 20%, Tools/MCP 18%, Context 15%)</li>
         <li>Lifetime updates as the exam evolves</li>
       </ul>
@@ -1250,6 +1251,7 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
            for why an enrolled user must never be able to reach Stripe checkout
            a second time from here. -->
       <button class="btn-primary" style="width:100%;padding:16px" id="checkout-btn" onclick="openPaymentModal()">Proceed to Secure Checkout</button>
+      <p style="margin:10px 0 0;color:var(--text3);font-size:.78rem;line-height:1.5">The exam costs $125 per attempt, and a retake costs the full fee again.</p>
       <div style="margin-top:16px;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--text3);font-size:.75rem">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         Powered by Stripe · 10-day money-back guarantee · Secure checkout
@@ -1364,7 +1366,7 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
         <h3>Deep Practice <span class="lock-badge">LOCKED</span></h3>
         <p>A 30-question comprehensive session drawn from the full 400-question bank, covering all five domains in one sitting.</p>
         <div class="meta"><span>30 Questions</span><span>60 Minutes</span></div>
-        <button class="btn-primary btn-sm" onclick="startTest('deep')">Start Practice</button>
+        <button class="btn-primary btn-sm" onclick="startTest('deep')">Unlock for $49</button>
       </div>
       <div class="dash-card" id="card-domain">
         <div class="icon">📊</div>
@@ -1375,14 +1377,14 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
              label, exam weight and the number of questions the domain actually
              holds are all derived from QUESTIONS, never hardcoded. -->
         <select id="domain-drill-select" aria-label="Choose an exam domain to drill" onchange="updateDomainDrillMeta()"></select>
-        <button class="btn-primary btn-sm" onclick="startDomainDrill()">Start Drill</button>
+        <button class="btn-primary btn-sm" onclick="startDomainDrill()">Unlock for $49</button>
       </div>
       <div class="dash-card" id="card-full" style="border-color:var(--accent);background:var(--surface)">
         <div class="icon">🏆</div>
         <h3>Full Certification Exam <span class="lock-badge">LOCKED</span></h3>
         <p>The complete 60-question practice test, drawn from the full 400-question bank at the published exam guide's domain weighting — 16 Agentic, 12 Claude Code, 12 Prompt Engineering, 11 Tool Design, 9 Context Management.</p>
         <div class="meta"><span>60 Questions</span><span>120 Minutes</span></div>
-        <button class="btn-primary btn-sm" onclick="startTest('full')">Start Exam</button>
+        <button class="btn-primary btn-sm" onclick="startTest('full')">Unlock for $49</button>
       </div>
     </div>
   </div>
