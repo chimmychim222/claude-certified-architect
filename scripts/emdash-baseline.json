@@ -1,8 +1,8 @@
 {
-  "generatedAt": "3c045d3",
-  "generatedOn": "2026-09-11",
+  "generatedAt": "1eefe69",
+  "generatedOn": "2026-10-07",
   "rule": "publish manual §6b, 8 Sep 2026: counts recorded here are DEFERRED by decision, not queued; a count may fall, never rise",
-  "totalHits": 1821,
+  "totalHits": 1776,
   "files": {
     "404.html": 1,
     "app.js": 272,
@@ -86,7 +86,6 @@
     "refund/index.html": 4,
     "register/index.html": 8,
     "schema.json": 11,
-    "scripts/stripe-webhook.js": 45,
     "study-plan-generator/index.html": 15,
     "terms/index.html": 3
   }
