@@ -742,12 +742,16 @@ function initAuthListener() {
           banner.style.display = 'block';
         }
       }
-      // Logged-out user arrived via ?startTest= — route through checkout/auth.
-      // After signup + payment they'll be enrolled; they can launch the sim
-      // from the dashboard, or return to /?startTest=full directly.
+      // Logged-out user arrived via ?startTest=. startTest() is enrollment-aware:
+      // a free type (quick, focused) starts for a guest exactly as the dashboard
+      // card does, and a locked type (full, deep, domain-*) reaches
+      // openPaymentModal() through startTest()'s own guard, so /?startTest=full
+      // still goes straight to checkout. Before this, every type went to checkout
+      // for a guest, which made a free-sprint deep link impossible.
       if (anonParams.get('startTest')) {
+        const anonTestType = anonParams.get('startTest');
         window.history.replaceState({}, '', window.location.pathname);
-        openPaymentModal();
+        startTest(anonTestType);
       }
       // Practice Tests hub for logged-out users.
       // If 'signup' param is set (used by the Exam page "Start Practice Exam"
