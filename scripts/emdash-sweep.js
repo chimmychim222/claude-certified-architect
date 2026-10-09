@@ -178,7 +178,7 @@ function scanDiagnostic(rel, text) {
   for (const sp of scriptSpans) sp.body.split('\n').forEach((l, i) => { const n = emIn(l); if (!n) return; if (isCommentLine(l)) { res.excluded.comment = (res.excluded.comment || 0) + n; return; } for (let k = 0; k < n; k++) push(res, 'page-script-string', 'line ' + (lineOf(rest, sp.at) + i), l.trim(), true); });
   return res;
 }
-const WEBHOOK_REGION_FNS = ['emailWrap', 'eP', 'eBtn', 'buildEmail1', 'buildEmail2', 'buildEmail3', 'unsubPage'];
+const WEBHOOK_REGION_FNS = ['emailWrap', 'eP', 'eBtn', 'buildEmail1', 'buildEmail2', 'buildEmail3', 'buildAbandonerA', 'buildAbandonerB', 'abandonerTextFooter', 'unsubPage'];
 function scanWebhook(rel, text) {
   const res = { hits: [], excluded: {} }; const lines = text.split('\n'); const inRegion = new Array(lines.length).fill(null);
   const markRegion = (a, b, name) => { for (let i = a - 1; i < b && i < lines.length; i++) inRegion[i] = name; };

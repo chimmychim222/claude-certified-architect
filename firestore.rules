@@ -6,7 +6,9 @@ service cloud.firestore {
       // these rules) may write the entitlement fields. A signed-in user may
       // create and update their own document, but never add or change them.
       function isOwner() { return request.auth != null && request.auth.uid == userId; }
-      function serverOwned() { return ['enrolled', 'enrolledAt', 'stripeSessionId']; }
+      // firstBuyClickAt and the abandoner map are written only by the webhook
+      // (checkout-abandoner emails, freeze exception 10, Build Schedule row 576).
+      function serverOwned() { return ['enrolled', 'enrolledAt', 'stripeSessionId', 'firstBuyClickAt', 'abandoner']; }
 
       allow read: if isOwner();
       allow create: if isOwner()

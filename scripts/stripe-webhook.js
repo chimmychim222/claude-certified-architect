@@ -201,14 +201,16 @@ function diagJson(req, res, next) {
 // Sends transactional email via Resend.com (https://resend.com).
 // Uses the built-in fetch available in Node 18+.
 // Returns true on success, false on failure (never throws).
-async function sendViaResend({ to, subject, text, html, replyTo, listUnsubscribeUrl }) {
+// `from` overrides the default sender (the abandoner emails send as the team
+// address); `kind` labels the send in the per-day counter below.
+async function sendViaResend({ to, subject, text, html, replyTo, listUnsubscribeUrl, from, kind }) {
   if (!process.env.RESEND_API_KEY) {
     console.log('[resend] RESEND_API_KEY not set — email skipped.');
     return false;
   }
   try {
     const payload = {
-      from:    'CCA Practice <noreply@claudecertifiedarchitects.com>',
+      from:    from || 'CCA Practice <noreply@claudecertifiedarchitects.com>',
       to:      [to],
       subject,
       text,
@@ -232,6 +234,7 @@ async function sendViaResend({ to, subject, text, html, replyTo, listUnsubscribe
     if (resp.ok) {
       const data = await resp.json();
       console.log('[resend] Email sent:', data.id, '→', to);
+      countSend(kind || 'other');
       return true;
     } else {
       const errText = await resp.text();
@@ -251,6 +254,23 @@ async function sendViaResend({ to, subject, text, html, replyTo, listUnsubscribe
     console.error('[resend] Fetch error:', err.message);
     return false;
   }
+}
+
+// Per-UTC-day send counter, email_send_counts/{YYYY-MM-DD}: `total` plus one
+// field per kind. Read by the checkout-abandoner runner's volume guard (freeze
+// exception 10, Build Schedule row 576). Counts only what THIS process sends;
+// Firebase's verification mail goes through Resend SMTP outside it and is not
+// counted, which is why that guard stops at 70 of the plan's 100. Best effort:
+// a failed counter write is logged and never fails the send that was made.
+function sendCountRef(d) {
+  return db.collection('email_send_counts').doc((d || new Date()).toISOString().slice(0, 10));
+}
+function countSend(kind) {
+  const inc = admin.firestore.FieldValue.increment(1);
+  sendCountRef().set(
+    { total: inc, [kind]: inc, updatedAt: admin.firestore.FieldValue.serverTimestamp() },
+    { merge: true }
+  ).catch(e => console.warn('[sendcount] write failed:', e.message));
 }
 
 // ── GA4 Measurement Protocol purchase event ───────────────────────────────────
@@ -868,7 +888,7 @@ async function sendPurchaseLinkAlert({ uid, accountEmail, checkoutEmail, emailVe
 
   if (process.env.ALERT_EMAIL_TO) {
     try {
-      const ok = await sendViaResend({ to: process.env.ALERT_EMAIL_TO, subject, text: summary });
+      const ok = await sendViaResend({ to: process.env.ALERT_EMAIL_TO, subject, text: summary, kind: 'link_request_alert' });
       delivered = delivered || ok;
     } catch (err) {
       console.error('[link-request] email delivery threw:', err.message);
@@ -1028,6 +1048,19 @@ app.post('/pre-checkout', express.json(), async (req, res) => {
       return res.json({ ok: false, reason: 'already_enrolled' });
     }
 
+    // Durable first-click stamp for the checkout-abandoner sequence (freeze
+    // exception 10, Build Schedule row 576). Written once and never cleared;
+    // server-owned in firestore.rules. checkout_intents below cannot be the
+    // trigger: it is overwritten by the next click and deleted when the modal
+    // is dismissed. Inside this try on purpose: a failed write falls through to
+    // the fail-open exit below and never blocks a checkout.
+    if (!userSnap.exists || !userSnap.data().firstBuyClickAt) {
+      await db.collection('users').doc(uid).set(
+        { firstBuyClickAt: admin.firestore.FieldValue.serverTimestamp() },
+        { merge: true }
+      );
+    }
+
     // Belt-and-suspenders checks above only catch ENROLLED accounts. A guest
     // who already paid but hasn't signed up/verified yet is logged in here
     // with a fresh, unenrolled account and would otherwise sail through to a
@@ -1149,6 +1182,7 @@ async function sendStaleEnrollmentAlert(stale) {
         to:      process.env.ALERT_EMAIL_TO,
         subject: `[CCA] ${stale.length} NEW stranded buyer${plural} — paid, no access`,
         text:    summary,
+        kind:    'stranded_alert',
       });
       delivered = delivered || ok;
     } catch (err) {
@@ -1501,6 +1535,7 @@ To stop receiving these emails: ${unsubUrl}`;
       subject: `Your CCA Diagnostic Results: ${score}/1,000`,
       text,
       listUnsubscribeUrl: unsubUrl,
+      kind:    'diagnostic_results',
     });
   }
 
@@ -1667,6 +1702,79 @@ const STAGE_MIN_AGE_MS  = { d1: 22 * 3600000, d3: 70 * 3600000, d7: 166 * 360000
 const STAGE_MAX_LATE_MS = 7 * 24 * 3600000;
 const STAGE_MIN_GAP_MS  = { d1: 0, d3: 48 * 3600000, d7: 96 * 3600000 };
 
+// ── Checkout-abandoner sequence (freeze exception 10, Build Schedule row 576) ──
+// Two emails to an account holder who clicked Buy (users/{uid}.firstBuyClickAt,
+// stamped by /pre-checkout) and did not pay: A at least 24h after the first
+// click, B at least 96h after A, then nothing. State lives in the server-owned
+// users/{uid}.abandoner map; every send also writes abandoner_sends/{uid}_{step}
+// for the report script. Kill switch: ABANDONER_EMAILS_ENABLED must be the
+// string "true" on Render; read at run time, default off. With the switch off
+// a run logs "[abandoner] disabled" and reads nothing, EXCEPT a run carrying
+// ?only= (a test send to named addresses), which proceeds for those alone.
+const ABANDONER_START        = new Date(process.env.ABANDONER_START || '2026-10-08T00:00:00Z');
+const ABANDONER_MIN_AGE_MS   = { a: 24 * 3600000, b: 96 * 3600000 }; // a: after firstBuyClickAt; b: after A's send
+const ABANDONER_MAX_LATE_MS  = 7 * 24 * 3600000;                       // past this a step is skipped and the sequence closed
+const ABANDONER_WINDOW_MS    = 21 * 24 * 3600000;                      // A latest at +8d, B latest at +19d; nothing older can be due
+const ABANDONER_DAILY_CAP    = 70;                                     // this process's sends per UTC day, all kinds, before an abandoner send
+const ABANDONER_ONE_A_DAY_MS = 24 * 3600000;                           // no abandoner email within a day of a nurture email, and the reverse
+const ABANDONER_FROM         = 'The CCA Practice team <team@claudecertifiedarchitects.com>';
+const ABANDONER_REPLY_TO     = 'support@claudecertifiedarchitects.com';
+const ABANDONER_REASON_LINE  = 'You are receiving this email because you created an account on claudecertifiedarchitects.com.';
+const ABANDONER_POSTAL       = 'CCA Practice Platforms, 361 Falls Rd #831, Grafton, WI 53024, USA';
+const ABANDONER_B_URL        = 'https://www.claudecertifiedarchitects.com/cca-practice-questions/?utm_source=email&utm_medium=nurture&utm_campaign=checkout-b-auto';
+// Test-account markers: the two generic ones here; the personal addresses come
+// from CCA_TEST_ACCOUNT_MARKERS on Render (this file is served publicly).
+const ABANDONER_TEST_MARKERS = ['joshtest', '+ccatest']
+  .concat((process.env.CCA_TEST_ACCOUNT_MARKERS || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean));
+const abandonerEnabled = () => process.env.ABANDONER_EMAILS_ENABLED === 'true';
+const normEmail = e => String(e || '').trim().toLowerCase();
+const tsMs = v => (v && typeof v.toMillis === 'function') ? v.toMillis()
+            : (v instanceof Date ? v.getTime() : (typeof v === 'number' ? v : 0));
+
+// email_suppressions/{normalized address}: unsubscribed (every automated send
+// checks it), replied (the abandoner sequence skips step B), manualCampaignA
+// (received Email A in the October manual campaign; never gets the automated
+// one). Deny-by-default rules keep it unreachable from any browser.
+async function getSuppression(email) {
+  const s = await db.collection('email_suppressions').doc(normEmail(email)).get();
+  return s.exists ? s.data() : null;
+}
+async function suppressEmail(email, fields) {
+  await db.collection('email_suppressions').doc(normEmail(email)).set(
+    { email: normEmail(email), ...fields, updatedAt: admin.firestore.FieldValue.serverTimestamp() },
+    { merge: true }
+  );
+}
+// Flags every diagnostic_leads doc under an address, exact and lower-cased
+// (lead addresses are stored as typed), with the same stamp /unsubscribe writes.
+// `emails` may be one address or an array of the forms known for the account
+// (the Auth address and the users.email typed at signup).
+function emailKeys(emails) {
+  const list = Array.isArray(emails) ? emails : [emails];
+  return new Set(list.flatMap(e => [String(e || '').trim(), normEmail(e)]).filter(Boolean));
+}
+async function stampLeadsUnsubscribed(emails) {
+  const stamp = { unsubscribed: true, unsubscribedAt: admin.firestore.FieldValue.serverTimestamp() };
+  const refs  = new Map();
+  for (const key of emailKeys(emails)) {
+    const snap = await db.collection('diagnostic_leads').where('email', '==', key).get();
+    snap.forEach(d => refs.set(d.id, d.ref));
+  }
+  await Promise.all([...refs.values()].map(ref => ref.set(stamp, { merge: true })));
+  return refs.size;
+}
+function abandonerSentWithin(ab, now, windowMs) {
+  if (!ab) return false;
+  return [ab.aSentAt, ab.bSentAt].some(t => { const m = tsMs(t); return m > 0 && now - m < windowMs; });
+}
+async function leadNurturedWithin(emails, now, windowMs) {
+  for (const key of emailKeys(emails)) {
+    const snap = await db.collection('diagnostic_leads').where('email', '==', key).get();
+    for (const d of snap.docs) { const m = tsMs(d.data().lastNurtureAt); if (m > 0 && now - m < windowMs) return true; }
+  }
+  return false;
+}
+
 const SITE_URL    = 'https://www.claudecertifiedarchitects.com';
 const OPT_LETTERS = ['A', 'B', 'C', 'D', 'E'];
 
@@ -1675,7 +1783,10 @@ function nurtureCtaUrl(stage) {
 }
 
 // ── Shared HTML email wrapper (table-based for email-client compatibility) ────
-function emailWrap(bodyHtml, unsubUrl) {
+// `reasonLine` (optional) is the CAN-SPAM style "why you got this" sentence the
+// checkout-abandoner emails carry; without it the output is byte-identical to
+// the pre-row-576 wrapper, which the nurture emails rely on.
+function emailWrap(bodyHtml, unsubUrl, reasonLine) {
   return `<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -1696,8 +1807,9 @@ ${bodyHtml}
       CCA Practice Platforms, 361 Falls Rd #831, Grafton, WI 53024, USA<br>
       Questions? <a href="mailto:support@claudecertifiedarchitects.com" style="color:#6f6f66">support@claudecertifiedarchitects.com</a>
     </p>
-    <p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.68rem;color:#6f6f66;margin:0">
-      <a href="${unsubUrl}" style="color:#6f6f66;text-decoration:underline">Unsubscribe</a> from CCA study tips.
+${reasonLine ? `    <p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.68rem;color:#6f6f66;margin:0 0 5px;line-height:1.5">${reasonLine}</p>
+` : ''}    <p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.68rem;color:#6f6f66;margin:0">
+      <a href="${unsubUrl}" style="color:#6f6f66;text-decoration:underline">Unsubscribe</a> from ${reasonLine ? 'these emails' : 'CCA study tips'}.
     </p>
   </td></tr>
 </table>
@@ -1986,9 +2098,15 @@ function buildEmail3(results, unsubUrl) {
   return { subject, text: textOut, html: emailWrap(bodyHtml, unsubUrl) };
 }
 
-// ── GET /unsubscribe ──────────────────────────────────────────────────────────
-// Finds the lead by unsubToken, sets unsubscribed:true, returns a confirmation page.
-app.get('/unsubscribe', async (req, res) => {
+// ── GET and POST /unsubscribe ─────────────────────────────────────────────────
+// Finds the lead by unsubToken, sets unsubscribed:true, returns a confirmation
+// page. Since row 576 it also records the address in email_suppressions, and a
+// token no lead holds is tried against users/{uid}.abandoner.unsubToken (the
+// checkout-abandoner emails; an indexed equality lookup, not a scan). POST is
+// RFC 8058 one-click: mail clients POST to the List-Unsubscribe URL with the
+// body List-Unsubscribe=One-Click. The token is in the query string, so one
+// handler serves both; until row 576 that POST returned 404 for every nurture email.
+async function handleUnsubscribe(req, res) {
   const token = (req.query.token || '').trim();
   if (!token) {
     return res.status(400).send(unsubPage('Missing or invalid unsubscribe link.', false));
@@ -1999,8 +2117,26 @@ app.get('/unsubscribe', async (req, res) => {
       .limit(1)
       .get();
     if (snap.empty) {
-      // Already unsubscribed or invalid token — treat as success to avoid leaking info
-      return res.send(unsubPage('You are unsubscribed. You will not receive further emails from us.', true));
+      const users = await db.collection('users').where('abandoner.unsubToken', '==', token).limit(1).get();
+      if (users.empty) {
+        // Already unsubscribed or invalid token — treat as success to avoid leaking info
+        return res.send(unsubPage('You are unsubscribed. You will not receive further emails from us.', true));
+      }
+      const uid = users.docs[0].id;
+      let authEmail = null;
+      try { authEmail = (await auth.getUser(uid)).email || null; } catch (_) {}
+      const docEmail = users.docs[0].data().email || null;
+      const email = authEmail || docEmail;
+      let leadDocs = 0;
+      if (email) {
+        await suppressEmail(email, { unsubscribed: true, unsubscribedAt: admin.firestore.FieldValue.serverTimestamp(), source: 'abandoner_link' });
+        if (docEmail && normEmail(docEmail) !== normEmail(email)) {
+          await suppressEmail(docEmail, { unsubscribed: true, unsubscribedAt: admin.firestore.FieldValue.serverTimestamp(), source: 'abandoner_link' });
+        }
+        leadDocs = await stampLeadsUnsubscribed([authEmail, docEmail]);
+      }
+      console.log('[unsub] Unsubscribed abandoner token:', token, `(uid ${uid}, ${leadDocs} lead doc(s) under the address)`);
+      return res.send(unsubPage('Done. You\'ve been unsubscribed. You won\'t receive any further emails from us.', true));
     }
     // Flag every lead doc under this address, not only the doc the token
     // belongs to: one submission per doc, so an address can hold several.
@@ -2013,13 +2149,18 @@ app.get('/unsubscribe', async (req, res) => {
       siblings.forEach(d => targets.set(d.id, d.ref));
     }
     await Promise.all([...targets.values()].map(ref => ref.set(stamp, { merge: true })));
+    if (typeof rawEmail === 'string' && rawEmail) {
+      await suppressEmail(rawEmail, { unsubscribed: true, unsubscribedAt: admin.firestore.FieldValue.serverTimestamp(), source: 'lead_link' });
+    }
     console.log('[unsub] Unsubscribed token:', token, `(${targets.size} lead doc(s) under the address)`);
     return res.send(unsubPage('Done. You\'ve been unsubscribed. You won\'t receive any further CCA study emails from us.', true));
   } catch (err) {
     console.error('[unsub] Error:', err.message);
     return res.status(500).send(unsubPage('Something went wrong. Email support@claudecertifiedarchitects.com to unsubscribe manually.', false));
   }
-});
+}
+app.get('/unsubscribe', handleUnsubscribe);
+app.post('/unsubscribe', express.urlencoded({ extended: false }), handleUnsubscribe);
 
 function unsubPage(message, success) {
   const icon = success ? '✓' : '⚠';
@@ -2166,6 +2307,16 @@ async function runNurtureSequence(dryRun, only) {
       //    account, and the webhook overwrites users.email with the checkout
       //    address at enrolment, so a buyer whose checkout address differs from
       //    the address on the lead is caught by the claim lookup.
+      //    email_suppressions first (row 576): an address that unsubscribed
+      //    through an abandoner email, or was flagged from a Resend export, is
+      //    silent here too. diagnostic_leads.unsubscribed above keeps working.
+      const suppression = await getSuppression(email);
+      if (suppression && suppression.unsubscribed) {
+        console.log(`${tag} skip: suppressed`);
+        result.skipped++;
+        result.details.push({ email, action: 'skip', stage: null, reason: 'suppressed' });
+        continue;
+      }
       const pendingDoc = await db.collection('pending_enrollments').doc(email).get();
       if (pendingDoc.exists) {
         console.log(`${tag} skip: buyer_pending`);
@@ -2173,11 +2324,26 @@ async function runNurtureSequence(dryRun, only) {
         result.details.push({ email, action: 'skip', stage: null, reason: 'buyer_pending' });
         continue;
       }
-      const usersSnap = await db.collection('users').where('email', '==', email).limit(1).get();
+      // users.email is written as typed at signup, so when the lower-cased
+      // form finds nothing the address as the lead typed it is tried too (row 576).
+      let usersSnap = await db.collection('users').where('email', '==', email).limit(1).get();
+      const typedEmail = String(lead.email || '').trim();
+      if (usersSnap.empty && typedEmail && typedEmail !== email) {
+        usersSnap = await db.collection('users').where('email', '==', typedEmail).limit(1).get();
+      }
       if (!usersSnap.empty && usersSnap.docs[0].data().enrolled === true) {
         console.log(`${tag} skip: buyer_enrolled`);
         result.skipped++;
         result.details.push({ email, action: 'skip', stage: null, reason: 'buyer_enrolled' });
+        continue;
+      }
+      // One email a day across the two sequences (row 576): an abandoner email
+      // in the last 24h defers this stage to the next run. Best effort, since
+      // this joins on users.email as the buyer check above does.
+      if (!usersSnap.empty && abandonerSentWithin(usersSnap.docs[0].data().abandoner, now, ABANDONER_ONE_A_DAY_MS)) {
+        console.log(`${tag} skip: abandoner_recent (deferred to the next run)`);
+        result.skipped++;
+        result.details.push({ email, action: 'skip', stage: stageToSend, reason: 'abandoner_recent' });
         continue;
       }
       let claimEnrolled = false;
@@ -2223,6 +2389,7 @@ async function runNurtureSequence(dryRun, only) {
         html:               emailContent.html,
         replyTo:            'support@claudecertifiedarchitects.com',
         listUnsubscribeUrl: unsubUrl,
+        kind:               'nurture_' + stageToSend,
       });
 
       if (ok) {
@@ -2251,6 +2418,254 @@ async function runNurtureSequence(dryRun, only) {
   }
 
   console.log(`[nurture] Run complete — sent=${result.sent} skipped=${result.skipped} errors=${result.errors} dryRun=${dryRun}`);
+  return result;
+}
+
+// ── Checkout-abandoner emails (freeze exception 10, row 576) ──────────────────
+// Both carry the postal address, the reason line and the unsubscribe URL in
+// the text and the HTML. The preview text is a hidden preheader span (a
+// transactional send has no preview field).
+function abandonerPreheader(text) {
+  return `<span style="display:none;font-size:1px;color:#f5f3ea;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden">${text}</span>`;
+}
+function abandonerTextFooter(unsubUrl) {
+  return [
+    '',
+    '─────────────────────────────────────────',
+    'CCA Practice Platforms: independent practice prep, not affiliated with or endorsed by Anthropic.',
+    ABANDONER_POSTAL,
+    ABANDONER_REASON_LINE,
+    'Reply-To: ' + ABANDONER_REPLY_TO,
+    `To stop receiving these emails: ${unsubUrl}`,
+  ].join('\n');
+}
+
+// Email A: the manual campaign's question, with the first paragraph reworded
+// for the automated trigger (owner, 9 Oct 2026). No link in the body.
+function buildAbandonerA(unsubUrl) {
+  const subject = 'A quick question about your CCAR-F prep';
+  const preview = 'Did something stop you at checkout? One quick question.';
+  const text = [
+    'Hi,',
+    '',
+    "You created an account on Claude Certified Architects and started to buy the CCAR-F practice bank, but didn't complete the purchase.",
+    '',
+    "That's completely fine, and this isn't a sales push. We'd genuinely like to know what stopped you, so we can fix it if the problem is on our side.",
+    '',
+    'Was it:',
+    '',
+    '1. The price',
+    '2. The payment options at checkout',
+    "3. Timing: your exam isn't coming up yet",
+    '4. Something else',
+    '',
+    'Just reply with the number, or a line if it was something else. We read every reply.',
+    '',
+    'The CCA Practice team',
+    abandonerTextFooter(unsubUrl),
+  ].join('\n');
+  const li = s => `<li style="margin:0 0 6px">${s}</li>`;
+  const bodyHtml =
+    abandonerPreheader(preview) +
+    eP('Hi,') +
+    eP("You created an account on Claude Certified Architects and started to buy the CCAR-F practice bank, but didn't complete the purchase.") +
+    eP("That's completely fine, and this isn't a sales push. We'd genuinely like to know what stopped you, so we can fix it if the problem is on our side.") +
+    eP('Was it:', 'margin:0 0 8px') +
+    `<ol style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.9rem;color:#191918;line-height:1.7;margin:0 0 16px;padding-left:24px">` +
+    li('The price') + li('The payment options at checkout') + li("Timing: your exam isn't coming up yet") + li('Something else') +
+    '</ol>' +
+    eP('Just reply with the number, or a line if it was something else. We read every reply.') +
+    eP('The CCA Practice team', 'margin:0');
+  return { subject, text, html: emailWrap(bodyHtml, unsubUrl, ABANDONER_REASON_LINE) };
+}
+
+// Email B: straight answers, one button to the practice-questions page.
+// Every claim verified against the product on 9 Oct 2026 (Phase A report);
+// Google Pay dropped because no charge on the account has ever used it.
+function buildAbandonerB(unsubUrl) {
+  const subject = 'The exam costs $125. Practice costs $49.';
+  const preview = 'Straight answers before you decide.';
+  const QA = [
+    ['"Is it worth $49?"',
+     'The exam costs $125 per attempt, and a retake costs the full $125 again. The practice bank is a single $49 payment for 400 scenario-based questions across all five exam domains, every one with a written explanation, plus a full 60-question mock exam. If it helps you pass on your first attempt, it costs less than half of a retake.'],
+    ['"Can I try it first?"',
+     'Yes. The free diagnostic and the free Quick Sprint use questions from the same bank, so you can see the style and difficulty before you pay.'],
+    ['"My payment didn\'t go through."',
+     'Checkout accepts cards and, depending on your device and country, wallets such as Apple Pay and UPI, and shows prices in your local currency where available. If your card was declined or something looked wrong, reply to this email and tell us what happened. We\'ll help.'],
+    ['"My exam is months away."',
+     'Your free account stays open. When your date gets closer, the free diagnostic is a quick way to see which domains need the most work.'],
+    ['"Is this the official Anthropic site?"',
+     'No. We\'re an independent exam-prep site. The practice bank covers all five domains in Anthropic\'s published exam guide, and registration for the exam itself happens through Anthropic Partner Academy.'],
+    ['"What if it isn\'t for me?"',
+     'There\'s a 10-day money-back guarantee: if you\'re not satisfied, request a full refund within 10 days of purchase.'],
+  ];
+  const intro = "If you're working toward the Claude Certified Architect credential, here are straight answers to common questions about the practice bank.";
+  const independence = 'Claude Certified Architects is an independent exam-prep site, not affiliated with Anthropic.';
+  const text = [
+    'Hi,',
+    '',
+    intro,
+    '',
+    ...QA.flatMap(([q, a]) => [q, a, '']),
+    `See the practice questions:\n${ABANDONER_B_URL}`,
+    '',
+    'The CCA Practice team',
+    '',
+    independence,
+    abandonerTextFooter(unsubUrl),
+  ].join('\n');
+  const bodyHtml =
+    abandonerPreheader(preview) +
+    eP('Hi,') +
+    eP(intro) +
+    QA.map(([q, a]) => eP(`<strong>${escHtml(q)}</strong><br>${escHtml(a)}`)).join('') +
+    eBtn('See the practice questions', ABANDONER_B_URL) +
+    eP('The CCA Practice team') +
+    eP(independence, 'font-size:.8rem;color:#6f6f66;margin:0');
+  return { subject, text, html: emailWrap(bodyHtml, unsubUrl, ABANDONER_REASON_LINE) };
+}
+
+// The abandoner runner, chained after runNurtureSequence by /nurture-send so
+// its one-a-day check sees today's nurture sends. Same dryRun and only
+// semantics as the nurture runner. Decision order per candidate, each exit
+// logged with its reason; "closed" writes users/{uid}.abandoner.closed and are
+// terminal, "skip" writes nothing and the candidate is looked at again next run.
+async function runAbandonerSequence(dryRun, only) {
+  const enabled = abandonerEnabled();
+  if (!enabled && !only) {
+    console.log('[abandoner] disabled (ABANDONER_EMAILS_ENABLED is not "true"); nothing read, nothing sent');
+    return { ok: true, disabled: true, sent: 0, skipped: 0, closed: 0, errors: 0, details: [] };
+  }
+  const now = Date.now();
+  console.log(`[abandoner] Run started, dryRun=${dryRun} only=${only ? only.size : 'all'} enabled=${enabled} start=${ABANDONER_START.toISOString()}`);
+  const result = { ok: true, dryRun, sent: 0, skipped: 0, closed: 0, errors: 0, details: [] };
+
+  // Volume guard: this process's sends so far today (UTC), all kinds.
+  let sentToday = 0;
+  try {
+    const c = await sendCountRef(new Date(now)).get();
+    sentToday = (c.exists && Number(c.data().total)) || 0;
+  } catch (err) {
+    console.warn('[abandoner] send counter unreadable, assuming 0:', err.message);
+  }
+
+  const since = new Date(Math.max(ABANDONER_START.getTime(), now - ABANDONER_WINDOW_MS));
+  let snap;
+  try {
+    // Single-field range: documents without firstBuyClickAt are not in the
+    // index, so this is not a collection scan (primer section 26).
+    snap = await db.collection('users').where('firstBuyClickAt', '>=', since).get();
+  } catch (err) {
+    console.error('[abandoner] Failed to load candidates:', err.message);
+    throw new Error('DB read failed: ' + err.message);
+  }
+  console.log(`[abandoner] candidates since ${since.toISOString()}: ${snap.size}; sent today before this run: ${sentToday}`);
+
+  for (const doc of snap.docs) {
+    const uid  = doc.id;
+    const data = doc.data();
+    const ab   = data.abandoner || {};
+    let email  = normEmail(data.email);
+    let tag    = `[abandoner][${email || uid}]`;
+    const note = (action, step, reason) => { result.details.push({ email, uid, action, step, reason }); };
+    const close = async (reason, step) => {
+      console.log(`${tag} closed: ${reason}`);
+      if (!dryRun) {
+        await doc.ref.set({ abandoner: { closed: reason, closedAt: admin.firestore.FieldValue.serverTimestamp() } }, { merge: true });
+      }
+      result.closed++; note('close', step || null, reason);
+    };
+    const skip = (reason, step) => { console.log(`${tag} skip: ${reason}`); result.skipped++; note('skip', step || null, reason); };
+
+    try {
+      if (ab.closed) { result.skipped++; note('skip', null, 'closed:' + ab.closed); continue; }
+
+      // The Auth record: the address to send to (users.email is overwritten by
+      // the checkout address at enrolment) and the enrolled claim.
+      let authUser = null;
+      try { authUser = await auth.getUser(uid); }
+      catch (err) { if (err.code !== 'auth/user-not-found') throw err; }
+      if (!authUser) {
+        // A test run (only=) must not write to accounts it was not given.
+        if (only) { result.skipped++; note('skip', null, 'not_in_only'); continue; }
+        await close('no_account'); continue;
+      }
+      const rawEmail = authUser.email || data.email || '';
+      email = normEmail(rawEmail);
+      tag   = `[abandoner][${email || uid}]`;
+      if (!email || !email.includes('@')) { await close('no_email'); continue; }
+
+      if (only) {
+        if (!only.has(email)) { result.skipped++; note('skip', null, 'not_in_only'); continue; }
+      } else if (ABANDONER_TEST_MARKERS.some(m => email.includes(m))) {
+        await close('test_account'); continue;
+      }
+
+      const step = !ab.aSentAt ? 'a' : (!ab.bSentAt ? 'b' : null);
+      if (!step) { await close('done'); continue; }
+      const basis = step === 'a' ? tsMs(data.firstBuyClickAt) : tsMs(ab.aSentAt);
+      if (!basis) { await close('no_basis:' + step, step); continue; }
+      const dueAt = basis + ABANDONER_MIN_AGE_MS[step];
+      if (now < dueAt) { skip('not_due:' + step, step); continue; }
+      if (now - dueAt > ABANDONER_MAX_LATE_MS) { await close('overdue:' + step, step); continue; }
+
+      // Buyer: the claim, the field, or a paid-but-unclaimed record.
+      const claimEnrolled = !!(authUser.customClaims && authUser.customClaims.enrolled === true);
+      if (claimEnrolled || data.enrolled === true) { await close('buyer', step); continue; }
+      const pendingDoc = await db.collection('pending_enrollments').doc(email).get();
+      if (pendingDoc.exists) { await close('buyer_pending', step); continue; }
+
+      const suppression = await getSuppression(email);
+      if (suppression && suppression.unsubscribed)      { await close('unsubscribed', step); continue; }
+      if (suppression && suppression.manualCampaignA)   { await close('manual_campaign', step); continue; }
+      if (step === 'b' && suppression && suppression.replied) { await close('replied', step); continue; }
+
+      // One email a day across the two sequences: defer, never close.
+      if (await leadNurturedWithin([rawEmail, data.email], now, ABANDONER_ONE_A_DAY_MS)) { skip('nurture_recent:' + step, step); continue; }
+
+      if (sentToday + result.sent >= ABANDONER_DAILY_CAP) {
+        console.log(`[abandoner] daily-guard: ${sentToday} sent today before this run + ${result.sent} this run, cap ${ABANDONER_DAILY_CAP}; stopping, the rest wait for tomorrow`);
+        note('skip', step, 'daily-guard');
+        break;
+      }
+
+      if (dryRun) { console.log(`${tag} would_send: ${step}`); result.sent++; note('would_send', step, null); continue; }
+
+      const unsubToken = ab.unsubToken || crypto.randomBytes(20).toString('hex');
+      const unsubUrl   = `https://claude-certified-architect.onrender.com/unsubscribe?token=${unsubToken}`;
+      const content    = step === 'a' ? buildAbandonerA(unsubUrl) : buildAbandonerB(unsubUrl);
+      const ok = await sendViaResend({
+        to:                 rawEmail,
+        from:               ABANDONER_FROM,
+        subject:            content.subject,
+        text:               content.text,
+        html:               content.html,
+        replyTo:            ABANDONER_REPLY_TO,
+        listUnsubscribeUrl: unsubUrl,
+        kind:               'abandoner_' + step,
+      });
+      if (!ok) { console.error(`${tag} resend_rejected: ${step}`); result.errors++; note('error', step, 'resend_rejected'); continue; }
+
+      // State ONLY after a confirmed send. Merge is deep for the map.
+      const stamp = { unsubToken, [step + 'SentAt']: admin.firestore.FieldValue.serverTimestamp() };
+      if (step === 'b') { stamp.closed = 'done'; stamp.closedAt = admin.firestore.FieldValue.serverTimestamp(); }
+      await doc.ref.set({ abandoner: stamp }, { merge: true });
+      await db.collection('abandoner_sends').doc(`${uid}_${step}`).set({
+        uid, email, step,
+        sentAt:          admin.firestore.FieldValue.serverTimestamp(),
+        firstBuyClickAt: data.firstBuyClickAt || null,
+        dueAt:           new Date(dueAt),
+      });
+      console.log(`${tag} sent: ${step}`);
+      result.sent++; note('sent', step, null);
+    } catch (err) {
+      // Per-candidate isolation: one failure must never abort the run
+      console.error(`${tag} error:`, err.message);
+      result.errors++; note('error', null, err.message);
+    }
+  }
+
+  console.log(`[abandoner] Run complete, sent=${result.sent} skipped=${result.skipped} closed=${result.closed} errors=${result.errors} dryRun=${dryRun}`);
   return result;
 }
 
@@ -2291,7 +2706,12 @@ app.post('/nurture-send', express.json(), async (req, res) => {
   // 3. Run. The catch is what stops a throw in the background portion from
   //    becoming an unhandled rejection that takes the process down.
   runNurtureSequence(dryRun, only)
-    .catch(err => console.error('[nurture] FAILED after response —', (err && err.message) || err));
+    .catch(err => console.error('[nurture] FAILED after response —', (err && err.message) || err))
+    // Checkout-abandoner sequence (freeze exception 10, row 576), AFTER the
+    // nurture run so its one-a-day check sees today's nurture sends. Its own
+    // catch, so a throw here is never read as a nurture failure.
+    .then(() => runAbandonerSequence(dryRun, only))
+    .catch(err => console.error('[abandoner] FAILED after response,', (err && err.message) || err));
 });
 
 const PORT = process.env.PORT || 3001;
