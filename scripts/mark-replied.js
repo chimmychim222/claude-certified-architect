@@ -5,7 +5,7 @@
  * this is how a human records one.
  *
  * Writes email_suppressions/{normalized address} with replied: true,
- * repliedAt, source: 'owner' (merge). Nothing else reads `replied`: the
+ * repliedAt, repliedSource: 'owner' (merge; the doc's own `source` is untouched). Nothing else reads `replied`: the
  * nurture sequence and the diagnostic results email are unaffected, and the
  * address is NOT unsubscribed by this (use the email's own link for that).
  *
@@ -35,7 +35,9 @@ const db = getFirestore(admin.app(), 'default');
 (async () => {
   for (const email of emails) {
     const ref = db.collection('email_suppressions').doc(email);
-    await ref.set({ email, replied: true, repliedAt: admin.firestore.FieldValue.serverTimestamp(), source: 'owner', updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+    // `source` is left alone: it records how an unsubscribe arrived, and a
+    // reply must not overwrite it.
+    await ref.set({ email, replied: true, repliedAt: admin.firestore.FieldValue.serverTimestamp(), repliedSource: 'owner', updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
     const back = await ref.get();
     const d = back.data();
     console.log(`${email}: replied=${d.replied} repliedAt=${d.repliedAt && d.repliedAt.toDate().toISOString()} unsubscribed=${!!d.unsubscribed} manualCampaignA=${!!d.manualCampaignA}`);

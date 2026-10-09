@@ -1710,7 +1710,9 @@ const STAGE_MIN_GAP_MS  = { d1: 0, d3: 48 * 3600000, d7: 96 * 3600000 };
 // for the report script. Kill switch: ABANDONER_EMAILS_ENABLED must be the
 // string "true" on Render; read at run time, default off. With the switch off
 // a run logs "[abandoner] disabled" and reads nothing, EXCEPT a run carrying
-// ?only= (a test send to named addresses), which proceeds for those alone.
+// ?only= (a test send to named addresses), which proceeds for those alone, and
+// a ?dryRun=true run, which sends and writes nothing and is the preview of
+// what the next live run would send.
 const ABANDONER_START        = new Date(process.env.ABANDONER_START || '2026-10-08T00:00:00Z');
 const ABANDONER_MIN_AGE_MS   = { a: 24 * 3600000, b: 96 * 3600000 }; // a: after firstBuyClickAt; b: after A's send
 const ABANDONER_MAX_LATE_MS  = 7 * 24 * 3600000;                       // past this a step is skipped and the sequence closed
@@ -2532,7 +2534,7 @@ function buildAbandonerB(unsubUrl) {
 // terminal, "skip" writes nothing and the candidate is looked at again next run.
 async function runAbandonerSequence(dryRun, only) {
   const enabled = abandonerEnabled();
-  if (!enabled && !only) {
+  if (!enabled && !only && !dryRun) {
     console.log('[abandoner] disabled (ABANDONER_EMAILS_ENABLED is not "true"); nothing read, nothing sent');
     return { ok: true, disabled: true, sent: 0, skipped: 0, closed: 0, errors: 0, details: [] };
   }
@@ -2696,7 +2698,9 @@ app.post('/nurture-send', express.json(), async (req, res) => {
   // only=a@x.com,b@y.com restricts the run to those addresses (test sends).
   let only = null;
   if (typeof req.query.only === 'string' && req.query.only.trim()) {
-    only = new Set(req.query.only.split(',').map(s => s.toLowerCase().trim()).filter(s => s.includes('@')));
+    // A literal + in a query string decodes to a space; an address never
+    // contains one, so a space is put back as the + it was (9 Oct 2026 test).
+    only = new Set(req.query.only.split(',').map(s => s.toLowerCase().trim().replace(/ /g, '+')).filter(s => s.includes('@')));
     if (only.size === 0) only = null;
   }
 
