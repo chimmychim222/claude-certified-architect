@@ -867,6 +867,12 @@ function updatePricingCTAs() {
   // becomes a single "go to your dashboard" link with no purchase framing.
   const heroPrompt = document.getElementById('hero-enroll-prompt');
   if (heroPrompt) heroPrompt.style.display = enrolled ? 'none' : '';
+  // The hero's primary "Unlock all 400 questions: $49" button (index.html,
+  // lever 1, 12 Oct 2026) shares openPaymentModal() with #hero-enroll-btn; an
+  // enrolled visitor already gets "Go to dashboard" below the stats, so this
+  // one is simply hidden rather than relabeled.
+  const heroBuyBtn = document.getElementById('hero-buy-btn');
+  if (heroBuyBtn) heroBuyBtn.style.display = enrolled ? 'none' : '';
 
   if (heroBtn) {
     if (enrolled) {
@@ -5613,8 +5619,8 @@ function showFocusedPaywall() {
   document.getElementById('question-area').innerHTML = `
     <div class="q-paywall">
       <div class="q-paywall-icon">🔓</div>
-      <h2>You've seen the first 5 — unlock all 400 questions and timed exams for $49</h2>
-      <p>All 400 scenario-based questions across five CCA domains, four timed exam modes, and every answer fully explained.</p>
+      <h2>You've seen the first 5. Unlock all 400 questions and timed exams for $49</h2>
+      <p>All 400 scenario-based questions across five CCAR-F domains, four timed exam modes, and every answer fully explained.</p>
       <button class="btn-primary" onclick="openPaymentModal()">Unlock full access: $49</button>
       <p class="q-paywall-altlink">Not sure yet? <a href="/diagnostic/">Take the free diagnostic</a> to see your weakest domain first</p>
       <div class="q-paywall-sub">One-time payment · Lifetime access · 10-day money-back guarantee</div>
