@@ -1980,7 +1980,7 @@ function buildEmail2(results, unsubUrl) {
     '',
     '── The full bank ──',
     '',
-    '400 questions exactly like this, across all five exam domains. Every answer includes a full explanation: not just what’s right, but why each wrong option is wrong.',
+    '400 questions exactly like this, across all five exam domains. Every question has a written explanation of the correct answer, and many also walk through why the other options fall short.',
     '',
     '$49. 10-day money-back guarantee: if you are not satisfied, email us for a full refund.',
     '',
@@ -2026,7 +2026,7 @@ function buildEmail2(results, unsubUrl) {
     eP('Hi,') + stakesHtml +
     eP('$49 for 400 practice questions is the straightforward hedge. Here’s a taste:') +
     questionBlockOut +
-    eP('400 questions like this, across all five domains. Every answer fully explained: not just what’s right, but why each wrong option is wrong.') +
+    eP('400 questions like this, across all five domains. Every question has a written explanation of the correct answer, and many also walk through why the other options fall short.') +
     eP('$49. 10-day money-back guarantee: if you are not satisfied, email us for a full refund.', 'font-weight:700') +
     eBtn('Unlock access: $49', cta);
 
