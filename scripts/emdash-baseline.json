@@ -1,8 +1,8 @@
 {
-  "generatedAt": "ef13c92",
+  "generatedAt": "01c094d",
   "generatedOn": "2026-10-12",
   "rule": "publish manual §6b, 8 Sep 2026: counts recorded here are DEFERRED by decision, not queued; a count may fall, never rise",
-  "totalHits": 1695,
+  "totalHits": 1611,
   "files": {
     "404.html": 1,
     "app.js": 268,
@@ -17,7 +17,6 @@
     "blog/cca-exam-study-schedule-30-day-plan/index.html": 43,
     "blog/cca-foundations-exam-domains-explained/index.html": 13,
     "blog/cca-foundations-exam-guide-2026/index.html": 40,
-    "blog/cca-foundations-exam-practice-questions-free/index.html": 42,
     "blog/cca-real-world-reports-responsibilities-salaries/index.html": 38,
     "blog/cca-study-tips-domain-1-agentic-architecture/index.html": 6,
     "blog/cca-study-tips-domain-2-claude-code-config-workflow/index.html": 8,
@@ -58,7 +57,6 @@
     "posts/cca-exam-study-schedule-30-day-plan.json": 43,
     "posts/cca-foundations-exam-domains-explained.json": 10,
     "posts/cca-foundations-exam-guide-2026.json": 40,
-    "posts/cca-foundations-exam-practice-questions-free.json": 42,
     "posts/cca-real-world-reports-responsibilities-salaries.json": 32,
     "posts/cca-study-tips-domain-1-agentic-architecture.json": 6,
     "posts/cca-study-tips-domain-2-claude-code-config-workflow.json": 8,
