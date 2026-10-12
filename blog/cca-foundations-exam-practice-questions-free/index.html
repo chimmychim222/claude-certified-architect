@@ -20,7 +20,7 @@
 <meta property="og:image:type" content="image/jpeg">
 <meta property="og:image:alt" content="Claude Certified Architect field guide card: the published exam guide's 720/1000 pass mark, 60 questions, and the five domain weightings.">
 <meta property="article:published_time" content="2026-04-30">
-<meta property="article:modified_time" content="2026-10-12T17:05:33.587Z">
+<meta property="article:modified_time" content="2026-10-12T17:20:47.273Z">
 <meta property="article:section" content="CCA Exam Preparation">
 <meta name="author" content="CCA Practice Platforms">
 <meta name="twitter:card" content="summary_large_image">
@@ -28,7 +28,7 @@
 <meta name="twitter:description" content="Try 10 free Claude Certified Architect (CCAR-F) practice exam questions with answers and full explanations, across all five exam domains.">
 <meta name="twitter:image" content="https://www.claudecertifiedarchitects.com/cca-link-image-v3.jpg">
 <link rel="preconnect" href="https://www.googletagmanager.com">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"10 Free Claude Certified Architect (CCAR-F) Practice Questions With Answers","description":"Try 10 free Claude Certified Architect (CCAR-F) practice exam questions with answers and full explanations, across all five exam domains.","url":"https://www.claudecertifiedarchitects.com/blog/cca-foundations-exam-practice-questions-free/","datePublished":"2026-04-30","dateModified":"2026-10-12T17:05:33.587Z","image":"https://www.claudecertifiedarchitects.com/cca-link-image-v3.jpg","publisher":{"@type":"Organization","name":"CCA Practice Platforms","url":"https://www.claudecertifiedarchitects.com"},"author":{"@type":"Organization","name":"CCA Practice Platforms","url":"https://www.claudecertifiedarchitects.com"},"isPartOf":{"@type":"WebSite","name":"CCA Practice Platforms","url":"https://www.claudecertifiedarchitects.com"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"10 Free Claude Certified Architect (CCAR-F) Practice Questions With Answers","description":"Try 10 free Claude Certified Architect (CCAR-F) practice exam questions with answers and full explanations, across all five exam domains.","url":"https://www.claudecertifiedarchitects.com/blog/cca-foundations-exam-practice-questions-free/","datePublished":"2026-04-30","dateModified":"2026-10-12T17:20:47.273Z","image":"https://www.claudecertifiedarchitects.com/cca-link-image-v3.jpg","publisher":{"@type":"Organization","name":"CCA Practice Platforms","url":"https://www.claudecertifiedarchitects.com"},"author":{"@type":"Organization","name":"CCA Practice Platforms","url":"https://www.claudecertifiedarchitects.com"},"isPartOf":{"@type":"WebSite","name":"CCA Practice Platforms","url":"https://www.claudecertifiedarchitects.com"}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.claudecertifiedarchitects.com"},{"@type":"ListItem","position":2,"name":"Blog","item":"https://www.claudecertifiedarchitects.com/blog/"},{"@type":"ListItem","position":3,"name":"10 Free Claude Certified Architect (CCAR-F) Practice Questions With Answers","item":"https://www.claudecertifiedarchitects.com/blog/cca-foundations-exam-practice-questions-free/"}]}</script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -167,7 +167,7 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
         </ol>
       </div>
       <h1 class="post-title">10 Free Claude Certified Architect (CCAR-F) Practice Questions With Answers</h1>
-      <p class="post-meta">By CCA Practice Platforms · <time datetime="2026-04-30">April 30, 2026</time> · Updated <time datetime="2026-10-12T17:05:33.587Z">October 12, 2026</time></p>
+      <p class="post-meta">By CCA Practice Platforms · <time datetime="2026-04-30">April 30, 2026</time> · Updated <time datetime="2026-10-12T17:20:47.273Z">October 12, 2026</time></p>
     </header>
     <div class="post-body">
       <p>The CCAR-F (also written CCA-F) exam is 60 scenario-based questions, completed in 120 minutes, scored on a scaled 720/1,000 passing standard. The standard registration fee is $125 (USD). See our <a href="/blog/cca-exam-cost/">exam cost breakdown</a> for details. Every question puts you inside a production system and asks you to choose between options that both look defensible on the surface. The best preparation is working through that kind of decision-making repeatedly, not reading documentation.</p>
@@ -211,19 +211,19 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 <hr>
 
 <h2>Question 3: Agentic Architecture</h2>
-<p>A multi-agent pipeline has five subagents running sequentially. SubAgent 3 fails with a permissions error on a file it needs to read. The orchestrator catches the exception. What is the architecturally correct response?</p>
+<p>A multi-agent pipeline has five subagents running sequentially. SubAgent 3 fails with a permissions error on a file it needs to read, an error it cannot resolve on its own. The orchestrator catches the exception. What is the architecturally correct response?</p>
 <ul>
-  <li><strong>A.</strong> Apply the transient-failure policy: retry SubAgent 3 up to three times with exponential backoff, and continue with its output once a retry succeeds, since most subagent errors clear on a second try.</li>
-  <li><strong>B.</strong> Have the orchestrator ask the model to draft a stand-in for SubAgent 3's section from the context already gathered, so SubAgents 4 and 5 receive a complete input.</li>
-  <li><strong>C.</strong> Halt the pipeline, surface the specific failure (which agent, what error, what was not completed), and give the user or orchestrator the information needed to decide how to proceed.</li>
-  <li><strong>D.</strong> Let SubAgents 4 and 5 run to completion with SubAgent 3's section left out and the final output unmarked, so the run still delivers a complete-looking result on schedule.</li>
+  <li><strong>A.</strong> Treat it as a transient failure: retry SubAgent 3 up to three times with exponential backoff before giving up, since most subagent errors in a long sequential pipeline clear on the second or third attempt without any change to configuration.</li>
+  <li><strong>B.</strong> Have SubAgent 3 return a structured error naming the failure type, what it attempted, and any partial results, so the orchestrator can decide whether to fix the permission and re-run or continue with the gap annotated.</li>
+  <li><strong>C.</strong> Halt the entire pipeline at the first failure and report which agent failed and what it was doing, so that SubAgents 4 and 5 never run on incomplete input and the user restarts the whole run once the permission is fixed.</li>
+  <li><strong>D.</strong> Return an empty result for SubAgent 3's step and let SubAgents 4 and 5 complete on what they have, so the pipeline still delivers a finished-looking output on schedule and the missing section is handled afterwards.</li>
 </ul>
 
-<h3>Correct Answer: C</h3>
-<p>Silent failure propagation is one of the most dangerous patterns in agentic systems. A user who receives output from a five-agent pipeline where one agent silently failed has no way to know their result is incomplete. Surfacing failures explicitly, with enough detail to act on, is always the correct response to subagent errors. The user or orchestrator can then decide whether to retry with corrected permissions, continue with acknowledged partial results, or abort.</p>
-<p><strong>Why A is wrong:</strong> Automatic retries are appropriate for transient failures (network timeouts, rate limits). A permissions error is a configuration failure. Retrying three times will produce three identical failures. Retrying without fixing the underlying cause wastes time and adds cost.</p>
-<p><strong>Why B is wrong:</strong> Hallucinating substitute content for a failed step is strictly worse than reporting the failure. The downstream consumer receives fabricated data presented as legitimate output, with no signal that anything went wrong.</p>
-<p><strong>Why D is wrong:</strong> Silently omitting a failed subagent's contribution makes the final output appear complete when it isn't. The downstream consumer has no signal that something is missing and cannot make an informed decision about whether to trust or use the result.</p>
+<h3>Correct Answer: B</h3>
+<p>A permissions error is not transient, so retrying cannot fix it, but it does not have to end the run either. Task Statement 5.3 of the exam guide (CCAR-F) describes structured error context, meaning the failure type, what was attempted, partial results and possible alternatives, as what lets a coordinator make an informed recovery decision, and it names both silently suppressing errors and terminating an entire workflow on a single failure as anti-patterns. Task Statement 2.2 applies the same rule to MCP tools: recover locally from transient failures and propagate only what cannot be resolved, with what was attempted and any partial results. Given that context, the orchestrator can fix the permission and re-run SubAgent 3, or let the rest of the pipeline continue and mark the gap in the final output.</p>
+<p><strong>Why A is wrong:</strong> Retries are for transient failures such as timeouts and rate limits. A permissions error is a configuration failure, so three retries produce three identical failures while adding time and cost. Task Statement 2.2 (CCAR-F) separates retryable from non-retryable errors for exactly this reason.</p>
+<p><strong>Why C is wrong:</strong> Stopping everything on one failure is the anti-pattern Task Statement 5.3 (CCAR-F) names alongside silent suppression. SubAgents 4 and 5 may not depend on the file SubAgent 3 could not read, and a hard stop throws away completed work instead of letting the orchestrator decide what can still proceed.</p>
+<p><strong>Why D is wrong:</strong> An empty result presented as success hides the failure from everything downstream. Task Statement 5.3 (CCAR-F) calls returning empty results as success an anti-pattern, and Task Statement 2.2 says an access failure must be distinguished from a valid empty result so the coordinator can decide how to recover.</p>
 
 <hr>
 
@@ -347,11 +347,11 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 <hr>
 
 <h2>What These Questions Are Testing</h2>
-<p>Every question above has at least one wrong answer that looks defensible. That's the format of the real exam. The consistent pattern: one option relies on the model to enforce something that should be enforced at the infrastructure or configuration level (prompts for safety-critical behavior, prompt instructions for injection defense, single strings for structured data). The correct answer always pushes the guarantee into the layer that can actually provide it.</p>
+<p>Every question above has at least one wrong answer that looks defensible. The consistent pattern: one option relies on the model to enforce something that should be enforced at the infrastructure or configuration level (prompts for safety-critical behavior, prompt instructions for injection defense, single strings for structured data). The correct answer always pushes the guarantee into the layer that can actually provide it.</p>
 
 <p>Notice how the ten questions above are distributed: they deliberately span all five exam domains in rough proportion to their real exam weight: Agentic Architecture &amp; Orchestration (27%), Claude Code Configuration &amp; Workflows (20%), Prompt Engineering &amp; Structured Output (20%), Tool Design &amp; MCP (18%), and Context Management &amp; Reliability (15%). That's not an accident, and it's how your study time should be allocated too: the heavier a domain's weight, the more of your limited preparation hours it deserves.</p>
 
-<p>Ten questions is a starting point. The real exam has 60, and the difficulty is consistent throughout. If you got eight or more correct with correct reasoning, you're on track. If you found yourself choosing the prompt-based answer before reading all options, that's the pattern to watch. The exam is specifically designed to surface that instinct.</p>
+<p>Ten questions is a starting point. Section 3 of the exam guide (CCAR-F) lists 60 items in 120 minutes. If you got eight or more correct with correct reasoning, you're on track. If you found yourself choosing the prompt-based answer before reading all options, that's the pattern to watch. Task Statement 1.4 of the exam guide (CCAR-F) states that where deterministic compliance is required, prompt instructions alone have a non-zero failure rate.</p>
 
 <p>The full preparation path: start with our free <a href="/diagnostic/">10-question readiness diagnostic</a> to see exactly where you stand against the 720/1,000 passing standard, then work through our <a href="/blog/cca-exam-study-schedule-30-day-plan/">CCA exam study schedule</a>, which maps all five domains across a 30-day preparation plan. The <a href="/cca-practice-questions/">400-question practice bank</a> builds the decision-making speed the exam requires, and when you're ready to test under exam conditions, the <a href="/cca-foundations-exam/">full 60-question timed simulation</a> gives you a domain-by-domain score breakdown.</p>
 
