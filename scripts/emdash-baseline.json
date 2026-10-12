@@ -1,11 +1,11 @@
 {
-  "generatedAt": "01c094d",
+  "generatedAt": "7cebede",
   "generatedOn": "2026-10-12",
   "rule": "publish manual §6b, 8 Sep 2026: counts recorded here are DEFERRED by decision, not queued; a count may fall, never rise",
-  "totalHits": 1611,
+  "totalHits": 1610,
   "files": {
     "404.html": 1,
-    "app.js": 268,
+    "app.js": 267,
     "blog/agentic-architecture-orchestration-cca-domain-1/index.html": 27,
     "blog/ai-engineer-certifications-2026/index.html": 21,
     "blog/cca-domain-weighting-strategy-focus-study-time/index.html": 10,
