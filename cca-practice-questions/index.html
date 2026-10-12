@@ -47,6 +47,8 @@ nav .nav-links a.active{color:var(--text);font-weight:600}
 .btn-primary:hover{background:var(--accent2);color:#fff}
 article{padding:8px 0 80px}
 article h2{font-size:1.5rem;font-weight:700;margin:20px 0 12px;color:var(--text)}
+/* The #sample-questions anchor is a link target from the homepage hero (lever 1, 12 Oct 2026); without this the heading lands under the fixed banner and nav. */
+#sample-questions{scroll-margin-top:calc(var(--banner-h,0px) + 80px)}
 article h3{font-size:1.2rem;font-weight:600;margin:28px 0 10px;color:var(--text)}
 article p{color:var(--text2);margin-bottom:16px;font-size:.95rem}
 article ul,article ol{margin:0 0 20px 24px;color:var(--text2);font-size:.95rem}
