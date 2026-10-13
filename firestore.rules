@@ -1,6 +1,17 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // CCAR-F ownership, read from the ID token only. The enrolled claim keeps
+    // granting CCAR-F forever; products.ccar is the additive claim the CCDV-F
+    // work introduces (second-product recon, 12 Oct 2026). get() with a default
+    // is used so a token without either key evaluates to false, never to an
+    // error that would deny an enrolled user.
+    function ownsCcar() {
+      return request.auth != null
+        && (request.auth.token.get('enrolled', false) == true
+            || request.auth.token.get('products', {}).get('ccar', false) == true);
+    }
+
     match /users/{userId} {
       // Only the Stripe webhook and the ops scripts (Admin SDK, which bypasses
       // these rules) may write the entitlement fields. A signed-in user may
@@ -20,6 +31,19 @@ service cloud.firestore {
       match /attempts/{attemptId} {
         allow read, write: if isOwner();
       }
+    }
+
+    // The paid CCAR-F question bank (one document per domain) and the paid
+    // lessons (one document per module). Written only by the Admin SDK upload
+    // script in the private cca-question-banks repository. Readable by an
+    // account that owns CCAR-F; no client may write.
+    match /bank_ccar/{domainId} {
+      allow read: if ownsCcar();
+      allow write: if false;
+    }
+    match /lessons_ccar/{lessonId} {
+      allow read: if ownsCcar();
+      allow write: if false;
     }
   }
 }
