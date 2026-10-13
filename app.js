@@ -390,6 +390,116 @@ function ensureFirestore() {
 }
 
 // ═══════════════════════════════════════
+// BANK SHADOW LOAD (Stage A of the bank move, Oct 2026)
+// ═══════════════════════════════════════
+// The paid bank and lessons now also live in Firestore (bank_ccar, one
+// document per domain; lessons_ccar, one per module), readable only by an
+// account whose ID token carries enrolled:true or products.ccar:true (see
+// firestore.rules). NOTHING HERE RENDERS ANYTHING YET: every user is still
+// served from the bundled QUESTIONS and LESSONS below. For an enrolled user
+// only, once per browser session, after the claim has resolved, the two
+// loaders run in the background, the result is compared with the bundled
+// copy (item count plus a SHA-256 over index, stem and key; lesson count plus
+// a SHA-256 over title and content), and ONE GA4 event bank_shadow reports
+// result ok / mismatch / error with the error code and the sign-in provider.
+// It never blocks, delays or changes what the user sees, and every failure is
+// swallowed. Stage B, which switches the paid modes over to these loaders,
+// ships only after the owner has read the shadow counts.
+const bankCache = {};      // product -> Promise<items[]>
+const lessonsCache = {};   // product -> Promise<modules[]>
+
+// Reads bank_<product> into one array in bank order (each item carries its
+// bank index i). The promise is cached per product so concurrent callers share
+// one read; a failure clears the cache so the next call can retry.
+function loadBank(product) {
+  if (!bankCache[product]) {
+    bankCache[product] = (async () => {
+      await ensureFirestore();
+      const fs = window.__fs;
+      const snap = await fs.getDocs(fs.collection(db, 'bank_' + product));
+      const items = [];
+      snap.forEach(d => { const data = d.data() || {}; (data.items || []).forEach(it => items.push(it)); });
+      items.sort((a, b) => a.i - b.i);
+      if (!items.length) throw Object.assign(new Error('empty bank'), { code: 'empty-bank' });
+      return items;
+    })().catch(e => { delete bankCache[product]; throw e; });
+  }
+  return bankCache[product];
+}
+
+// Reads lessons_<product> into an array of {title, content} in module order.
+// Same caching and retry shape as loadBank().
+function loadLessons(product) {
+  if (!lessonsCache[product]) {
+    lessonsCache[product] = (async () => {
+      await ensureFirestore();
+      const fs = window.__fs;
+      const snap = await fs.getDocs(fs.collection(db, 'lessons_' + product));
+      const mods = [];
+      snap.forEach(d => { const data = d.data() || {}; mods.push({ order: data.order, title: data.title, content: data.content }); });
+      mods.sort((a, b) => a.order - b.order);
+      if (!mods.length) throw Object.assign(new Error('empty lessons'), { code: 'empty-lessons' });
+      return mods;
+    })().catch(e => { delete lessonsCache[product]; throw e; });
+  }
+  return lessonsCache[product];
+}
+
+// SHA-256 hex via WebCrypto (available on https and localhost).
+async function sha256Hex(str) {
+  if (!(window.crypto && window.crypto.subtle && window.TextEncoder)) throw Object.assign(new Error('no subtle crypto'), { code: 'no-subtle-crypto' });
+  const buf = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+// Fingerprints: index, stem and key per item; title and content per module.
+function bankFingerprint(items) { return JSON.stringify(items.map((q, i) => [typeof q.i === 'number' ? q.i : i, q.q, q.a])); }
+function lessonsFingerprint(mods) { return JSON.stringify(mods.map(m => [m.title, m.content])); }
+
+let bankShadowStarted = false;
+// Called from markEnrolled(), i.e. only once the claim (or its fallbacks) has
+// resolved to enrolled. Once per page load, once per browser session, and
+// deferred five seconds so it never competes with the dashboard render.
+function bankShadowStart(user) {
+  try {
+    if (bankShadowStarted) return;
+    bankShadowStarted = true;
+    try { if (sessionStorage.getItem('cca_bank_shadow') === '1') return; } catch (e) {}
+    setTimeout(function () { bankShadowRun(user).catch(function () {}); }, 5000);
+  } catch (e) {}
+}
+async function bankShadowRun(user) {
+  let result = 'error', code = 'none', provider = 'unknown';
+  const extra = {};
+  try {
+    provider = (user && user.providerData && user.providerData.length) ? user.providerData.map(function (x) { return x.providerId; }).sort().join('+') : 'none';
+  } catch (e) {}
+  try {
+    const t0 = Date.now();
+    const loaded = await Promise.all([loadBank('ccar'), loadLessons('ccar')]);
+    const bank = loaded[0], mods = loaded[1];
+    extra.load_ms = Date.now() - t0;
+    extra.bank_count = bank.length;
+    extra.lessons_count = mods.length;
+    const problems = [];
+    if (bank.length !== QUESTIONS.length) problems.push('bank_count');
+    if (mods.length !== LESSONS.length) problems.push('lessons_count');
+    const h = await Promise.all([sha256Hex(bankFingerprint(bank)), sha256Hex(bankFingerprint(QUESTIONS)), sha256Hex(lessonsFingerprint(mods)), sha256Hex(lessonsFingerprint(LESSONS))]);
+    if (h[0] !== h[1]) problems.push('bank_hash');
+    if (h[2] !== h[3]) problems.push('lessons_hash');
+    extra.bank_hash = h[0].slice(0, 12);
+    result = problems.length ? 'mismatch' : 'ok';
+    code = problems.length ? problems.join('+') : 'none';
+  } catch (e) {
+    result = 'error';
+    code = String((e && (e.code || e.name)) || 'unknown').slice(0, 40);
+  }
+  try { sessionStorage.setItem('cca_bank_shadow', '1'); } catch (e) {}
+  try {
+    if (typeof gtag !== 'undefined') gtag('event', 'bank_shadow', Object.assign({ result: result, error_code: code, provider: provider }, extra));
+  } catch (e) {}
+  try { window.__bankShadowResult = { result: result, error_code: code, provider: provider, extra: extra }; } catch (e) {}
+}
+// ═══════════════════════════════════════
 // AUTH STATE
 // ═══════════════════════════════════════
 let currentUser = null;
@@ -1644,6 +1754,7 @@ function markEnrolled(user) {
   updateNavUI();
   updateDashCards();
   maybeFireExamPurchaseEvent(user);
+  bankShadowStart(user);   // Stage A shadow read, background only, see BANK SHADOW LOAD
 }
 
 // Ask the webhook server whether a "pending enrollment" exists for the
@@ -2558,7 +2669,7 @@ function showSection(id) {
   } else if (id === 'lessons') {
     document.getElementById('lessons-section').style.display = 'block';
     document.querySelector('[data-nav="lessons"]').classList.add('active');
-    if (!lessonsLoaded) loadLessons();
+    if (!lessonsLoaded) renderLessons();
   } else if (id === 'progress') {
     document.getElementById('progress-section').style.display = 'block';
     const navBtn = document.querySelector('[data-nav="progress"]');
@@ -5277,7 +5388,7 @@ function exitTest() {
 let lessonsLoaded = false;
 let currentLesson = 0;
 
-function loadLessons() {
+function renderLessons() {
   lessonsLoaded = true;
   let navHTML = '';
   LESSONS.forEach((l, i) => {
