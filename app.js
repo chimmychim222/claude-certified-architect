@@ -2213,7 +2213,8 @@ async function confirmPaymentAndUnlock(user) {
     while (!confirmed && Date.now() < deadline) {
       try {
         const tok = await fbAuth.getIdTokenResult(user, true);
-        if (tok.claims.enrolled) confirmed = true;
+        // B2: a CCAR-F grant may arrive as products.ccar as well as enrolled.
+        if (tok.claims.enrolled || (tok.claims.products && tok.claims.products.ccar === true)) confirmed = true;
       } catch (e) {}
 
       if (!confirmed) {
@@ -2525,7 +2526,10 @@ function openPaymentModal() {
   currentUser.getIdToken()
     .then(tok => fetch(WEBHOOK_BASE + '/pre-checkout', {
       method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + tok },
+      headers: { 'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json' },
+      // B2: the product this click buys. The route reads an absent body as ccar,
+      // so the older client keeps working; B3 sends the real product.
+      body: JSON.stringify({ product: 'ccar' }),
       signal: _preCtrl.signal,
     }))
     .then(r => r.json())
