@@ -11,6 +11,11 @@ service cloud.firestore {
         && (request.auth.token.get('enrolled', false) == true
             || request.auth.token.get('products', {}).get('ccar', false) == true);
     }
+    // CCDV-F ownership (B2, Oct 2026): the products.ccdv claim only.
+    function ownsCcdv() {
+      return request.auth != null
+        && request.auth.token.get('products', {}).get('ccdv', false) == true;
+    }
 
     match /users/{userId} {
       // Only the Stripe webhook and the ops scripts (Admin SDK, which bypasses
@@ -19,7 +24,9 @@ service cloud.firestore {
       function isOwner() { return request.auth != null && request.auth.uid == userId; }
       // firstBuyClickAt and the abandoner map are written only by the webhook
       // (checkout-abandoner emails, freeze exception 10, Build Schedule row 576).
-      function serverOwned() { return ['enrolled', 'enrolledAt', 'stripeSessionId', 'firstBuyClickAt', 'abandoner']; }
+      // entitlements (per-product grant map) and firstBuyClickProduct were added
+      // by B2 (Oct 2026) and are written only by the webhook and the ops scripts.
+      function serverOwned() { return ['enrolled', 'enrolledAt', 'stripeSessionId', 'firstBuyClickAt', 'abandoner', 'entitlements', 'firstBuyClickProduct']; }
 
       allow read: if isOwner();
       allow create: if isOwner()
@@ -43,6 +50,13 @@ service cloud.firestore {
     }
     match /lessons_ccar/{lessonId} {
       allow read: if ownsCcar();
+      allow write: if false;
+    }
+
+    // The paid CCDV-F question bank (B2, Oct 2026): same shape, readable by an
+    // account that owns CCDV-F; no client may write.
+    match /bank_ccdv/{domainId} {
+      allow read: if ownsCcdv();
       allow write: if false;
     }
   }
