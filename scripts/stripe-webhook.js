@@ -13,6 +13,11 @@
  *                                    required as the `x-admin-key` header on
  *                                    GET /admin/stale-pending-enrollments.
  *                                    Leaving it unset disables that endpoint entirely.
+ *   PAYMENT_LINK_CCAR              plink_... id of the $49 CCAR-F Payment Link
+ *   PAYMENT_LINK_CCDV              plink_... id of the $69 CCDV-F Payment Link
+ *   PAYMENT_LINK_BUNDLE            plink_... id of the $99 CCAR-F + CCDV-F bundle link
+ *                                    (B2, Oct 2026: a session's payment_link is mapped to
+ *                                    the products it grants; an unmapped link grants ccar)
  *
  *   ALERT_EMAIL_TO   (optional)    — email address to notify when stale (>48h)
  *                                    pending_enrollments are found. Reuses the
@@ -284,7 +289,7 @@ function countSend(kind) {
 //
 // If GA4_MEASUREMENT_ID or GA4_MP_API_SECRET are not set, this skips silently —
 // a missing analytics config must never prevent a real enrollment from landing.
-async function fireGA4PurchaseEvent(sessionId, ga4ClientId, uid, gclidAw, ga4SessionId, ga4SessionNumber) {
+async function fireGA4PurchaseEvent(sessionId, ga4ClientId, uid, gclidAw, ga4SessionId, ga4SessionNumber, products) {
   const measurementId = process.env.GA4_MEASUREMENT_ID;
   const apiSecret     = process.env.GA4_MP_API_SECRET;
 
@@ -317,10 +322,11 @@ async function fireGA4PurchaseEvent(sessionId, ga4ClientId, uid, gclidAw, ga4Ses
             params: Object.assign(
               {
                 currency:       'USD',
-                value:          49.0,
                 transaction_id: sessionId,
-                items: [{ item_id: 'cca_exam_prep', item_name: 'CCA Exam Prep', price: 49.0, quantity: 1 }],
               },
+              // value and items per product (49 cca_exam_prep, 69 ccdv_exam_prep,
+              // 99 cca_ccdv_bundle). An absent products list reads as ccar: today's 49.
+              ga4ProductParams(products),
               // session_id + session_number stitch this server-side hit to the
               // original browser session so GA4 reports source/medium correctly
               // instead of "(not set) / (not set)".
@@ -361,6 +367,75 @@ const auth = admin.auth();
 const { getFirestore } = require('firebase-admin/firestore');
 const db   = getFirestore(admin.app(), 'default');
 const app  = express();
+
+// ── Products: which product(s) a checkout grants (B2, Oct 2026) ──────────────
+// Until B2 one bit, enrolled:true, meant "owns the only product". A purchase now
+// grants a products list read from the Payment Link the Checkout Session was
+// created from (session.payment_link, carried on the event, no API call) and
+// mapped through three Render env vars. enrolled:true keeps meaning "owns
+// CCAR-F" forever: it is written whenever ccar is granted and never removed, so
+// every older reader (client fallback, nurture and abandoner suppression, ops
+// scripts) stays correct. A missing or unknown link grants ccar and logs
+// UNMAPPED LINK, which is exactly the pre-B2 behaviour. Nothing here reads a
+// field a user could write: ownership comes from the ID token claims.
+const PRODUCT_LINK_ENV = { PAYMENT_LINK_CCAR: ['ccar'], PAYMENT_LINK_CCDV: ['ccdv'], PAYMENT_LINK_BUNDLE: ['ccar', 'ccdv'] };
+const PRODUCT_LINKS = {};
+Object.keys(PRODUCT_LINK_ENV).forEach(k => { const id = String(process.env[k] || '').trim(); if (id) PRODUCT_LINKS[id] = PRODUCT_LINK_ENV[k]; });
+const PRODUCT_GA4 = {
+  ccar:   { value: 49, item_id: 'cca_exam_prep',   item_name: 'CCA Exam Prep' },
+  ccdv:   { value: 69, item_id: 'ccdv_exam_prep',  item_name: 'CCDV Exam Prep' },
+  bundle: { value: 99, item_id: 'cca_ccdv_bundle', item_name: 'CCA + CCDV Bundle' },
+};
+const KNOWN_PRODUCTS = ['ccar', 'ccdv'];
+// Dedupes and drops unknown values. An empty or absent list reads as ccar, so a
+// pending_enrollments record written before the field existed grants CCAR-F.
+function normalizeProducts(list) {
+  const out = [];
+  (Array.isArray(list) ? list : []).forEach(p => { if (KNOWN_PRODUCTS.includes(p) && !out.includes(p)) out.push(p); });
+  return out.length ? out : ['ccar'];
+}
+function productsForSession(session) {
+  const link = session && session.payment_link;
+  if (link && PRODUCT_LINKS[link]) return PRODUCT_LINKS[link].slice();
+  console.warn(`UNMAPPED LINK ${link || '(none)'} on session ${session && session.id}; granting ccar`);
+  return ['ccar'];
+}
+function productKeyOf(products) { return products.includes('ccar') && products.includes('ccdv') ? 'bundle' : products[0]; }
+// Claims merge: every existing claim kept, the products map merged key by key,
+// enrolled:true added whenever ccar is in the grant. Never removes anything.
+function mergedClaims(existingClaims, products) {
+  const prev = (existingClaims && isPlainObject(existingClaims.products)) ? existingClaims.products : {};
+  const next = Object.assign({}, prev);
+  products.forEach(p => { next[p] = true; });
+  const claims = Object.assign({}, existingClaims || {}, { products: next });
+  if (products.includes('ccar')) claims.enrolled = true;
+  return claims;
+}
+// The three CCAR-F doc fields exactly as every path has always written them,
+// only when ccar is in the grant. A CCDV-F-only purchase must not write enrolled.
+function ccarFields(products, stripeSessionId) {
+  if (!products.includes('ccar')) return {};
+  return { enrolled: true, enrolledAt: admin.firestore.FieldValue.serverTimestamp(), stripeSessionId: stripeSessionId || null };
+}
+// users/{uid}.entitlements.<product> = {grantedAt, stripeSessionId, via}, written
+// with merge so a second product never erases the first. Server-owned once the
+// B2 rules are published. Reporting only: it is never read to decide access.
+function entitlementFields(products, stripeSessionId, via) {
+  const entitlements = {};
+  products.forEach(p => { entitlements[p] = { grantedAt: admin.firestore.FieldValue.serverTimestamp(), stripeSessionId: stripeSessionId || null, via }; });
+  return { entitlements };
+}
+function ga4ProductParams(products) {
+  const p = PRODUCT_GA4[productKeyOf(normalizeProducts(products))];
+  return { value: p.value, items: [{ item_id: p.item_id, item_name: p.item_name, price: p.value, quantity: 1 }] };
+}
+// Ownership from the ID token claims only, never from a user-writable field.
+function ownsByClaims(claims, product) {
+  const c = claims || {};
+  const products = isPlainObject(c.products) ? c.products : {};
+  if (product === 'ccar') return c.enrolled === true || products.ccar === true;
+  return products[product] === true;
+}
 
 // ── Global CORS — must come before all routes ─────────────────────────────────
 app.use((req, res, next) => {
@@ -424,6 +499,7 @@ app.post(
     const session           = event.data.object;
     const customerEmail     = session.customer_details?.email || session.customer_email;
     const clientReferenceId = session.client_reference_id || null;
+    const products          = productsForSession(session);
 
     // ── Logged-in checkout: client_reference_id carries the Firebase UID of
     // the account that started checkout (set by openPaymentModal in app.js).
@@ -457,14 +533,13 @@ app.post(
           }
         } catch (e) { /* best-effort, never block enrollment */ }
 
-        await auth.setCustomUserClaims(uid, { ...existingClaims, enrolled: true });
+        await auth.setCustomUserClaims(uid, mergedClaims(existingClaims, products));
 
         await db.collection('users').doc(uid).set(
           {
-            enrolled:        true,
-            enrolledAt:      admin.firestore.FieldValue.serverTimestamp(),
+            ...ccarFields(products, session.id),
             email:           customerEmail || userRecord.email,
-            stripeSessionId: session.id,
+            ...entitlementFields(products, session.id, 'webhook'),
             ...(gclidAw ? { gclid_aw: gclidAw } : {}),
           },
           { merge: true }
@@ -476,9 +551,9 @@ app.post(
           db.collection('pending_enrollments').doc(customerEmail.toLowerCase()).delete().catch(() => {});
         }
 
-        console.log(`Enrolled via client_reference_id: ${customerEmail || userRecord.email} (${uid})`);
+        console.log(`Enrolled via client_reference_id: ${customerEmail || userRecord.email} (${uid}) products=${products.join('+')}`);
         // Fire server-side GA4 purchase event — additive, deduped by transaction_id.
-        fireGA4PurchaseEvent(session.id, ga4ClientId, uid, gclidAw, ga4SessionId, ga4SessionNumber).catch(() => {});
+        fireGA4PurchaseEvent(session.id, ga4ClientId, uid, gclidAw, ga4SessionId, ga4SessionNumber, products).catch(() => {});
         return res.json({ ok: true, enrolled: uid });
       } catch (err) {
         console.warn(`client_reference_id lookup failed (${clientReferenceId}):`, err.message);
@@ -508,6 +583,7 @@ app.post(
             {
               email:           customerEmail,
               stripeSessionId: session.id,
+              products:        admin.firestore.FieldValue.arrayUnion(...products),
               createdAt:       admin.firestore.FieldValue.serverTimestamp(),
               // Lifecycle: unclaimed -> contacted (a human emailed them) ->
               // abandoned. Terminal states stop the alert and never delete, so
@@ -521,7 +597,7 @@ app.post(
             },
             { merge: true }
           );
-          console.log(`Pending enrollment stashed (no account yet): ${customerEmail}`);
+          console.log(`Pending enrollment stashed (no account yet): ${customerEmail} products=${products.join('+')}`);
           return res.json({ ok: true, pending: true });
         } catch (stashErr) {
           console.error('Failed to stash pending enrollment:', stashErr.message);
@@ -552,14 +628,13 @@ app.post(
         }
       } catch (e) { /* best-effort */ }
 
-      await auth.setCustomUserClaims(uid, { ...existingClaims, enrolled: true });
+      await auth.setCustomUserClaims(uid, mergedClaims(existingClaims, products));
 
       await db.collection('users').doc(uid).set(
         {
-          enrolled:        true,
-          enrolledAt:      admin.firestore.FieldValue.serverTimestamp(),
+          ...ccarFields(products, session.id),
           email:           customerEmail,
-          stripeSessionId: session.id,
+          ...entitlementFields(products, session.id, 'webhook'),
           ...(gclidAw ? { gclid_aw: gclidAw } : {}),
         },
         { merge: true }
@@ -569,8 +644,8 @@ app.post(
       // that arrived after the account was created and matched normally).
       db.collection('pending_enrollments').doc(customerEmail.toLowerCase()).delete().catch(() => {});
 
-      console.log(`Enrolled: ${customerEmail} (${uid})`);
-      fireGA4PurchaseEvent(session.id, ga4ClientId, uid, gclidAw, ga4SessionId, ga4SessionNumber).catch(() => {});
+      console.log(`Enrolled: ${customerEmail} (${uid}) products=${products.join('+')}`);
+      fireGA4PurchaseEvent(session.id, ga4ClientId, uid, gclidAw, ga4SessionId, ga4SessionNumber, products).catch(() => {});
       return res.json({ ok: true, enrolled: uid });
 
     } catch (err) {
@@ -626,6 +701,8 @@ app.post('/claim-enrollment', async (req, res) => {
     }
 
     const pending        = pendingDoc.data();
+    // B2: a record without the field was written before it existed and grants ccar.
+    const products       = normalizeProducts(pending.products);
     const userRecord     = await auth.getUser(uid);
     const existingClaims = userRecord.customClaims || {};
 
@@ -646,13 +723,12 @@ app.post('/claim-enrollment', async (req, res) => {
       }
     } catch (e) { /* best-effort */ }
 
-    await auth.setCustomUserClaims(uid, { ...existingClaims, enrolled: true });
+    await auth.setCustomUserClaims(uid, mergedClaims(existingClaims, products));
     await db.collection('users').doc(uid).set(
       {
-        enrolled:        true,
-        enrolledAt:      admin.firestore.FieldValue.serverTimestamp(),
+        ...ccarFields(products, pending.stripeSessionId || null),
         email:           userRecord.email,
-        stripeSessionId: pending.stripeSessionId || null,
+        ...entitlementFields(products, pending.stripeSessionId || null, 'claim'),
         ...(gclidAw ? { gclid_aw: gclidAw } : {}),
       },
       { merge: true }
@@ -666,10 +742,11 @@ app.post('/claim-enrollment', async (req, res) => {
       uid,
       gclidAw,
       ga4SessionId,
-      ga4SessionNumber
+      ga4SessionNumber,
+      products
     ).catch(() => {});
 
-    console.log(`Claimed pending enrollment: ${email} (${uid})`);
+    console.log(`Claimed pending enrollment: ${email} (${uid}) products=${products.join('+')}`);
     return res.json({ ok: true, enrolled: true });
 
   } catch (err) {
@@ -1032,18 +1109,26 @@ app.post('/pre-checkout', express.json(), async (req, res) => {
 
   const uid = decoded.uid;
 
+  // B2: which product the click is for. Absent (today's client) reads as ccar;
+  // bundle means both. Only an owner of every requested product is blocked, so
+  // a CCAR-F owner buying CCDV-F passes. Ownership is read from the claims
+  // (plus the server-owned users.enrolled flag for ccar), never from a field a
+  // user could write.
+  const productKey = (req.body && typeof req.body.product === 'string' && ['ccar', 'ccdv', 'bundle'].includes(req.body.product)) ? req.body.product : 'ccar';
+  const requested  = productKey === 'bundle' ? ['ccar', 'ccdv'] : [productKey];
+
   try {
     // Belt: custom claims — fastest; no extra Firestore read when claims are fresh.
     const userRecord = await auth.getUser(uid);
-    if ((userRecord.customClaims || {}).enrolled === true) {
-      console.log(`[pre-checkout] Blocked (claims): uid=${uid} already enrolled`);
+    if (requested.every(p => ownsByClaims(userRecord.customClaims, p))) {
+      console.log(`[pre-checkout] Blocked (claims): uid=${uid} already owns ${productKey}`);
       return res.json({ ok: false, reason: 'already_enrolled' });
     }
 
     // Suspenders: Firestore — catches the window between enrollment write and
     // claim propagation (claims can lag a few seconds after setCustomUserClaims).
     const userSnap = await db.collection('users').doc(uid).get();
-    if (userSnap.exists && userSnap.data().enrolled === true) {
+    if (productKey === 'ccar' && userSnap.exists && userSnap.data().enrolled === true) {
       console.log(`[pre-checkout] Blocked (FS): uid=${uid} already enrolled`);
       return res.json({ ok: false, reason: 'already_enrolled' });
     }
@@ -1056,7 +1141,7 @@ app.post('/pre-checkout', express.json(), async (req, res) => {
     // the fail-open exit below and never blocks a checkout.
     if (!userSnap.exists || !userSnap.data().firstBuyClickAt) {
       await db.collection('users').doc(uid).set(
-        { firstBuyClickAt: admin.firestore.FieldValue.serverTimestamp() },
+        { firstBuyClickAt: admin.firestore.FieldValue.serverTimestamp(), firstBuyClickProduct: productKey },
         { merge: true }
       );
     }
@@ -1070,8 +1155,9 @@ app.post('/pre-checkout', express.json(), async (req, res) => {
     const email = (decoded.email || '').toLowerCase();
     if (email) {
       const pendingSnap = await db.collection('pending_enrollments').doc(email).get();
-      if (pendingSnap.exists) {
-        console.log(`[pre-checkout] Blocked (pending): uid=${uid} email=${email}`);
+      // B2: block only when the unclaimed purchase covers a requested product.
+      if (pendingSnap.exists && normalizeProducts(pendingSnap.data().products).some(p => requested.includes(p))) {
+        console.log(`[pre-checkout] Blocked (pending): uid=${uid} email=${email} product=${productKey}`);
         return res.json({ ok: false, reason: 'pending_purchase' });
       }
     }
@@ -1158,7 +1244,7 @@ const PENDING_TERMINAL_STATUSES = ['contacted', 'abandoned'];
 async function sendStaleEnrollmentAlert(stale) {
   const plural  = stale.length === 1 ? '' : 's';
   const lines   = stale.map(s =>
-    `• ${s.email} — Stripe session ${s.stripeSessionId || '(none)'} — ` +
+    `• ${s.email} (${s.products || 'ccar'}), Stripe session ${s.stripeSessionId || '(none)'}, ` +
     (s.ageHours === null ? 'age unknown (missing timestamp)' : `${s.ageHours}h old`)
   );
   // NO DURATION IN THE SUMMARY LINE. This previously read "paid in the last 48
@@ -1297,6 +1383,7 @@ async function findStalePendingEnrollments() {
       aged.push({
         email,
         stripeSessionId: data.stripeSessionId || null,
+        products:        normalizeProducts(data.products).join('+'),
         ageHours:        createdAtMs === null ? null : Math.round((now - createdAtMs) / 3600000),
       });
       continue;
@@ -1332,6 +1419,7 @@ async function findStalePendingEnrollments() {
     stale.push({
       email,
       stripeSessionId: data.stripeSessionId || null,
+      products:        normalizeProducts(data.products).join('+'),
       ageHours:        createdAtMs === null ? null : Math.round((now - createdAtMs) / 3600000 * 10) / 10,
     });
     docRefs.push(doc.ref);

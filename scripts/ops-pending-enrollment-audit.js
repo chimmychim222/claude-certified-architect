@@ -98,6 +98,13 @@ async function getStripeSessionStatus(sessionId) {
   }
 }
 
+// B2 (Oct 2026): access is any product. enrolled:true or products.ccar is CCAR-F;
+// products.ccdv is CCDV-F. A CCDV-F-only account must not be reported as unenrolled.
+function ownsAny(claims) { const c = claims || {}; const p = c.products || {}; return c.enrolled === true || p.ccar === true || p.ccdv === true; }
+function docOwnsAny(d) { const e = (d && d.entitlements) || {}; return d.enrolled === true || !!e.ccar || !!e.ccdv; }
+function productsOfClaims(claims) { const c = claims || {}; const p = c.products || {}; const out = []; if (c.enrolled === true || p.ccar === true) out.push('ccar'); if (p.ccdv === true) out.push('ccdv'); return out.join('+') || 'none'; }
+function normalizeProducts(list) { const out = []; (Array.isArray(list) ? list : []).forEach(p => { if ((p === 'ccar' || p === 'ccdv') && !out.includes(p)) out.push(p); }); return out.length ? out : ['ccar']; }
+
 async function getFirebaseAccount(email) {
   try {
     const u = await auth.getUserByEmail(email);
@@ -107,8 +114,9 @@ async function getFirebaseAccount(email) {
       exists:        true,
       uid:           u.uid,
       emailVerified: u.emailVerified,
-      authEnrolled:  (u.customClaims || {}).enrolled === true,
-      fsEnrolled:    fsData ? fsData.enrolled === true : false,
+      authEnrolled:  ownsAny(u.customClaims),
+      products:      productsOfClaims(u.customClaims),
+      fsEnrolled:    fsData ? docOwnsAny(fsData) : false,
       fsEnrolledAt:  fsData?.enrolledAt ? fsData.enrolledAt.toDate().toISOString() : null,
     };
   } catch (e) {
@@ -118,7 +126,8 @@ async function getFirebaseAccount(email) {
 }
 
 // Mirrors exactly what the webhook's successful-enrollment path writes.
-async function enrollAccount(uid, email, sessionId) {
+// B2: products defaults to ccar; the pending record's array is passed in.
+async function enrollAccount(uid, email, sessionId, products = ['ccar']) {
   const userRecord     = await auth.getUser(uid);
   const existingClaims = userRecord.customClaims || {};
 
@@ -129,18 +138,22 @@ async function enrollAccount(uid, email, sessionId) {
   const fsSnapBefore = await db.collection('users').doc(uid).get();
   before.fsData = fsSnapBefore.exists ? fsSnapBefore.data() : null;
 
-  // Write Auth custom claim
-  await auth.setCustomUserClaims(uid, { ...existingClaims, enrolled: true });
+  // Write Auth custom claim: merged, never replaced; enrolled:true whenever ccar.
+  const prevProducts = (existingClaims.products && typeof existingClaims.products === 'object') ? existingClaims.products : {};
+  const nextProducts = Object.assign({}, prevProducts);
+  products.forEach(p => { nextProducts[p] = true; });
+  const newClaims = Object.assign({}, existingClaims, { products: nextProducts });
+  if (products.includes('ccar')) newClaims.enrolled = true;
+  await auth.setCustomUserClaims(uid, newClaims);
 
   // Write Firestore users doc (mirror of webhook path)
+  const entitlements = {};
+  products.forEach(p => { entitlements[p] = { grantedAt: admin.firestore.FieldValue.serverTimestamp(), stripeSessionId: sessionId || null, via: 'manual' }; });
   await db.collection('users').doc(uid).set(
-    {
-      enrolled:        true,
-      enrolledAt:      admin.firestore.FieldValue.serverTimestamp(),
-      email,
-      stripeSessionId: sessionId,
-      source:          'manual_ops',
-    },
+    Object.assign(
+      products.includes('ccar') ? { enrolled: true, enrolledAt: admin.firestore.FieldValue.serverTimestamp(), stripeSessionId: sessionId } : {},
+      { email, source: 'manual_ops', entitlements }
+    ),
     { merge: true }
   );
 
@@ -272,7 +285,7 @@ function ageHours(createdAt) {
     } else {
       console.log('\n  *** Account exists but NOT enrolled — enrolling now... ***');
       try {
-        const result = await enrollAccount(target.uid, TARGET_EMAIL, TARGET_SESSION_ID);
+        const result = await enrollAccount(target.uid, TARGET_EMAIL, TARGET_SESSION_ID, normalizeProducts(targetDoc.exists ? targetDoc.data().products : null));
         console.log('\n  BEFORE:');
         console.log('    Auth claims: ', JSON.stringify(result.before.authClaims));
         console.log('    FS enrolled: ', result.before.fsData?.enrolled);
@@ -340,7 +353,8 @@ function ageHours(createdAt) {
       classification = 'UNKNOWN';
     }
 
-    rows.push({ email, sessionId, age, createdAt, stripeInfo, fbInfo, isPaid, isRefunded, hasAccount, isEnrolled, classification });
+    const products = normalizeProducts(d.products).join('+');
+    rows.push({ email, sessionId, products, age, createdAt, stripeInfo, fbInfo, isPaid, isRefunded, hasAccount, isEnrolled, classification });
   }
 
   // Print full table
@@ -348,6 +362,7 @@ function ageHours(createdAt) {
   rows.forEach((r, i) => {
     console.log(`\n[${i + 1}] ${r.email}`);
     console.log(`  Session ID:    ${r.sessionId || '(none)'}`);
+    console.log(`  Products:      ${r.products}`);
     console.log(`  Created:       ${r.createdAt}  (${r.age}h ago)`);
     if (r.stripeInfo.found) {
       console.log(`  Stripe:        payment_status=${r.stripeInfo.paymentStatus}  session_status=${r.stripeInfo.sessionStatus}  refunded=${r.stripeInfo.refunded}  amount=$${(r.stripeInfo.amountTotal/100).toFixed(2)}`);

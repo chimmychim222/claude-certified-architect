@@ -59,7 +59,13 @@ function isRefunded(sess) {
   return charge.refunded === true || (charge.amount_refunded > 0);
 }
 
-// Check whether a Firebase UID has enrolled:true in Auth custom claims AND/OR Firestore.
+// B2 (Oct 2026): access is any product. enrolled:true or products.ccar is CCAR-F;
+// products.ccdv is CCDV-F. A CCDV-F-only account must not be reported as unenrolled.
+function ownsAny(claims) { const c = claims || {}; const p = c.products || {}; return c.enrolled === true || p.ccar === true || p.ccdv === true; }
+function docOwnsAny(d) { const e = (d && d.entitlements) || {}; return d.enrolled === true || !!e.ccar || !!e.ccdv; }
+function productsOfClaims(claims) { const c = claims || {}; const p = c.products || {}; const out = []; if (c.enrolled === true || p.ccar === true) out.push('ccar'); if (p.ccdv === true) out.push('ccdv'); return out.join('+') || 'none'; }
+
+// Check whether a Firebase UID has access in Auth custom claims AND/OR Firestore.
 async function checkUidEnrolled(uid) {
   let authEnrolled = false;
   let fsEnrolled   = false;
@@ -67,7 +73,8 @@ async function checkUidEnrolled(uid) {
   let emailVerified = false;
   try {
     const u = await auth.getUser(uid);
-    authEnrolled = (u.customClaims || {}).enrolled === true;
+    authEnrolled = ownsAny(u.customClaims);
+    var uidProducts = productsOfClaims(u.customClaims);
     authEmail    = u.email || null;
     emailVerified = u.emailVerified;
   } catch (e) {
@@ -76,9 +83,9 @@ async function checkUidEnrolled(uid) {
   }
   try {
     const snap = await db.collection('users').doc(uid).get();
-    if (snap.exists) fsEnrolled = snap.data().enrolled === true;
+    if (snap.exists) fsEnrolled = docOwnsAny(snap.data());
   } catch (_) {}
-  return { exists: true, uid, authEmail, emailVerified, authEnrolled, fsEnrolled, enrolled: authEnrolled || fsEnrolled };
+  return { exists: true, uid, authEmail, emailVerified, authEnrolled, fsEnrolled, products: uidProducts, enrolled: authEnrolled || fsEnrolled };
 }
 
 // Look up a Firebase account by email.
@@ -87,14 +94,15 @@ async function checkEmailEnrolled(email) {
   try {
     const u   = await auth.getUserByEmail(email);
     uid = u.uid;
-    const authEnrolled = (u.customClaims || {}).enrolled === true;
+    const authEnrolled = ownsAny(u.customClaims);
+    const products     = productsOfClaims(u.customClaims);
     const emailVerified = u.emailVerified;
     let fsEnrolled = false;
     try {
       const snap = await db.collection('users').doc(uid).get();
-      if (snap.exists) fsEnrolled = snap.data().enrolled === true;
+      if (snap.exists) fsEnrolled = docOwnsAny(snap.data());
     } catch (_) {}
-    return { exists: true, uid, emailVerified, authEnrolled, fsEnrolled, enrolled: authEnrolled || fsEnrolled };
+    return { exists: true, uid, emailVerified, authEnrolled, fsEnrolled, products, enrolled: authEnrolled || fsEnrolled };
   } catch (e) {
     if (e.code === 'auth/user-not-found') return { exists: false };
     throw e;
@@ -262,7 +270,7 @@ async function checkPending(email) {
       console.log(`  Created:  ${r.created}`);
       if (r.fbResult) {
         if (r.fbResult.exists) {
-          console.log(`  Firebase: account EXISTS uid=${r.fbResult.uid} authEnrolled=${r.fbResult.authEnrolled} fsEnrolled=${r.fbResult.fsEnrolled}`);
+          console.log(`  Firebase: account EXISTS uid=${r.fbResult.uid} authEnrolled=${r.fbResult.authEnrolled} fsEnrolled=${r.fbResult.fsEnrolled} products=${r.fbResult.products}`);
         } else {
           console.log(`  Firebase: NO ACCOUNT`);
         }
@@ -286,7 +294,7 @@ async function checkPending(email) {
       console.log(`  Created:  ${r.created}`);
       console.log(`  Pending record created: ${r.pendingRec.createdAt}  (${r.pendingRec.ageHours}h ago)`);
       if (r.fbResult?.exists) {
-        console.log(`  Firebase: account EXISTS uid=${r.fbResult.uid} authEnrolled=${r.fbResult.authEnrolled} fsEnrolled=${r.fbResult.fsEnrolled} emailVerified=${r.fbResult.emailVerified}`);
+        console.log(`  Firebase: account EXISTS uid=${r.fbResult.uid} authEnrolled=${r.fbResult.authEnrolled} fsEnrolled=${r.fbResult.fsEnrolled} products=${r.fbResult.products} emailVerified=${r.fbResult.emailVerified}`);
       } else {
         console.log(`  Firebase: NO ACCOUNT (will self-resolve when they sign up with this email)`);
       }

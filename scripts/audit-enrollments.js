@@ -34,6 +34,9 @@ const stripe = Stripe(stripeKey);
 
 const LAZY_FIRESTORE_COMMIT_DATE = new Date('2026-06-10T15:35:17+02:00');
 
+// B2 (Oct 2026): per-product view. enrolled:true means CCAR-F; entitlements.ccdv means CCDV-F.
+function productsOf(d) { const e = (d && d.entitlements) || {}; const p = []; if (d.enrolled === true || e.ccar) p.push('ccar'); if (e.ccdv) p.push('ccdv'); return p.length ? p.join('+') : 'none'; }
+
 (async () => {
   // ── PART 1: Firestore users with enrolled=true ─────────────────────────────
   console.log('='.repeat(70));
@@ -49,13 +52,23 @@ const LAZY_FIRESTORE_COMMIT_DATE = new Date('2026-06-10T15:35:17+02:00');
       email:           (d.email || '').toLowerCase(),
       stripeSessionId: d.stripeSessionId || null,
       enrolledAt:      (d.enrolledAt && d.enrolledAt.toDate) ? d.enrolledAt.toDate().toISOString() : null,
+      products:        productsOf(d),
     });
+  });
+  // CCDV-F-only accounts carry no enrolled flag; list them too so a CCDV-F buyer
+  // is never reported as unenrolled.
+  const ccdvSnap = await db.collection('users').where('entitlements.ccdv.via', 'in', ['webhook', 'claim', 'bundle', 'manual', 'backfill']).get();
+  ccdvSnap.forEach(doc => {
+    if (enrolledUsers.some(u => u.uid === doc.id)) return;
+    const d = doc.data();
+    const g = d.entitlements.ccdv.grantedAt;
+    enrolledUsers.push({ uid: doc.id, email: (d.email || '').toLowerCase(), stripeSessionId: d.entitlements.ccdv.stripeSessionId || null, enrolledAt: (g && g.toDate) ? g.toDate().toISOString() : null, products: productsOf(d) });
   });
   console.log(`\nFound ${enrolledUsers.length} Firestore user(s) with enrolled=true:\n`);
   enrolledUsers
     .sort((a, b) => (a.enrolledAt || '').localeCompare(b.enrolledAt || ''))
     .forEach(u => {
-      console.log(`  ${(u.email || '(no email)').padEnd(35)} uid=${u.uid}  session=${u.stripeSessionId || '(none)'}  enrolledAt=${u.enrolledAt || '(unknown)'}`);
+      console.log(`  ${(u.email || '(no email)').padEnd(35)} uid=${u.uid}  products=${u.products}  session=${u.stripeSessionId || '(none)'}  enrolledAt=${u.enrolledAt || '(unknown)'}`);
     });
 
   // ── Stripe: all-time paid checkout sessions ────────────────────────────────

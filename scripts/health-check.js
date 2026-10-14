@@ -50,12 +50,16 @@ const STALE_HOURS  = 4;
       uid:             doc.id,
       email:           (d.email || '').toLowerCase(),
       enrolled:        d.enrolled === true,
+      // B2 (Oct 2026): per product. enrolled:true is CCAR-F; entitlements.ccdv is CCDV-F.
+      ccdv:            !!(d.entitlements && d.entitlements.ccdv),
+      products:        ((d.enrolled === true || (d.entitlements && d.entitlements.ccar)) ? ['ccar'] : []).concat((d.entitlements && d.entitlements.ccdv) ? ['ccdv'] : []).join('+') || 'none',
       stripeSessionId: d.stripeSessionId || null,
       enrolledAt:      (d.enrolledAt && d.enrolledAt.toDate) ? d.enrolledAt.toDate().toISOString() : null,
       createdAt:       (d.createdAt && d.createdAt.toDate) ? d.createdAt.toDate().toISOString() : null,
     });
   });
-  const enrolledUsers = allUsers.filter(u => u.enrolled);
+  // Access is any product, so a CCDV-F-only account is never reported as unenrolled.
+  const enrolledUsers = allUsers.filter(u => u.enrolled || u.ccdv);
 
   const pendingSnap = await db.collection('pending_enrollments').get();
   const pendingRecords = [];
@@ -72,7 +76,7 @@ const STALE_HOURS  = 4;
     });
   });
 
-  console.log(`  ${allUsers.length} total user doc(s) in 'users' collection, ${enrolledUsers.length} with enrolled=true`);
+  console.log(`  ${allUsers.length} total user doc(s) in 'users' collection, ${enrolledUsers.length} with access (ccar ${allUsers.filter(u => u.enrolled).length}, ccdv ${allUsers.filter(u => u.ccdv).length}, ccdv-only ${allUsers.filter(u => u.ccdv && !u.enrolled).length})`);
   console.log(`  ${pendingRecords.length} record(s) in 'pending_enrollments' collection`);
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -222,7 +226,10 @@ const STALE_HOURS  = 4;
       mismatches.push({ uid: u.uid, email: u.email, issue: 'auth-user-missing' });
       continue;
     }
-    const claimEnrolled = authUser.customClaims?.enrolled === true;
+    const claims        = authUser.customClaims || {};
+    const claimProducts = claims.products || {};
+    // B2: the claim must cover every product the doc grants.
+    const claimEnrolled = (!u.enrolled || claims.enrolled === true || claimProducts.ccar === true) && (!u.ccdv || claimProducts.ccdv === true);
     console.log(`  ${u.email.padEnd(35)} uid=${u.uid}  Firestore=true  AuthClaim=${claimEnrolled}  ${claimEnrolled ? '✓' : '⚠️ MISMATCH'}`);
     if (!claimEnrolled) mismatches.push({ uid: u.uid, email: u.email, issue: 'firestore-true-claim-missing' });
   }
@@ -233,7 +240,8 @@ const STALE_HOURS  = 4;
   do {
     const result = await auth.listUsers(1000, nextPageToken);
     result.users.forEach(u => {
-      if (u.customClaims?.enrolled === true) authEnrolledUsers.push(u);
+      const c = u.customClaims || {};
+      if (c.enrolled === true || (c.products && (c.products.ccar === true || c.products.ccdv === true))) authEnrolledUsers.push(u);
     });
     nextPageToken = result.pageToken;
   } while (nextPageToken);
