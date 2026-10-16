@@ -500,6 +500,61 @@ async function bankShadowRun(user) {
   try { window.__bankShadowResult = { result: result, error_code: code, provider: provider, extra: extra }; } catch (e) {}
 }
 // ═══════════════════════════════════════
+// BANK SOURCE (Stage B1 of the bank move, Oct 2026)
+// ═══════════════════════════════════════
+// Paid modes and the lessons are served from Firestore (bank_ccar, lessons_ccar)
+// through the Stage A loaders above, awaited once per session and cached. The
+// bundled QUESTIONS and LESSONS literals stay in the file as the fallback: if
+// the read fails, times out, or the loaded copy does not match the bundled
+// fingerprint, the session silently uses the literal and sends ONE GA4 event
+// bank_fallback with reason, error_code and provider. The free surfaces (Quick
+// Sprint and the Focused preview for visitors who are not enrolled) and the
+// diagnostic never touch this and never wait. Stage B2 removes the literals
+// only after a 48-hour read shows zero bank_fallback events.
+const BANK_LOAD_TIMEOUT_MS = 8000;
+let activeBankPromise = null;   // Promise<{bank, lessons, source}>, one decision per session
+let bankFallbackSent = false;
+function withTimeout(p, ms, code) {
+  return new Promise(function (resolve, reject) {
+    const t = setTimeout(function () { reject(Object.assign(new Error('timeout'), { code: code })); }, ms);
+    p.then(function (v) { clearTimeout(t); resolve(v); }, function (e) { clearTimeout(t); reject(e); });
+  });
+}
+function providerOf(user) {
+  try { return (user && user.providerData && user.providerData.length) ? user.providerData.map(function (x) { return x.providerId; }).sort().join('+') : 'none'; } catch (e) { return 'unknown'; }
+}
+function bankFallback(reason, code) {
+  if (bankFallbackSent) return;
+  bankFallbackSent = true;
+  try { if (typeof gtag !== 'undefined') gtag('event', 'bank_fallback', { reason: reason, error_code: String(code || 'none').slice(0, 40), provider: providerOf(currentUser) }); } catch (e) {}
+  try { window.__bankFallback = { reason: reason, error_code: String(code || 'none') }; } catch (e) {}
+}
+// Resolves to the Firestore copy when it loads and matches the bundled
+// fingerprint, else to the bundled literal. Never rejects. Shared by
+// startTest() for every enrolled mode and by the lessons renderer.
+function activeBank() {
+  if (!activeBankPromise) {
+    activeBankPromise = (async () => {
+      const bundled = { bank: QUESTIONS, lessons: LESSONS, source: 'bundled' };
+      try {
+        const loaded = await withTimeout(Promise.all([loadBank('ccar'), loadLessons('ccar')]), BANK_LOAD_TIMEOUT_MS, 'timeout');
+        const bank = loaded[0], mods = loaded[1];
+        if (bank.length !== QUESTIONS.length || mods.length !== LESSONS.length) { bankFallback('mismatch', 'count'); return bundled; }
+        const h = await Promise.all([sha256Hex(bankFingerprint(bank)), sha256Hex(bankFingerprint(QUESTIONS)), sha256Hex(lessonsFingerprint(mods)), sha256Hex(lessonsFingerprint(LESSONS))]);
+        if (h[0] !== h[1] || h[2] !== h[3]) { bankFallback('mismatch', h[0] !== h[1] ? 'bank_hash' : 'lessons_hash'); return bundled; }
+        try { window.__bankSource = 'firestore'; } catch (e) {}
+        return { bank: bank, lessons: mods, source: 'firestore' };
+      } catch (e) {
+        bankFallback('read-error', (e && (e.code || e.name)) || 'unknown');
+        try { window.__bankSource = 'bundled'; } catch (e2) {}
+        return bundled;
+      }
+    })();
+  }
+  return activeBankPromise;
+}
+
+// ═══════════════════════════════════════
 // AUTH STATE
 // ═══════════════════════════════════════
 let currentUser = null;
@@ -1755,6 +1810,7 @@ function markEnrolled(user) {
   updateDashCards();
   maybeFireExamPurchaseEvent(user);
   bankShadowStart(user);   // Stage A shadow read, background only, see BANK SHADOW LOAD
+  try { activeBank(); } catch (e) {}   // Stage B1 prefetch of the paid bank, never awaited here
 }
 
 // Ask the webhook server whether a "pending enrollment" exists for the
@@ -5082,10 +5138,14 @@ async function startTest(type) {
   // Sprint) draws from FREE_POOL, the fixed sample resolved above. Every
   // enrolled mode draws from the whole bank.
   const isFreeQuickSprint = (type === 'quick' && !enrolled);
+  // Stage B1: every enrolled mode draws from the active bank (the Firestore
+  // copy when it loaded and matched, else the bundled literal). The two free
+  // surfaces keep drawing from FREE_POOL and never wait on the read.
+  const BANK  = (isFreePreview || isFreeQuickSprint) ? QUESTIONS : (await activeBank()).bank;
   const drill = domainDrillEntry(type);
-  const pool  = drill ? QUESTIONS.filter(q => q.d === drill.key)
+  const pool  = drill ? BANK.filter(q => q.d === drill.key)
               : (isFreePreview || isFreeQuickSprint) ? FREE_POOL
-              : QUESTIONS;
+              : BANK;
 
   // The full exam is stratified so each domain carries its published share on
   // every attempt. Every other mode stays a uniform draw over its own pool,
@@ -5392,10 +5452,13 @@ function exitTest() {
 let lessonsLoaded = false;
 let currentLesson = 0;
 
-function renderLessons() {
+let ACTIVE_LESSONS = LESSONS;
+async function renderLessons() {
   lessonsLoaded = true;
+  // Stage B1: the active lessons (Firestore when loaded and matched, else bundled).
+  try { ACTIVE_LESSONS = (await activeBank()).lessons; } catch (e) { ACTIVE_LESSONS = LESSONS; }
   let navHTML = '';
-  LESSONS.forEach((l, i) => {
+  ACTIVE_LESSONS.forEach((l, i) => {
     navHTML += `<button class="${i===0?'active':''}" onclick="showLesson(${i})" data-lesson="${i}">${i+1}. ${l.title}</button>`;
   });
   document.getElementById('lesson-nav').innerHTML = navHTML;
@@ -5404,7 +5467,7 @@ function renderLessons() {
 
 function showLesson(i) {
   currentLesson = i;
-  document.getElementById('lesson-content').innerHTML = LESSONS[i].content;
+  document.getElementById('lesson-content').innerHTML = ACTIVE_LESSONS[i].content;
   document.querySelectorAll('[data-lesson]').forEach(b => b.classList.remove('active'));
   document.querySelector(`[data-lesson="${i}"]`).classList.add('active');
 }
