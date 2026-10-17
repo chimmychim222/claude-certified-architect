@@ -574,7 +574,7 @@ function updateNavUI() {
       document.getElementById('nav-user-email').textContent = currentUser.email;
       const badge = document.getElementById('nav-user-badge');
       if (enrolled) {
-        badge.textContent = 'ENROLLED';
+        badge.textContent = 'ENROLLED \u00B7 CCAR-F';
         badge.className = 'user-badge enrolled';
       } else {
         badge.textContent = 'FREE';
@@ -609,7 +609,7 @@ function updateNavUI() {
       const mobileBadge = document.getElementById('mobile-nav-user-badge');
       if (mobileBadge) {
         if (enrolled) {
-          mobileBadge.textContent = 'ENROLLED';
+          mobileBadge.textContent = 'ENROLLED \u00B7 CCAR-F';
           mobileBadge.className = 'user-badge enrolled';
         } else {
           mobileBadge.textContent = 'FREE';
@@ -617,6 +617,29 @@ function updateNavUI() {
         }
       }
     }
+  }
+  // N1 grouped nav (Oct 2026): the mobile panel's Lessons and Progress rows
+  // follow the desktop links; both pairs are enrolled-only. Null-guarded so
+  // the old markup (deploy cache window) and /diagnostic/ are unaffected.
+  const mobileLessons  = document.getElementById('mobile-nav-lessons-link');
+  const mobileProgress = document.getElementById('mobile-nav-progress-link');
+  if (mobileLessons)  mobileLessons.style.display  = (currentUser && enrolled) ? '' : 'none';
+  if (mobileProgress) mobileProgress.style.display = (currentUser && enrolled) ? '' : 'none';
+  // Badge wording per product from the cached ID token (no network call):
+  // enrolled or products.ccar is CCAR-F, products.ccdv is CCDV-F, both is BOTH.
+  // Access decisions are untouched; this only changes the badge text.
+  if (currentUser && fbAuth && fbAuth.getIdTokenResult) {
+    fbAuth.getIdTokenResult(currentUser).then(function (tok) {
+      const p = (tok && tok.claims && tok.claims.products) || {};
+      const ccar = enrolled || p.ccar === true, ccdv = p.ccdv === true;
+      const text = ccar && ccdv ? 'ENROLLED \u00B7 BOTH' : ccdv ? 'ENROLLED \u00B7 CCDV-F' : ccar ? 'ENROLLED \u00B7 CCAR-F' : 'FREE';
+      const cls  = (ccar || ccdv) ? 'user-badge enrolled' : 'user-badge free';
+      // Hint for the static pages' nav (nav-auth.js reads it before Firebase loads).
+      try { if (ccar || ccdv) localStorage.setItem('cca_products', ccar && ccdv ? 'both' : ccdv ? 'ccdv' : 'ccar'); else localStorage.removeItem('cca_products'); } catch (e) {}
+      [document.getElementById('nav-user-badge'), document.getElementById('mobile-nav-user-badge')].forEach(function (b) {
+        if (b && currentUser) { b.textContent = text; b.className = cls; }
+      });
+    }).catch(function () {});
   }
 }
 
