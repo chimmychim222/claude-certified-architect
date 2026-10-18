@@ -4,6 +4,9 @@
  *
  * Environment variables to set in Render dashboard:
  *   STRIPE_SECRET_KEY              — Stripe → Developers → API keys → Secret key
+ *   STRIPE_CHECKOUT_KEY            (B3) restricted key with Checkout Sessions write only; powers /create-checkout
+ *   PRICE_UPGRADE_CCDV             (B3) Stripe price id, CCDV-F at $50 for a CCAR-F owner
+ *   PRICE_UPGRADE_CCAR             (B3) Stripe price id, CCAR-F at $30 for a CCDV-F owner
  *   STRIPE_WEBHOOK_SECRET          — Stripe → Developers → Webhooks → signing secret
  *   FIREBASE_SERVICE_ACCOUNT_JSON  — full contents of your Firebase service account .json
  *   RESEND_API_KEY                 — Resend → API Keys → Create API Key
@@ -289,7 +292,7 @@ function countSend(kind) {
 //
 // If GA4_MEASUREMENT_ID or GA4_MP_API_SECRET are not set, this skips silently —
 // a missing analytics config must never prevent a real enrollment from landing.
-async function fireGA4PurchaseEvent(sessionId, ga4ClientId, uid, gclidAw, ga4SessionId, ga4SessionNumber, products) {
+async function fireGA4PurchaseEvent(sessionId, ga4ClientId, uid, gclidAw, ga4SessionId, ga4SessionNumber, products, amountPaid) {
   const measurementId = process.env.GA4_MEASUREMENT_ID;
   const apiSecret     = process.env.GA4_MP_API_SECRET;
 
@@ -327,6 +330,9 @@ async function fireGA4PurchaseEvent(sessionId, ga4ClientId, uid, gclidAw, ga4Ses
               // value and items per product (49 cca_exam_prep, 69 ccdv_exam_prep,
               // 99 cca_ccdv_bundle). An absent products list reads as ccar: today's 49.
               ga4ProductParams(products),
+              // B3: the amount Stripe actually charged (an upgrade pays 50 or 30);
+              // absent on the pending-claim path, where the product price stands.
+              (typeof amountPaid === 'number' && amountPaid > 0) ? { value: amountPaid } : {},
               // session_id + session_number stitch this server-side hit to the
               // original browser session so GA4 reports source/medium correctly
               // instead of "(not set) / (not set)".
@@ -395,6 +401,11 @@ function normalizeProducts(list) {
   return out.length ? out : ['ccar'];
 }
 function productsForSession(session) {
+  // B3: a Checkout Session created by /create-checkout carries the product in
+  // its metadata (no payment_link). Only the three known keys are honored.
+  const meta = session && session.metadata && session.metadata.cca_product;
+  if (meta === 'ccar' || meta === 'ccdv') return [meta];
+  if (meta === 'bundle') return ['ccar', 'ccdv'];
   const link = session && session.payment_link;
   if (link && PRODUCT_LINKS[link]) return PRODUCT_LINKS[link].slice();
   console.warn(`UNMAPPED LINK ${link || '(none)'} on session ${session && session.id}; granting ccar`);
@@ -553,7 +564,7 @@ app.post(
 
         console.log(`Enrolled via client_reference_id: ${customerEmail || userRecord.email} (${uid}) products=${products.join('+')}`);
         // Fire server-side GA4 purchase event — additive, deduped by transaction_id.
-        fireGA4PurchaseEvent(session.id, ga4ClientId, uid, gclidAw, ga4SessionId, ga4SessionNumber, products).catch(() => {});
+        fireGA4PurchaseEvent(session.id, ga4ClientId, uid, gclidAw, ga4SessionId, ga4SessionNumber, products, typeof session.amount_total === 'number' ? session.amount_total / 100 : null).catch(() => {});
         return res.json({ ok: true, enrolled: uid });
       } catch (err) {
         console.warn(`client_reference_id lookup failed (${clientReferenceId}):`, err.message);
@@ -645,7 +656,7 @@ app.post(
       db.collection('pending_enrollments').doc(customerEmail.toLowerCase()).delete().catch(() => {});
 
       console.log(`Enrolled: ${customerEmail} (${uid}) products=${products.join('+')}`);
-      fireGA4PurchaseEvent(session.id, ga4ClientId, uid, gclidAw, ga4SessionId, ga4SessionNumber, products).catch(() => {});
+      fireGA4PurchaseEvent(session.id, ga4ClientId, uid, gclidAw, ga4SessionId, ga4SessionNumber, products, typeof session.amount_total === 'number' ? session.amount_total / 100 : null).catch(() => {});
       return res.json({ ok: true, enrolled: uid });
 
     } catch (err) {
@@ -2805,6 +2816,72 @@ app.post('/nurture-send', express.json(), async (req, res) => {
     .then(() => runAbandonerSequence(dryRun, only))
     .catch(err => console.error('[abandoner] FAILED after response,', (err && err.message) || err));
 });
+
+// ── B3: /create-checkout, the upgrade route ──────────────────────────────────
+// A signed-in owner of one product buys the other at the upgrade price ($50
+// for CCDV-F, $30 for CCAR-F) through a Checkout Session; the full prices stay
+// on the Payment Links. Needs STRIPE_CHECKOUT_KEY (a restricted key with
+// Checkout Sessions write and nothing else) and the two price ids; without
+// them the route answers 503 and the client shows its "checkout not
+// available" panel. Ownership is read from the custom claims only. The
+// session carries client_reference_id (the uid) and cca_product in metadata,
+// which productsForSession() reads when checkout.session.completed arrives,
+// so the grant path is the existing one. Inert until the launched client
+// calls it.
+const PRICE_UPGRADE = { ccdv: String(process.env.PRICE_UPGRADE_CCDV || '').trim(), ccar: String(process.env.PRICE_UPGRADE_CCAR || '').trim() };
+const checkoutStripe = process.env.STRIPE_CHECKOUT_KEY ? require('stripe')(process.env.STRIPE_CHECKOUT_KEY) : null;
+const SITE_ORIGIN = 'https://claudecertifiedarchitects.com';
+app.post('/create-checkout', express.json(), async (req, res) => {
+  const m = String(req.headers.authorization || '').match(/^Bearer (.+)$/);
+  if (!m) return res.status(401).json({ error: 'Missing bearer token' });
+  let decoded;
+  try { decoded = await auth.verifyIdToken(m[1]); }
+  catch (err) { return res.status(401).json({ error: 'Invalid token' }); }
+  const product = (req.body && typeof req.body.product === 'string' && KNOWN_PRODUCTS.includes(req.body.product)) ? req.body.product : null;
+  if (!product) return res.status(400).json({ error: 'product must be ccar or ccdv' });
+  const other = product === 'ccdv' ? 'ccar' : 'ccdv';
+  try {
+    const userRecord = await auth.getUser(decoded.uid);
+    const claims = userRecord.customClaims || {};
+    if (ownsByClaims(claims, product)) return res.status(409).json({ reason: 'already_enrolled' });
+    if (!ownsByClaims(claims, other)) return res.status(403).json({ reason: 'not_an_upgrade' });
+    if (!checkoutStripe || !PRICE_UPGRADE[product]) {
+      console.warn('[create-checkout] not configured: key ' + (checkoutStripe ? 'set' : 'MISSING') + ', price ' + (PRICE_UPGRADE[product] ? 'set' : 'MISSING') + ' for ' + product);
+      return res.status(503).json({ reason: 'not_configured' });
+    }
+    const session = await checkoutStripe.checkout.sessions.create({
+      mode: 'payment',
+      line_items: [{ price: PRICE_UPGRADE[product], quantity: 1 }],
+      client_reference_id: decoded.uid,
+      customer_email: userRecord.email || undefined,
+      success_url: SITE_ORIGIN + '/?paid=true',
+      cancel_url: SITE_ORIGIN + '/?product=' + product,
+      metadata: { cca_product: product, cca_upgrade: 'from_' + other, uid: decoded.uid },
+    });
+    console.log('[create-checkout] ' + product + ' upgrade session ' + session.id + ' for uid=' + decoded.uid);
+    return res.json({ url: session.url });
+  } catch (err) {
+    console.error('[create-checkout] failed:', (err && err.message) || err);
+    return res.status(502).json({ reason: 'stripe_error' });
+  }
+});
+
+// B3: read the two upgrade prices once at boot and log amount, currency and
+// active flag, so the owner can verify the price ids in the Render log without
+// sharing the key. Nothing secret is printed; a failure is logged, never thrown.
+(async () => {
+  if (!checkoutStripe) { console.log('[create-checkout] STRIPE_CHECKOUT_KEY not set; the upgrade route answers 503 not_configured'); return; }
+  for (const k of ['ccdv', 'ccar']) {
+    const id = PRICE_UPGRADE[k];
+    if (!id) { console.log('[create-checkout] PRICE_UPGRADE_' + k.toUpperCase() + ' not set'); continue; }
+    try {
+      const p = await checkoutStripe.prices.retrieve(id);
+      console.log('[create-checkout] price ' + k + ' ' + id + ': ' + p.unit_amount + ' ' + p.currency + ' active=' + p.active + ' type=' + p.type + ' (expected ' + (k === 'ccdv' ? '5000 usd' : '3000 usd') + ')');
+    } catch (e) {
+      console.log('[create-checkout] price ' + k + ' ' + id + ' could not be read: ' + String((e && e.message) || e).slice(0, 140));
+    }
+  }
+})();
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Stripe webhook server listening on port ${PORT}`));

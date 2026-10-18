@@ -64,6 +64,37 @@ const ALL_Q = ALL_Q_RAW.map(q => { const o = { d: q.d, q: q.q, o: q.o, a: q.a };
 const appSrc = fs.readFileSync(APP, 'utf8');
 console.log('Bank loaded from ' + BANK_DIR + ' (' + ALL_Q.length + ' items).');
 
+// ── B3 (Oct 2026): the CCDV-F free sample ─────────────────────────────────────
+// 28 ids listed in cca-question-banks/ccdv-f/free-sample.txt (second line),
+// stamped into app.js as FREE_POOL_CCDV in the same key order as FREE_POOL,
+// beside CCDV_BANK_DOMAIN_COUNTS. Rules: exactly 28 distinct ids that exist,
+// exactly CCDV_FREE_MR multiple-response items from different domains, no
+// volatile item, every domain represented, the three product-page samples
+// present. The sample is listed by id, never by stem, because the ids are
+// stable in that bank.
+const CCDV_BANK_SIZE = 200, CCDV_FREE_SIZE = 28, CCDV_FREE_MR = 3;
+const CCDV_PAGE_SAMPLES = ['ccdv-171', 'ccdv-053', 'ccdv-123'];
+const CCDV_RAW = bankLib.loadBankFiles(BANK_DIR, 'ccdv').items;
+if (CCDV_RAW.length !== CCDV_BANK_SIZE) die('the CCDV-F JSON bank holds ' + CCDV_RAW.length + ' items, expected exactly ' + CCDV_BANK_SIZE + '.');
+const ccdvSamplePath = path.join(BANK_DIR, 'ccdv-f', 'free-sample.txt');
+if (!fs.existsSync(ccdvSamplePath)) die('missing ' + ccdvSamplePath);
+const ccdvIds = fs.readFileSync(ccdvSamplePath, 'utf8').split(/\r?\n/)[1].trim().split(/\s+/).map(x => 'ccdv-' + x);
+if (ccdvIds.length !== CCDV_FREE_SIZE || new Set(ccdvIds).size !== CCDV_FREE_SIZE) die('ccdv-f/free-sample.txt must list ' + CCDV_FREE_SIZE + ' distinct ids.');
+const ccdvById = new Map(CCDV_RAW.map(q => [q.id, q]));
+const ccdvFreeRaw = ccdvIds.map(id => { const q = ccdvById.get(id); if (!q) die('ccdv free sample: unknown id ' + id); return q; });
+const ccdvFreeMR = ccdvFreeRaw.filter(q => q.type === 'mr');
+if (ccdvFreeMR.length !== CCDV_FREE_MR) die('ccdv free sample holds ' + ccdvFreeMR.length + ' MR items, expected ' + CCDV_FREE_MR + '.');
+if (new Set(ccdvFreeMR.map(q => q.d)).size !== CCDV_FREE_MR) die('ccdv free sample: the MR items must come from different domains.');
+const ccdvVolatile = ccdvFreeRaw.filter(q => q.volatile === true);
+if (ccdvVolatile.length) die('ccdv free sample holds volatile items: ' + ccdvVolatile.map(q => q.id).join(', '));
+const ccdvDomains = [...new Set(CCDV_RAW.map(q => q.d))];
+ccdvDomains.forEach(d => { if (!ccdvFreeRaw.some(q => q.d === d)) die('ccdv free sample: domain "' + d + '" has no item.'); });
+CCDV_PAGE_SAMPLES.forEach(id => { if (!ccdvIds.includes(id)) die('ccdv free sample: product-page sample ' + id + ' missing.'); });
+ccdvFreeRaw.forEach(q => { if (!(typeof q.q === 'string' && Array.isArray(q.o) && q.o.length >= 2 && typeof q.e === 'string')) die('ccdv free sample: malformed item ' + q.id); if (q.type === 'mr' ? !Array.isArray(q.a) : typeof q.a !== 'number') die('ccdv free sample: bad key on ' + q.id); });
+const CCDV_FREE = ccdvFreeRaw.map(q => { const o = { d: q.d, q: q.q, o: q.o, a: q.a }; if (q.type) o.type = q.type; o.e = q.e; return o; });
+const ccdvCounts = {}; CCDV_RAW.forEach(q => { ccdvCounts[q.d] = (ccdvCounts[q.d] || 0) + 1; });
+console.log('CCDV-F bank loaded (' + CCDV_RAW.length + ' items); free sample ' + CCDV_FREE.length + ' (MR ' + ccdvFreeMR.length + ').');
+
 // ── 2. Domain metadata ────────────────────────────────────────────────────────
 const DOMAINS = [
   { key: 'Agentic Architecture & Orchestration'   },
@@ -375,6 +406,11 @@ const poolBody = 'const FREE_POOL = [' + EOL + poolLines.join(EOL) + EOL + '];';
 const countsBody = 'const BANK_DOMAIN_COUNTS = ' + JSON.stringify(Object.fromEntries(DOMAINS.map(d => [d.key, byDomain[d.key].length]))) + ';';
 let newApp = stamp(appSrc, '// cca:free-pool:start', '// cca:free-pool:end', poolBody);
 newApp = stamp(newApp, '// cca:bank-domain-counts:start', '// cca:bank-domain-counts:end', countsBody);
+// B3: the CCDV-F free sample and counts, in the bank's own order (guide order, then i).
+const ccdvPoolBody = 'const FREE_POOL_CCDV = [' + EOL + CCDV_FREE.map(q => '  ' + jsSafe(JSON.stringify(q)) + ',').join(EOL) + EOL + '];';
+const ccdvCountsBody = 'const CCDV_BANK_DOMAIN_COUNTS = ' + JSON.stringify(ccdvCounts) + ';';
+newApp = stamp(newApp, '// cca:free-pool-ccdv:start', '// cca:free-pool-ccdv:end', ccdvPoolBody);
+newApp = stamp(newApp, '// cca:ccdv-bank-domain-counts:start', '// cca:ccdv-bank-domain-counts:end', ccdvCountsBody);
 
 // ── 8. Write both, report ─────────────────────────────────────────────────────
 const diagChanged = page !== fs.readFileSync(DIAG, 'utf8');
@@ -394,3 +430,4 @@ DOMAINS.forEach(d => {
 console.log('');
 console.log((diagChanged ? '✓  diagnostic/index.html POOL refreshed (' : '=  diagnostic/index.html unchanged (') + poolJson.length.toLocaleString() + ' chars)');
 console.log((appChanged ? '✓  app.js FREE_POOL and BANK_DOMAIN_COUNTS refreshed (' : '=  app.js unchanged (') + freeItems.length + ' objects, counts ' + DOMAINS.map(d => byDomain[d.key].length).join('/') + ')');
+console.log('   app.js FREE_POOL_CCDV ' + CCDV_FREE.length + ' objects (MR ' + ccdvFreeMR.length + '), CCDV_BANK_DOMAIN_COUNTS ' + Object.values(ccdvCounts).join('/'));

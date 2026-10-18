@@ -16,8 +16,8 @@ const SYMBOLS = {
 };
 const NO_DECIMALS = ['JPY','KRW','CLP','IDR','COP','NGN'];
 
-function formatPrice(cur) {
-  const amount = 49 * RATES[cur];
+function formatPrice(cur, usd) {
+  const amount = (usd || 49) * RATES[cur];
   const sym = SYMBOLS[cur] || cur + ' ';
   const dec = NO_DECIMALS.includes(cur) ? 0 : 2;
   return sym + amount.toLocaleString('en-US', {minimumFractionDigits:dec, maximumFractionDigits:dec});
@@ -42,13 +42,28 @@ function updateCurrency() {
   // (This also used to write into #modal-price and #pay-btn-price, two
   // elements that no longer exist in the page — that threw a TypeError on
   // every currency change. Both references are gone now.)
-  if (cur === 'USD') {
-    display.textContent = '$49.00';
-    note.style.display = 'none';
-  } else {
-    display.textContent = '≈ ' + formatPrice(cur);
-    note.textContent = 'Billed as $49.00 USD — shown amount is an estimate';
-    note.style.display = 'block';
+  if (display && note) {
+    if (cur === 'USD') {
+      display.textContent = '$49.00';
+      note.style.display = 'none';
+    } else {
+      display.textContent = '≈ ' + formatPrice(cur);
+      note.textContent = 'Billed as $49.00 USD — shown amount is an estimate';
+      note.style.display = 'block';
+    }
+  }
+  // B3 launch pricing cards: every element carrying data-usd converts the same
+  // way, and one shared note names the USD charge. No-op before the launch
+  // commit adds the markup.
+  document.querySelectorAll('[data-usd]').forEach(function (el) {
+    const usd = Number(el.getAttribute('data-usd'));
+    if (!usd) return;
+    el.textContent = cur === 'USD' ? '$' + usd : '≈ ' + formatPrice(cur, usd);
+  });
+  const multiNote = document.getElementById('price-note-multi');
+  if (multiNote) {
+    multiNote.textContent = cur === 'USD' ? '' : 'Billed in USD at the dollar price shown on each button; converted amounts are estimates.';
+    multiNote.style.display = cur === 'USD' ? 'none' : 'block';
   }
 }
 
@@ -94,6 +109,114 @@ const firebaseConfig = {
 };
 
 const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/cNi28k2GE7LngeRcc03ks00';
+
+// ═══════════════════════════════════════
+// B3: SECOND PRODUCT (CCDV-F)
+// ═══════════════════════════════════════
+// The product a checkout intent was stored with (?checkout=ccdv|bundle);
+// read once, then cleared. Anything else is the CCAR-F checkout.
+function pendingCheckoutProduct() {
+  let p = null;
+  try { p = sessionStorage.getItem('cca_checkout_product'); sessionStorage.removeItem('cca_checkout_product'); } catch (e) {}
+  return checkoutKeyOf(p);
+}
+// Shown when a checkout cannot open: a product whose Payment Link is not set
+// yet, or an upgrade session the server could not create. Uses the auth modal
+// body the other blocks use, with the Dismiss control the modal already has.
+function showCheckoutNotOpen() {
+  const host = paymentBlockHost();
+  if (host) {
+    host.innerHTML = '<p style="margin:0 0 10px">This checkout could not be opened just now. Please try again in a minute, or write to <a href="mailto:support@claudecertifiedarchitects.com">support@claudecertifiedarchitects.com</a> and we will send you a payment link.</p>';
+    showPaymentBlock(host, 'Checkout not available');
+  } else {
+    closeAuthModal();
+    alert('This checkout could not be opened just now. Please try again in a minute.');
+  }
+}
+// (B3) The launch pricing section: three product cards whose buttons and
+// headings follow ownership. Every element is optional, so this is a no-op on
+// the pre-launch page and on /diagnostic/.
+function updateProductPricingCards() {
+  const section = document.getElementById('product-pricing');
+  if (!section) return;
+  const goDash = (p) => { if (ccdvLive()) activeProduct = p; if (document.getElementById('dashboard-section')) showSection('dashboard'); else window.location.href = '/?product=' + p; };
+  const setBtn = (id, text, handler, cls) => { const b = document.getElementById(id); if (!b) return; b.textContent = text; b.onclick = handler; b.classList.toggle('btn-enrolled', !!cls); };
+  const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
+  const ccar = owns('ccar'), ccdv = owns('ccdv');
+  // CCAR-F card
+  if (ccar) setBtn('buy-ccar-btn', 'Enrolled ✓ Go to dashboard', () => goDash('ccar'), true);
+  else if (ccdv) setBtn('buy-ccar-btn', 'Add CCAR-F: $30', () => openPaymentModal('ccar'), false);
+  else setBtn('buy-ccar-btn', 'Get CCAR-F: $49', () => openPaymentModal('ccar'), false);
+  show('price-ccar-full', !(ccdv && !ccar)); show('price-ccar-upgrade', ccdv && !ccar); show('price-ccar-note', !ccar && !ccdv); show('price-ccar-enrolled', ccar);
+  // CCDV-F card
+  if (ccdv) setBtn('buy-ccdv-btn', 'Enrolled ✓ Go to dashboard', () => goDash('ccdv'), true);
+  else if (ccar) setBtn('buy-ccdv-btn', 'Add CCDV-F: $50', () => openPaymentModal('ccdv'), false);
+  else setBtn('buy-ccdv-btn', 'Get CCDV-F: $69', () => openPaymentModal('ccdv'), false);
+  show('price-ccdv-full', !(ccar && !ccdv)); show('price-ccdv-upgrade', ccar && !ccdv); show('price-ccdv-note', !ccar && !ccdv); show('price-ccdv-enrolled', ccdv);
+  // Bundle card: only for a visitor who owns neither
+  show('price-card-bundle', !ccar && !ccdv);
+  setBtn('buy-bundle-btn', 'Get both: $99', () => openPaymentModal('bundle'), false);
+  // Heading
+  const h = document.getElementById('product-pricing-title'), sub = document.getElementById('product-pricing-sub');
+  if (h && sub) {
+    if (ccar && ccdv) { h.textContent = 'You\'re enrolled in both banks'; sub.textContent = 'CCAR-F and CCDV-F are both unlocked on your dashboard.'; }
+    else if (ccar) { h.textContent = 'You\'re enrolled in CCAR-F'; sub.textContent = 'Add the developer exam bank at your enrolled price. Both banks together come to $99, the same as the bundle.'; }
+    else if (ccdv) { h.textContent = 'You\'re enrolled in CCDV-F'; sub.textContent = 'Add the architect exam bank at your enrolled price. Both banks together come to $99, the same as the bundle.'; }
+    else { h.textContent = 'Pick the exam you are preparing for'; sub.textContent = 'One-time payment, lifetime access, and a 10-day money-back guarantee on every option.'; }
+  }
+}
+// CCDV_LAUNCHED gates every CCDV-F surface in this file: the dashboard tabs,
+// the Developer cards, the second free pool, the upgrade checkout and the
+// product-aware labels. While it is false the site behaves exactly as the
+// single-product site did; the launch commit flips it to true. Ownership is
+// never gated by it: owns('ccdv') reads the products claim whatever the flag.
+const CCDV_LAUNCHED = false;
+function ccdvLive() { return CCDV_LAUNCHED === true; }
+// Payment Links for the two other prices (owner-created in Stripe, mapped on
+// Render through PAYMENT_LINK_CCDV and PAYMENT_LINK_BUNDLE). Empty until the
+// launch commit: an empty link must never fall back to the CCAR-F link, so
+// openPaymentModal() shows "not open yet" instead of sending the buyer to the
+// wrong product.
+const STRIPE_PAYMENT_LINK_CCDV   = '';
+const STRIPE_PAYMENT_LINK_BUNDLE = '';
+function paymentLinkFor(product) {
+  if (product === 'ccdv')   return STRIPE_PAYMENT_LINK_CCDV;
+  if (product === 'bundle') return STRIPE_PAYMENT_LINK_BUNDLE;
+  return STRIPE_PAYMENT_LINK;
+}
+// What the visitor owns, from the ID token's products claim. CCAR-F also
+// follows the legacy enrolled claim (ownsCcar = enrolled OR products.ccar, the
+// same rule as firestore.rules); enrolled is never removed from anyone.
+let ownedProducts = { ccar: false, ccdv: false };
+function owns(product) {
+  if (product === 'ccar') return enrolled || ownedProducts.ccar === true;
+  if (product === 'ccdv') return ownedProducts.ccdv === true;
+  if (product === 'bundle') return owns('ccar') && owns('ccdv');
+  return false;
+}
+function ownsAny() { return owns('ccar') || owns('ccdv'); }
+function applyProductClaims(claims) {
+  const p = (claims && claims.products) || {};
+  ownedProducts = { ccar: p.ccar === true || !!(claims && claims.enrolled), ccdv: p.ccdv === true };
+  try { if (ownsAny()) localStorage.setItem('cca_products', owns('ccar') && owns('ccdv') ? 'both' : owns('ccdv') ? 'ccdv' : 'ccar'); else localStorage.removeItem('cca_products'); } catch (e) {}
+}
+function resetOwnership() { ownedProducts = { ccar: false, ccdv: false }; activeProduct = 'ccar'; }
+// The dashboard and the progress view show one product at a time.
+let activeProduct = 'ccar';
+function productOf(x) { return (ccdvLive() && x === 'ccdv') ? 'ccdv' : 'ccar'; }
+function checkoutKeyOf(x) { return (ccdvLive() && (x === 'ccdv' || x === 'bundle')) ? x : 'ccar'; }
+function productShort(product) { return product === 'ccdv' ? 'CCDV-F' : 'CCAR-F'; }
+// The button label on a locked card or a product card for a product the
+// visitor does not own. An owner of the other product sees the upgrade price.
+function unlockLabel(product) {
+  if (!ccdvLive()) return 'Unlock for $49';
+  if (product === 'ccdv') return owns('ccar') ? 'Add CCDV-F: $50' : 'Unlock for $69';
+  return owns('ccdv') ? 'Add CCAR-F: $30' : 'Unlock for $49';
+}
+function badgeState() {
+  const ccar = owns('ccar'), ccdv = owns('ccdv');
+  return { text: ccar && ccdv ? 'ENROLLED \u00B7 BOTH' : ccdv ? 'ENROLLED \u00B7 CCDV-F' : ccar ? 'ENROLLED \u00B7 CCAR-F' : 'FREE', cls: (ccar || ccdv) ? 'user-badge enrolled' : 'user-badge free' };
+}
 
 // Without a continue URL, Firebase's verification-email link routes to its
 // own generic hosted "Your email has been verified" page — a dead end with
@@ -172,9 +295,12 @@ document.addEventListener('DOMContentLoaded', function() {
   (function() {
     try {
       const _checkoutParam = new URLSearchParams(window.location.search).get('checkout');
-      if (_checkoutParam === 'true' || _checkoutParam === 'resume') {
+      // B3: ?checkout=ccdv and ?checkout=bundle are the same intent for the
+      // other two prices (consumed through pendingCheckoutProduct()).
+      if (_checkoutParam === 'true' || _checkoutParam === 'resume' || _checkoutParam === 'ccdv' || _checkoutParam === 'bundle') {
         window.__pendingCheckout = true;
         try { sessionStorage.setItem('cca_checkout_intent', '1'); } catch(e) {}
+        try { if (_checkoutParam === 'ccdv' || _checkoutParam === 'bundle') sessionStorage.setItem('cca_checkout_product', _checkoutParam); else sessionStorage.removeItem('cca_checkout_product'); } catch(e) {}
         window.history.replaceState({}, '', window.location.pathname);
         if (typeof gtag !== 'undefined') { gtag('event', 'checkout_intent_landed', { checkout_param: _checkoutParam }); }
       }
@@ -448,8 +574,8 @@ const BANK_LOAD_TIMEOUT_MS = 8000;
 const BANK_LOAD_RETRIES = 3;                     // retries after the first read: four reads in all
 const BANK_LOAD_BACKOFF_MS = [1000, 2000, 4000]; // wait before retry 1, 2 and 3
 const LESSONS_EXPECTED = 5;
-let activeBankPromise = null;   // Promise<{bank, lessons, source}>, one load per session; cleared on final failure so Retry starts afresh
-let loadedBankCounts = null;    // per-domain item counts from the loaded bank (domainQuestionCount() prefers these)
+const activeBankPromises = {};  // product -> Promise<{bank, lessons, source}>, one load per session; cleared on final failure so Retry starts afresh
+const loadedBankCounts = {};    // product -> per-domain item counts from the loaded bank (domainQuestionCount() prefers these)
 function withTimeout(p, ms, code) {
   return new Promise(function (resolve, reject) {
     const t = setTimeout(function () { reject(Object.assign(new Error('timeout'), { code: code })); }, ms);
@@ -460,18 +586,21 @@ function sleepMs(ms) { return new Promise(function (r) { setTimeout(r, ms); }); 
 function providerOf(user) {
   try { return (user && user.providerData && user.providerData.length) ? user.providerData.map(function (x) { return x.providerId; }).sort().join('+') : 'none'; } catch (e) { return 'unknown'; }
 }
-function bankExpectedItems() {
-  try { return Object.keys(BANK_DOMAIN_COUNTS).reduce(function (n, k) { return n + BANK_DOMAIN_COUNTS[k]; }, 0); } catch (e) { return 400; }
+function bankExpectedItems(product) {
+  const table = product === 'ccdv' ? CCDV_BANK_DOMAIN_COUNTS : BANK_DOMAIN_COUNTS;
+  try { return Object.keys(table).reduce(function (n, k) { return n + table[k]; }, 0); } catch (e) { return product === 'ccdv' ? 200 : 400; }
 }
 function bankLoadError(code, attempts) {
   try { if (typeof gtag !== 'undefined') gtag('event', 'bank_load_error', { error_code: String(code || 'none').slice(0, 40), attempts: attempts, provider: providerOf(currentUser) }); } catch (e) {}
   try { window.__bankLoadError = { error_code: String(code || 'none'), attempts: attempts }; } catch (e) {}
 }
 // One read of the bank and the lessons, with a timeout and a shape check.
-async function loadActiveBankOnce() {
-  const loaded = await withTimeout(Promise.all([loadBank('ccar'), loadLessons('ccar')]), BANK_LOAD_TIMEOUT_MS, 'timeout');
+async function loadActiveBankOnce(product) {
+  // Only CCAR-F has lessons; the CCDV-F read is the bank alone.
+  const hasLessons = product === 'ccar';
+  const loaded = await withTimeout(Promise.all([loadBank(product), hasLessons ? loadLessons(product) : Promise.resolve([])]), BANK_LOAD_TIMEOUT_MS, 'timeout');
   const bank = loaded[0], mods = loaded[1];
-  if (bank.length !== bankExpectedItems() || mods.length !== LESSONS_EXPECTED) throw Object.assign(new Error('bad count'), { code: 'bad-count' });
+  if (bank.length !== bankExpectedItems(product) || (hasLessons && mods.length !== LESSONS_EXPECTED)) throw Object.assign(new Error('bad count'), { code: 'bad-count' });
   if (!bank.every(function (q) { return q && typeof q.q === 'string' && Array.isArray(q.o) && q.a !== undefined; })) throw Object.assign(new Error('bad item'), { code: 'bad-item' });
   return { bank: bank, lessons: mods, source: 'firestore' };
 }
@@ -479,21 +608,22 @@ async function loadActiveBankOnce() {
 // then reports bank_load_error once and rejects; the next call starts a fresh
 // load (the Retry button). Shared by startTest() for every enrolled mode and
 // by the lessons renderer; prefetched from markEnrolled().
-function activeBank() {
-  if (!activeBankPromise) {
+function activeBank(product) {
+  product = product === 'ccdv' ? 'ccdv' : 'ccar';
+  if (!activeBankPromises[product]) {
     const p = (async function () {
       // (A) Never read the paid bank without an entitled session: wait for the
       // first auth state, then refuse at once, with no retry and no event.
       await whenAuthSettled();
-      if (!currentUser || !enrolled) throw Object.assign(new Error('not entitled'), { code: 'not-entitled' });
+      if (!currentUser || !owns(product)) throw Object.assign(new Error('not entitled'), { code: 'not-entitled' });
       let lastErr = null, attemptsMade = 0;
       for (let attempt = 1; attempt <= 1 + BANK_LOAD_RETRIES; attempt++) {
         attemptsMade = attempt;
         try {
-          const r = await loadActiveBankOnce();
+          const r = await loadActiveBankOnce(product);
           const counts = {};
           r.bank.forEach(function (q) { counts[q.d] = (counts[q.d] || 0) + 1; });
-          loadedBankCounts = counts;
+          loadedBankCounts[product] = counts;
           try { window.__bankSource = 'firestore'; window.__bankAttempts = attempt; } catch (e) {}
           try { renderDomainDrillPicker(); } catch (e) {}
           return r;
@@ -507,10 +637,10 @@ function activeBank() {
       bankLoadError((lastErr && (lastErr.code || lastErr.name)) || 'unknown', attemptsMade);
       throw lastErr || new Error('bank load failed');
     })();
-    activeBankPromise = p;
-    p.catch(function () { if (activeBankPromise === p) activeBankPromise = null; });
+    activeBankPromises[product] = p;
+    p.catch(function () { if (activeBankPromises[product] === p) activeBankPromises[product] = null; });
   }
-  return activeBankPromise;
+  return activeBankPromises[product];
 }
 // The error box: "Couldn't load your questions." with a Retry button. Built
 // in script so the page markup does not change; null-guarded for pages that
@@ -525,7 +655,7 @@ function wireBankLoadRetry(container, onRetry) {
   const btn = container && container.querySelector('.bank-load-retry');
   if (btn) btn.onclick = onRetry;
 }
-function showBankLoadError(type) {
+function showBankLoadError(type, product) {
   const dash = document.getElementById('dashboard-section');
   if (!dash) { console.warn('[bank] load failed and no dashboard to report it on'); return; }
   showSection('dashboard');
@@ -537,7 +667,7 @@ function showBankLoadError(type) {
     (grid ? grid.parentNode : dash).insertBefore(box, grid || dash.firstChild);
   }
   box.innerHTML = bankLoadErrorHtml();
-  wireBankLoadRetry(box, function () { hideBankLoadError(); startTest(type); });
+  wireBankLoadRetry(box, function () { hideBankLoadError(); startTest(type, product); });
   box.style.display = '';
 }
 function hideBankLoadError() { const box = document.getElementById('bank-load-error'); if (box) box.style.display = 'none'; }
@@ -574,13 +704,9 @@ function updateNavUI() {
       loggedIn.style.display = 'flex';
       document.getElementById('nav-user-email').textContent = currentUser.email;
       const badge = document.getElementById('nav-user-badge');
-      if (enrolled) {
-        badge.textContent = 'ENROLLED \u00B7 CCAR-F';
-        badge.className = 'user-badge enrolled';
-      } else {
-        badge.textContent = 'FREE';
-        badge.className = 'user-badge free';
-      }
+      const bs = badgeState();
+      badge.textContent = bs.text;
+      badge.className = bs.cls;
     } else {
       loggedOut.style.display = 'flex';
       loggedIn.style.display = 'none';
@@ -589,8 +715,9 @@ function updateNavUI() {
   // Lessons and Progress nav links are enrolled-only — hide from public nav.
   const lessonsLink  = document.getElementById('nav-lessons-link');
   const progressLink = document.getElementById('nav-progress-link');
-  if (lessonsLink)  lessonsLink.style.display  = (currentUser && enrolled) ? '' : 'none';
-  if (progressLink) progressLink.style.display = (currentUser && enrolled) ? '' : 'none';
+  // B3: the lessons belong to CCAR-F; Progress has a view for either product.
+  if (lessonsLink)  lessonsLink.style.display  = (currentUser && owns('ccar')) ? '' : 'none';
+  if (progressLink) progressLink.style.display = (currentUser && ownsAny()) ? '' : 'none';
 
   // Mobile-dropdown equivalent of the desktop cluster above. #mobile-nav-user
   // lives inside #nav-links (see index.html), unlike #nav-logged-in/out, so
@@ -609,13 +736,9 @@ function updateNavUI() {
       if (mobileEmail) mobileEmail.textContent = currentUser.email;
       const mobileBadge = document.getElementById('mobile-nav-user-badge');
       if (mobileBadge) {
-        if (enrolled) {
-          mobileBadge.textContent = 'ENROLLED \u00B7 CCAR-F';
-          mobileBadge.className = 'user-badge enrolled';
-        } else {
-          mobileBadge.textContent = 'FREE';
-          mobileBadge.className = 'user-badge free';
-        }
+        const mbs = badgeState();
+        mobileBadge.textContent = mbs.text;
+        mobileBadge.className = mbs.cls;
       }
     }
   }
@@ -624,8 +747,8 @@ function updateNavUI() {
   // the old markup (deploy cache window) and /diagnostic/ are unaffected.
   const mobileLessons  = document.getElementById('mobile-nav-lessons-link');
   const mobileProgress = document.getElementById('mobile-nav-progress-link');
-  if (mobileLessons)  mobileLessons.style.display  = (currentUser && enrolled) ? '' : 'none';
-  if (mobileProgress) mobileProgress.style.display = (currentUser && enrolled) ? '' : 'none';
+  if (mobileLessons)  mobileLessons.style.display  = (currentUser && owns('ccar')) ? '' : 'none';
+  if (mobileProgress) mobileProgress.style.display = (currentUser && ownsAny()) ? '' : 'none';
   // Badge wording per product from the cached ID token (no network call):
   // enrolled or products.ccar is CCAR-F, products.ccdv is CCDV-F, both is BOTH.
   // Access decisions are untouched; this only changes the badge text.
@@ -704,6 +827,7 @@ function listenForSessionChanges(uid) {
       if (sessionUnsubscribe) { sessionUnsubscribe(); sessionUnsubscribe = null; }
       fbAuth.signOut(auth).then(() => {
         enrolled = false;
+        resetOwnership();
         updateNavUI();
         updateDashCards();
         showSection('home');
@@ -736,10 +860,18 @@ function initAuthListener() {
       // below. Firestore is the fallback for users not yet on the new system.
       try {
         const tokenResult = await fbAuth.getIdTokenResult(user, true);
-        if (tokenResult.claims.enrolled) {
+        applyProductClaims(tokenResult.claims);
+        if (tokenResult.claims.enrolled || owns('ccar')) {
           markEnrolled(user);
           updateNavUI();
           updateDashCards();
+        } else if (owns('ccdv')) {
+          // B3: a CCDV-F-only owner. No enrolled flag, nothing CCAR-F unlocks;
+          // the Developer tab is their dashboard.
+          if (ccdvLive()) activeProduct = 'ccdv';
+          updateNavUI();
+          updateDashCards();
+          activeBank('ccdv').catch(function () {});
         }
       } catch(e) { console.warn('[Auth] Token refresh error:', e.message); }
       settleAuth();
@@ -777,7 +909,7 @@ function initAuthListener() {
         if (_hasIntent) {
           window.__pendingCheckout = false;
           try { sessionStorage.removeItem('cca_checkout_intent'); } catch (e) {}
-          openPaymentModal();
+          openPaymentModal(pendingCheckoutProduct());
         }
       }
 
@@ -834,7 +966,8 @@ function initAuthListener() {
       const params = new URLSearchParams(window.location.search);
       if (params.get('paid') === 'true') {
         window.history.replaceState({}, '', window.location.pathname);
-        if (!enrolled) confirmPaymentAndUnlock(user);
+        // B3: an owner of one product may be returning from buying the other.
+        if (!enrolled || (ccdvLive() && !owns('bundle'))) confirmPaymentAndUnlock(user);
       }
       // Direct-launch via ?startTest= — used by off-site CTAs (e.g. the
       // /register/ "Full 60-Question Simulation" button). startTest() is
@@ -842,7 +975,12 @@ function initAuthListener() {
       // users, so no extra guard is needed here.
       if (params.get('startTest')) {
         window.history.replaceState({}, '', window.location.pathname);
-        startTest(params.get('startTest'));
+        startTest(params.get('startTest'), productOf(params.get('product')));
+      } else if (ccdvLive() && params.get('product') === 'ccdv') {
+        // /?product=ccdv opens the dashboard on the Developer tab.
+        window.history.replaceState({}, '', window.location.pathname);
+        activeProduct = 'ccdv';
+        showSection('dashboard');
       }
       // Practice Tests hub — show the dashboard (test-mode selector) directly.
       // Also reads sessionStorage so the signup-then-hub flow works: a logged-out
@@ -867,6 +1005,7 @@ function initAuthListener() {
       }
     } else {
       enrolled = false;
+      resetOwnership();
       sessionId = null;
       settleAuth();
       // Clear the nav-auth.js hint flags so static pages revert to logged-out state.
@@ -942,7 +1081,11 @@ function initAuthListener() {
       if (anonParams.get('startTest')) {
         const anonTestType = anonParams.get('startTest');
         window.history.replaceState({}, '', window.location.pathname);
-        startTest(anonTestType);
+        startTest(anonTestType, productOf(anonParams.get('product')));
+      } else if (ccdvLive() && anonParams.get('product') === 'ccdv') {
+        window.history.replaceState({}, '', window.location.pathname);
+        activeProduct = 'ccdv';
+        showSection('dashboard');
       }
       // Practice Tests hub for logged-out users.
       // If 'signup' param is set (used by the Exam page "Start Practice Exam"
@@ -973,12 +1116,98 @@ function initAuthListener() {
   });
 }
 
+// ── B3: the dashboard shows one product at a time ───────────────────────────
+// The five cards keep the markup index.html ships (the CCAR-F copy every
+// crawler sees). When the Developer tab is active their inner markup is
+// swapped for the CCDV-F copy below and restored from a snapshot when the
+// Architect tab comes back. Nothing here runs before the launch.
+const CCDV_CARD_HTML = {
+  'card-quick': '<div class="icon">⚡</div><h3>Quick Sprint <span class="lock-badge unlocked">FREE</span></h3><p><span class="when-free">A fast 10-question drill. Free accounts draw from a 28-question sample of the CCDV-F bank; enrolled accounts draw from all 200.</span><span class="when-enrolled">A fast 10-question drill drawn from the full 200-question CCDV-F bank. Great for daily practice.</span></p><div class="meta"><span>10 Questions</span><span>23 Minutes</span></div><button class="btn-primary btn-sm" onclick="startTest(\'quick\', \'ccdv\')">Start Sprint</button>',
+  'card-focused': '<div class="icon">🔥</div><h3>Focused Session <span class="lock-badge unlocked">5 FREE</span></h3><p><span class="when-free">A timed 20-question session from all 200 CCDV-F questions. The first five are free and come from the 28-question sample.</span><span class="when-enrolled">A timed 20-question session drawn from the full 200-question CCDV-F bank.</span></p><div class="meta"><span>20 Questions</span><span>46 Minutes</span></div><button class="btn-primary btn-sm" onclick="startTest(\'focused\', \'ccdv\')">Start Session</button>',
+  'card-deep': '<div class="icon">🎯</div><h3>Deep Practice <span class="lock-badge">LOCKED</span></h3><p>A 30-question session drawn from all 200 questions across the eight domains, in one sitting.</p><div class="meta"><span>30 Questions</span><span>68 Minutes</span></div><button class="btn-primary btn-sm" onclick="startTest(\'deep\', \'ccdv\')">Unlock for $69</button><p class="dash-unlock-note">Unlocks every mode · 10-day money-back guarantee</p>',
+  'card-domain': '<div class="icon">📊</div><h3>Domain Drill <span class="lock-badge">LOCKED</span></h3><p>Practice one domain at a time: up to 20 questions, or the whole domain where it is smaller. Timed at the exam\'s own pace.</p><div class="meta"><span id="domain-drill-meta">20 Questions</span><span id="domain-drill-minutes">46 Minutes</span></div><select id="domain-drill-select" aria-label="Choose an exam domain to drill" onchange="updateDomainDrillMeta()"></select><button class="btn-primary btn-sm" onclick="startDomainDrill()">Unlock for $69</button><p class="dash-unlock-note">Unlocks every mode · 10-day money-back guarantee</p>',
+  'card-full': '<div class="icon">🏆</div><h3>Full Mock Exam <span class="lock-badge">LOCKED</span></h3><p>53 questions in 120 minutes, drawn fresh each attempt at the guide\'s domain weights: 17 Applications, 9 Model Selection, 8 Agents, 6 Prompt and Context, 6 Tools, 4 Security, 2 Claude Code, 1 Eval.</p><div class="meta"><span>53 Questions</span><span>120 Minutes</span></div><button class="btn-primary btn-sm" onclick="startTest(\'full\', \'ccdv\')">Unlock for $69</button><p class="dash-unlock-note">Unlocks every mode · 10-day money-back guarantee</p>'
+};
+const DASH_CARD_IDS = ['card-quick', 'card-focused', 'card-deep', 'card-domain', 'card-full'];
+let dashOriginal = null;        // {id: innerHTML} snapshot of the shipped CCAR-F cards, taken before the first swap
+let dashCopyProduct = 'ccar';   // which product's copy the cards currently carry
+function applyDashCardCopy(product) {
+  if (!ccdvLive()) return;
+  if (product === dashCopyProduct) return;
+  if (!dashOriginal) {
+    dashOriginal = {};
+    DASH_CARD_IDS.forEach(id => { const c = document.getElementById(id); if (c) dashOriginal[id] = c.innerHTML; });
+    const sub = document.querySelector('#dashboard-section .section-sub');
+    if (sub) dashOriginal.__sub = sub.textContent;
+  }
+  DASH_CARD_IDS.forEach(id => {
+    const c = document.getElementById(id);
+    if (!c) return;
+    c.innerHTML = product === 'ccdv' ? CCDV_CARD_HTML[id] : dashOriginal[id];
+  });
+  const sub = document.querySelector('#dashboard-section .section-sub');
+  if (sub) sub.textContent = product === 'ccdv' ? 'Choose a timed session or take the full mock exam.' : dashOriginal.__sub;
+  dashCopyProduct = product;
+}
+function dashStylesOnce() {
+  if (document.getElementById('b3-dash-style')) return;
+  const st = document.createElement('style');
+  st.id = 'b3-dash-style';
+  st.textContent = '.dash-product-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px}.dash-product-tabs button{font:inherit;font-weight:600;font-size:.95rem;padding:10px 18px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer}.dash-product-tabs button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}.dash-product-tabs .tab-new{font-size:.7rem;font-weight:700;letter-spacing:.5px;margin-left:6px;padding:2px 6px;border-radius:4px;background:var(--gold);color:#1a1a1a}.dash-product-tabs button[aria-pressed="true"] .tab-new{background:#fff;color:var(--accent)}.dash-exam-strip{display:flex;flex-wrap:wrap;gap:18px 28px;align-items:center;margin:0 0 18px;padding:14px 18px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text2);font-size:.9rem}.dash-exam-strip b{display:block;font-size:1.25rem;color:var(--text)}.dash-exam-strip .strip-note{flex-basis:100%;font-size:.82rem;color:var(--text3)}.dash-upsell{margin:0 0 18px;padding:18px 20px;border:1px solid var(--accent);border-radius:var(--radius);background:var(--surface)}.dash-upsell .kicker{font-size:.75rem;font-weight:700;letter-spacing:.6px;color:var(--accent-text)}.dash-upsell h3{margin:6px 0 8px;font-size:1.15rem}.dash-upsell p{margin:0 0 12px;color:var(--text2);font-size:.95rem;line-height:1.55}.dash-upsell .fine{margin:10px 0 0;font-size:.82rem;color:var(--text3)}.dash-unlock-note{margin:8px 0 0;font-size:.78rem;color:var(--text3)}.dash-bundle-line{margin:20px 0 0;padding:16px 18px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;color:var(--text2);font-size:.95rem}.dash-bundle-line .fine{flex-basis:100%;font-size:.82rem;color:var(--text3);margin:0}';
+  document.head.appendChild(st);
+}
+function setDashProduct(p) {
+  // (B3) product tab switch; see renderDashProductTabs().
+  activeProduct = productOf(p);
+  updateDashCards();
+  const prog = document.getElementById('progress-section');
+  if (prog && prog.style.display !== 'none') loadProgress();
+}
+// Tabs, the exam-facts strip, the upsell panel and the bundle line. Built in
+// script above and below .dash-grid; removed again if the flag is off.
+function renderDashProductTabs() {
+  const dash = document.getElementById('dashboard-section');
+  if (!dash) return;
+  const grid = dash.querySelector('.dash-grid');
+  if (!grid) return;
+  let host = document.getElementById('dash-product-head');
+  let foot = document.getElementById('dash-product-foot');
+  if (!ccdvLive()) { if (host) host.remove(); if (foot) foot.remove(); return; }
+  dashStylesOnce();
+  if (!host) { host = document.createElement('div'); host.id = 'dash-product-head'; grid.parentNode.insertBefore(host, grid); }
+  if (!foot) { foot = document.createElement('div'); foot.id = 'dash-product-foot'; grid.parentNode.insertBefore(foot, grid.nextSibling); }
+  const p = activeProduct;
+  const tab = (code, label) => '<button type="button" aria-pressed="' + (p === code) + '" onclick="setDashProduct(\'' + code + '\')">' + label + (owns(code) ? ' ✓ Enrolled' : code === 'ccdv' ? '<span class="tab-new">NEW</span>' : '') + '</button>';
+  let html = '<div class="dash-product-tabs" role="group" aria-label="Choose the exam you are preparing for">' + tab('ccar', 'Architect (CCAR-F)') + tab('ccdv', 'Developer (CCDV-F)') + '</div>';
+  if (p === 'ccdv') {
+    if (!owns('ccdv')) {
+      html += owns('ccar')
+        ? '<div class="dash-upsell"><div class="kicker">YOU\'RE ENROLLED IN CCAR-F</div><h3>Add the developer exam to your prep</h3><p>200 more scenario-based questions across the eight CCDV-F domains, each explaining the correct answer and why every other option is wrong, plus a 53-question mock exam drawn fresh each attempt. It sits in this same dashboard, next to your CCAR-F tab.</p><button class="btn-primary" onclick="openPaymentModal(\'ccdv\')">Add CCDV-F: $50</button><p class="fine">Your CCAR-F price: $50 instead of $69, so both banks total $99. 10-day money-back guarantee.</p></div>'
+        : '';
+    }
+    html += '<div class="dash-exam-strip"><span><b>53</b>items</span><span><b>120</b>minutes</span><span><b>MC + MR</b>multiple-choice and multiple-response</span><span><b>Scaled 720</b>to pass</span><span><b>8</b>domains</span><span class="strip-note">Section 5 of the exam guide (CCDV-F).' + (owns('ccdv') ? '' : ' Not sure which to start with? Try a free 10-question CCDV-F sprint and see the question style first.') + '</span></div>';
+  } else if (!owns('ccar') && owns('ccdv')) {
+    html += '<div class="dash-upsell"><div class="kicker">YOU\'RE ENROLLED IN CCDV-F</div><h3>Add the architect exam to your prep</h3><p>400 scenario-based questions across the five CCAR-F domains, every one with a written explanation, a 60-question practice exam at the guide\'s weights and five lesson modules. It sits in this same dashboard, next to your CCDV-F tab.</p><button class="btn-primary" onclick="openPaymentModal(\'ccar\')">Add CCAR-F: $30</button><p class="fine">Your CCDV-F price: $30 instead of $49, so both banks total $99. 10-day money-back guarantee.</p></div>';
+  }
+  host.innerHTML = html;
+  foot.innerHTML = (!owns('ccar') && !owns('ccdv'))
+    ? '<div class="dash-bundle-line"><span><strong>Preparing for both exams?</strong> Get the CCAR-F and CCDV-F banks together for $99 and save $19.</span><button class="btn-primary btn-sm" onclick="openPaymentModal(\'bundle\')">Get both: $99</button><p class="fine">10-day money-back guarantee on every option.</p></div>'
+    : (owns('ccar') && owns('ccdv') && p === 'ccdv') ? '<p class="dash-unlock-note">Your CCAR-F questions, lessons and progress stay exactly where they are, on the Architect tab.</p>' : '';
+}
+
 function updateDashCards() {
-  // card-deep, card-full and card-domain: fully locked unless enrolled
-  // The button label follows enrollment too. index.html ships the
-  // non-enrolled label ('Unlock for $49'), the state every crawler and every
-  // visitor before auth resolves is in; the Start label is restored here for
-  // an enrolled account. Handlers are untouched: a non-enrolled click still
+  // B3: one product at a time. Before the launch activeProduct is always ccar
+  // and the two helpers below are no-ops, so this is the single-product code.
+  if (!ccdvLive()) activeProduct = 'ccar';
+  renderDashProductTabs();
+  applyDashCardCopy(activeProduct);
+  const product = activeProduct;
+  const own = owns(product);
+  // card-deep, card-full and card-domain: fully locked unless the visitor owns
+  // the product shown. The button label follows ownership too. index.html
+  // ships the non-enrolled label ('Unlock for $49'), the state every crawler
+  // and every visitor before auth resolves is in; the Start label is restored
+  // here for an owner. Handlers are untouched: a non-owner click still
   // reaches openPaymentModal() through startTest()'s guard or the card.
   const startLabels = { 'card-deep': 'Start Practice', 'card-domain': 'Start Drill', 'card-full': 'Start Exam' };
   ['card-deep','card-full','card-domain'].forEach(id => {
@@ -986,15 +1215,18 @@ function updateDashCards() {
     if (!card) return;
     const badge = card.querySelector('.lock-badge');
     const btn = card.querySelector('button');
-    if (enrolled) {
+    const note = card.querySelector('.dash-unlock-note');
+    if (own) {
       card.classList.remove('locked');
       card.onclick = null; // clear any stale locked-state handler so button clicks don't bubble to showSection('home')
       if (badge) { badge.textContent = 'ENROLLED'; badge.classList.add('unlocked'); }
       if (btn) btn.textContent = startLabels[id];
+      if (note) note.style.display = 'none';
     } else {
       card.classList.add('locked');
       if (badge) { badge.textContent = 'LOCKED'; badge.classList.remove('unlocked'); }
-      if (btn) btn.textContent = 'Unlock for $49';
+      if (btn) btn.textContent = unlockLabel(product);
+      if (note) note.style.display = '';
     }
   });
 
@@ -1008,9 +1240,9 @@ function updateDashCards() {
     if (!card) return;
     card.classList.remove('locked');
     card.onclick = null;
-    card.classList.toggle('is-enrolled', !!enrolled);
+    card.classList.toggle('is-enrolled', !!own);
     const badge = card.querySelector('.lock-badge');
-    if (badge) { badge.textContent = enrolled ? 'ENROLLED' : freeLabel; badge.classList.add('unlocked'); }
+    if (badge) { badge.textContent = own ? 'ENROLLED' : freeLabel; badge.classList.add('unlocked'); }
   });
 
   // The locked overlay kills the "Start" button with pointer-events:none, but a
@@ -1018,19 +1250,20 @@ function updateDashCards() {
   // disabled control fires no event, so it bubbles to the card's openPaymentModal
   // handler below -- which is the behaviour we want on a locked card anyway.
   const drillSelect = document.getElementById('domain-drill-select');
-  if (drillSelect) drillSelect.disabled = !enrolled;
+  if (drillSelect) drillSelect.disabled = !own;
   renderDomainDrillPicker();
 
   // Make fully-locked overlays clickable → payment (Stripe, with or without login)
   document.querySelectorAll('.dash-card.locked').forEach(card => {
-    card.onclick = () => openPaymentModal();
+    card.onclick = () => openPaymentModal(product);
   });
 
   // Show the "not sure yet? take the free diagnostic" hint above the locked
   // cards for unenrolled visitors only — an enrolled user has nothing locked
   // here and doesn't need routing toward the diagnostic funnel.
+  // The diagnostic is a CCAR-F instrument, so the hint stays on the Architect tab.
   const diagHint = document.getElementById('dash-diagnostic-hint');
-  if (diagHint) diagHint.style.display = enrolled ? 'none' : '';
+  if (diagHint) diagHint.style.display = (own || product !== 'ccar') ? 'none' : '';
 
   // Keep the purchase CTAs in sync with enrollment too — they share the same
   // `enrolled` flips as the dashboard cards, so driving them from here means
@@ -1058,6 +1291,7 @@ function updatePricingCTAs() {
   // becomes a single "go to your dashboard" link with no purchase framing.
   const heroPrompt = document.getElementById('hero-enroll-prompt');
   if (heroPrompt) heroPrompt.style.display = enrolled ? 'none' : '';
+  updateProductPricingCards();
   // The hero's primary "Unlock all 400 questions: $49" button (index.html,
   // lever 1, 12 Oct 2026) shares openPaymentModal() with #hero-enroll-btn; an
   // enrolled visitor already gets "Go to dashboard" below the stats, so this
@@ -1556,6 +1790,7 @@ function logOut() {
   if (firebaseReady) fbAuth.signOut(auth);
   currentUser = null;
   enrolled = false;
+  resetOwnership();
   updateNavUI();
   showSection('home');
 }
@@ -1781,6 +2016,7 @@ function paymentActivationTimeoutMsg() {
 // (and duplicated, or missed) across each detection path.
 function markEnrolled(user) {
   enrolled = true;
+  ownedProducts.ccar = true;
   // Persist enrollment state so nav-auth.js can show it on static pages
   // without a Firestore round-trip.
   try { localStorage.setItem('cca_enrolled', 'true'); } catch(e) {}
@@ -2282,6 +2518,10 @@ async function confirmPaymentAndUnlock(user) {
     // never be needed — the poll will confirm in the first 1–2 iterations.
     const deadline = Date.now() + 180000;
     let confirmed  = false;
+    // B3: what the account owned when the poll started; a grant of anything
+    // new confirms. CCAR-F keeps the Firestore and pending-claim fallbacks.
+    const hadCcar = owns('ccar'), hadCcdv = owns('ccdv');
+    let gained = null;
 
     // At the old 75 s threshold, swap to a reassuring mid-wait message so
     // users who see the spinner past one minute don't think something failed.
@@ -2295,21 +2535,25 @@ async function confirmPaymentAndUnlock(user) {
       try {
         const tok = await fbAuth.getIdTokenResult(user, true);
         // B2: a CCAR-F grant may arrive as products.ccar as well as enrolled.
-        if (tok.claims.enrolled || (tok.claims.products && tok.claims.products.ccar === true)) confirmed = true;
+        applyProductClaims(tok.claims);
+        const nowCcar = tok.claims.enrolled || (tok.claims.products && tok.claims.products.ccar === true);
+        const nowCcdv = !!(tok.claims.products && tok.claims.products.ccdv === true);
+        if (nowCcar && !hadCcar) { confirmed = true; gained = 'ccar'; }
+        if (nowCcdv && !hadCcdv) { confirmed = true; gained = gained ? 'bundle' : 'ccdv'; }
       } catch (e) {}
 
-      if (!confirmed) {
+      if (!confirmed && !hadCcar) {
         try {
           const fs = window.__fs;
           const docSnap = await fs.getDocFromServer(fs.doc(db, 'users', user.uid));
-          if (docSnap.exists() && docSnap.data().enrolled) confirmed = true;
+          if (docSnap.exists() && docSnap.data().enrolled) { confirmed = true; gained = 'ccar'; }
         } catch (e) {}
       }
 
-      if (!confirmed) {
+      if (!confirmed && !hadCcar) {
         const claim = await claimPendingEnrollment(user);
         if (claim.enrolled) {
-          confirmed = true;
+          confirmed = true; gained = 'ccar';
         } else if (claim.reason === 'unverified_email') {
           // No amount of polling fixes this — the account must verify its
           // email before the server will release the pending enrollment.
@@ -2325,8 +2569,9 @@ async function confirmPaymentAndUnlock(user) {
     if (confirmed) {
       // markEnrolled() also (idempotently, durably-guarded) fires the
       // one-time "exam_purchase" conversion event — see maybeFireExamPurchaseEvent.
-      markEnrolled(user);
-      if (banner) banner.innerHTML = 'Payment successful! Welcome to the Claude Certified Architect course.' + dismissBtn;
+      if (gained !== 'ccdv') markEnrolled(user);
+      if (gained === 'ccdv' && ccdvLive()) activeProduct = 'ccdv';
+      if (banner) banner.innerHTML = (gained === 'ccdv' ? 'Payment successful! Your CCDV-F practice bank is unlocked.' : gained === 'bundle' ? 'Payment successful! Both practice banks are unlocked.' : 'Payment successful! Welcome to the Claude Certified Architect course.') + dismissBtn;
       updateNavUI();
       updateDashCards();
       showSection('dashboard');
@@ -2406,6 +2651,7 @@ function onStripePagehide() {
 }
 
 function trackCheckoutAndGo(url) {
+  // (B3) see pendingCheckoutProduct() below for the product carried by an intent.
   // The visitor dismissed the modal after the click that got here. Every
   // caller is inside openPaymentModal(), which clears the flag at the top of
   // each attempt, so this only ever means "declined THIS redirect".
@@ -2452,7 +2698,15 @@ function trackCheckoutAndGo(url) {
   }
 }
 
-function openPaymentModal() {
+function openPaymentModal(product) {
+  // B3: which price this click buys. Anything but ccdv or bundle, and anything
+  // at all before the launch, is the CCAR-F checkout. An owner of one product
+  // asking for the bundle is routed to the other product's upgrade price.
+  product = checkoutKeyOf(product);
+  if (product === 'bundle' && owns('ccar') && !owns('ccdv')) product = 'ccdv';
+  if (product === 'bundle' && owns('ccdv') && !owns('ccar')) product = 'ccar';
+  const isUpgrade = ccdvLive() && currentUser && ((product === 'ccdv' && owns('ccar')) || (product === 'ccar' && owns('ccdv')));
+  if (typeof gtag !== 'undefined' && product !== 'ccar') { try { gtag('event', 'checkout_product', { product: product, upgrade: !!isUpgrade }); } catch (e) {} }
   // Every path out of here is a fresh checkout attempt, so a dismissal of the
   // PREVIOUS one must not block it. This is the only place the flag is
   // cleared, which is why declining once never sticks.
@@ -2506,8 +2760,9 @@ function openPaymentModal() {
     // attempt either: it just proceeds to Stripe. A guest who abandoned
     // Stripe and clicks buy again gets a fresh redirect, not a banner that
     // falsely implies a charge may be in flight.
+    if (!paymentLinkFor(product)) { showCheckoutNotOpen(); return; }
     openAuthModalLoading('Redirecting to secure checkout…');
-    const guestUrl = new URL(STRIPE_PAYMENT_LINK);
+    const guestUrl = new URL(paymentLinkFor(product));
     // Deliberately omit client_reference_id (no Firebase UID yet) and
     // prefilled_email (no known email yet) — Stripe still collects an email
     // at checkout, and the webhook's email-keyed pending_enrollments path
@@ -2521,7 +2776,7 @@ function openPaymentModal() {
   // the dashboard if this page has one (homepage); otherwise (e.g.
   // /diagnostic/, which has no dashboard section) go to the homepage, which
   // will show it.
-  if (enrolled) {
+  if (owns(product)) {
     // Fired before the branch below because the no-dashboard path navigates away;
     // beacon for the same reason (precedent: stripe_arrived).
     if (typeof gtag !== 'undefined') {
@@ -2532,6 +2787,7 @@ function openPaymentModal() {
     }
     if (document.getElementById('dashboard-section')) {
       closeAuthModal();
+      if (ccdvLive()) activeProduct = product === 'ccdv' ? 'ccdv' : 'ccar';
       showSection('dashboard');
     } else {
       openAuthModalLoading('Taking you to your dashboard…');
@@ -2540,10 +2796,38 @@ function openPaymentModal() {
     return;
   }
 
+  // B3: an owner of the other product pays the upgrade price through a Checkout
+  // Session the server creates (/create-checkout, prices PRICE_UPGRADE_*); the
+  // session carries the uid and email the way the Payment Link does. On any
+  // failure the visitor is told the checkout did not open; never a silent
+  // redirect to a full-price link.
+  if (isUpgrade) {
+    openAuthModalLoading('Redirecting to secure checkout…');
+    const upCtrl = new AbortController();
+    const upTimer = setTimeout(() => upCtrl.abort(), 8000);
+    currentUser.getIdToken()
+      .then(tok => fetch(WEBHOOK_BASE + '/create-checkout', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product: product }),
+        signal: upCtrl.signal,
+      }))
+      .then(r => r.json())
+      .then(result => {
+        clearTimeout(upTimer);
+        if (checkoutCancelled) return;
+        if (result && result.url) trackCheckoutAndGo(result.url);
+        else if (result && result.reason === 'already_enrolled') { closeAuthModal(); showSection('dashboard'); }
+        else showCheckoutNotOpen();
+      })
+      .catch(() => { clearTimeout(upTimer); if (!checkoutCancelled) showCheckoutNotOpen(); });
+    return;
+  }
+  if (!paymentLinkFor(product)) { showCheckoutNotOpen(); return; }
   // Brief feedback for the begin_checkout/gtag wait below (up to ~1s) so the
   // click doesn't look like it did nothing while we redirect to Stripe.
   openAuthModalLoading('Redirecting to secure checkout…');
-  const url = new URL(STRIPE_PAYMENT_LINK);
+  const url = new URL(paymentLinkFor(product));
   url.searchParams.set('client_reference_id', currentUser.uid);
   url.searchParams.set('prefilled_email', currentUser.email);
 
@@ -2610,7 +2894,7 @@ function openPaymentModal() {
       headers: { 'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json' },
       // B2: the product this click buys. The route reads an absent body as ccar,
       // so the older client keeps working; B3 sends the real product.
-      body: JSON.stringify({ product: 'ccar' }),
+      body: JSON.stringify({ product: product }),
       signal: _preCtrl.signal,
     }))
     .then(r => r.json())
@@ -2797,12 +3081,43 @@ const DOMAIN_DRILL_DOMAINS = [
 const DOMAIN_DRILL_QUESTIONS = 20;   // requested; the real count is min(this, available)
 const DOMAIN_DRILL_MINUTES   = 40;   // matches Focused Session's 20q / 40m shape
 
+// ── B3: CCDV-F domains and the product table ─────────────────────────────────
+// Keys are the bank's d field (Firestore bank_ccdv, private repo
+// cca-question-banks/ccdv-f). Weights are the Section 6 figures of the CCDV-F
+// exam guide; domainQuota(53) over them gives 17/9/8/6/6/4/2/1 by largest
+// remainder. Guide order (dn 1 to 8) for the mastery grid; the drill picker
+// sorts by weight.
+const CCDV_DOMAINS = [
+  { key: 'Agents and Workflows',              label: 'Agents and Workflows',              weight: 14.7, slug: 'ccdv-agents'       },
+  { key: 'Applications and Integration',      label: 'Applications and Integration',      weight: 33.1, slug: 'ccdv-applications' },
+  { key: 'Claude Code',                       label: 'Claude Code',                       weight: 3.1,  slug: 'ccdv-claude-code'  },
+  { key: 'Eval, Testing, and Debugging',      label: 'Eval, Testing, and Debugging',      weight: 2.6,  slug: 'ccdv-eval'         },
+  { key: 'Model Selection and Optimization',  label: 'Model Selection and Optimization',  weight: 16.8, slug: 'ccdv-models'       },
+  { key: 'Prompt and Context Engineering',    label: 'Prompt and Context Engineering',    weight: 11.0, slug: 'ccdv-prompt'       },
+  { key: 'Security and Safety',               label: 'Security and Safety',               weight: 8.1,  slug: 'ccdv-security'     },
+  { key: 'Tools and MCPs',                    label: 'Tools and MCPs',                    weight: 10.6, slug: 'ccdv-tools'        },
+];
+const CCDV_DRILL_DOMAINS = CCDV_DOMAINS.slice().sort((a, b) => b.weight - a.weight);
+// Test shapes per product. CCDV-F is timed at the exam's own pace (120 minutes
+// for 53 items, 2.26 min per item): 23, 46 and 68 minutes; a drill scales with
+// its count. CCAR-F keeps its shipped shapes.
+const PRODUCTS = {
+  ccar: { code: 'ccar', short: 'CCAR-F', items: 400, pass: 720, domains: PROGRESS_DOMAINS, drillDomains: DOMAIN_DRILL_DOMAINS, lessons: true,
+          modes: { quick: { name: 'Quick Sprint', questions: 10, minutes: 20 }, focused: { name: 'Focused Session', questions: 20, minutes: 40 }, deep: { name: 'Deep Practice', questions: 30, minutes: 60 }, full: { name: 'Full Certification Exam', questions: 60, minutes: 120 } },
+          drillMinutes: function () { return DOMAIN_DRILL_MINUTES; } },
+  ccdv: { code: 'ccdv', short: 'CCDV-F', items: 200, pass: 720, domains: CCDV_DOMAINS, drillDomains: CCDV_DRILL_DOMAINS, lessons: false,
+          modes: { quick: { name: 'Quick Sprint', questions: 10, minutes: 23 }, focused: { name: 'Focused Session', questions: 20, minutes: 46 }, deep: { name: 'Deep Practice', questions: 30, minutes: 68 }, full: { name: 'Full Mock Exam', questions: 53, minutes: 120 } },
+          drillMinutes: function (q) { return Math.ceil(q * 120 / 53); } },
+};
+function productDef(product) { return PRODUCTS[product] || PRODUCTS.ccar; }
+CCDV_DOMAINS.forEach(d => { PROGRESS_TYPE_LABELS['domain-' + d.slug] = d.label + ' Drill'; });
+
 // The bank's `d` field is the join key used by POOL, domainScores and the stored
 // attempt history, so it never changes. PROGRESS_DOMAINS carries the display name
 // (the bank's `Claude Code Configuration` is truncated against the guide's
 // `Claude Code Configuration & Workflows`). Falls back to the raw key so an
 // unmapped domain still renders a name rather than nothing.
-function progressDomain(key) { return PROGRESS_DOMAINS.find(x => x.key === key) || null; }
+function progressDomain(key) { return PROGRESS_DOMAINS.find(x => x.key === key) || CCDV_DOMAINS.find(x => x.key === key) || null; }
 function domainLabel(key) {
   const d = progressDomain(key);
   return d ? d.label : key;
@@ -2813,7 +3128,12 @@ function domainLabel(key) {
 // guard working exactly as they did.
 function domainDrillEntry(type) {
   if (typeof type !== 'string' || type.indexOf('domain-') !== 0) return null;
-  return DOMAIN_DRILL_DOMAINS.find(d => d.slug === type.slice('domain-'.length)) || null;
+  const slug = type.slice('domain-'.length);
+  const ccar = DOMAIN_DRILL_DOMAINS.find(d => d.slug === slug);
+  if (ccar) return { slug: ccar.slug, key: ccar.key, product: 'ccar' };
+  if (!ccdvLive()) return null;
+  const ccdv = CCDV_DOMAINS.find(d => d.slug === slug);
+  return ccdv ? { slug: ccdv.slug, key: ccdv.key, product: 'ccdv' } : null;
 }
 
 // Per-domain item counts. Counted from the loaded bank once it is in memory;
@@ -2825,9 +3145,14 @@ function domainDrillEntry(type) {
 // cca:bank-domain-counts:start
 const BANK_DOMAIN_COUNTS = {"Agentic Architecture & Orchestration":109,"Claude Code Configuration":80,"Prompt Engineering & Structured Output":79,"Tool Design & MCP Integration":72,"Context Management & Reliability":60};
 // cca:bank-domain-counts:end
-function domainQuestionCount(key) {
-  if (loadedBankCounts && Object.prototype.hasOwnProperty.call(loadedBankCounts, key)) return loadedBankCounts[key];
-  return BANK_DOMAIN_COUNTS[key] || 0;
+// cca:ccdv-bank-domain-counts:start
+const CCDV_BANK_DOMAIN_COUNTS = {"Agents and Workflows":30,"Applications and Integration":66,"Claude Code":6,"Eval, Testing, and Debugging":5,"Model Selection and Optimization":34,"Prompt and Context Engineering":22,"Security and Safety":16,"Tools and MCPs":21};
+// cca:ccdv-bank-domain-counts:end
+function domainQuestionCount(key, product) {
+  product = product === 'ccdv' ? 'ccdv' : 'ccar';
+  const loaded = loadedBankCounts[product];
+  if (loaded && Object.prototype.hasOwnProperty.call(loaded, key)) return loaded[key];
+  return (product === 'ccdv' ? CCDV_BANK_DOMAIN_COUNTS : BANK_DOMAIN_COUNTS)[key] || 0;
 }
 
 // finishTest() stores the drill as type `domain-<slug>`. Without an entry here
@@ -2843,6 +3168,18 @@ function renderDomainDrillPicker() {
   const sel = document.getElementById('domain-drill-select');
   if (!sel) return;
   const keep = sel.value;
+  // B3: the Developer tab lists its eight domains by weight with the drill size
+  // beside each ("20 of 66", or just "6" where the domain is smaller than 20).
+  if (ccdvLive() && activeProduct === 'ccdv') {
+    sel.innerHTML = CCDV_DRILL_DOMAINS.map(d => {
+      const n = domainQuestionCount(d.key, 'ccdv');
+      const size = n > DOMAIN_DRILL_QUESTIONS ? DOMAIN_DRILL_QUESTIONS + ' of ' + n : String(n);
+      return `<option value="${d.slug}">${d.label} (${size})</option>`;
+    }).join('');
+    if (keep) sel.value = keep;
+    updateDomainDrillMeta();
+    return;
+  }
   sel.innerHTML = DOMAIN_DRILL_DOMAINS.map(d => {
     const dom = progressDomain(d.key);
     const w   = dom ? dom.weight + '% of exam · ' : '';
@@ -2860,6 +3197,8 @@ function updateDomainDrillMeta() {
   if (!sel || !meta || !sel.value) return;
   const cfg = getTestConfig('domain-' + sel.value);
   if (cfg) meta.textContent = cfg.questions + ' Questions';
+  const mins = document.getElementById('domain-drill-minutes');
+  if (cfg && mins) mins.textContent = cfg.minutes + ' Minutes';
 }
 
 // Card button. Routes through startTest() like every other mode, so the
@@ -2874,11 +3213,17 @@ async function loadProgress() {
   const emptyEl   = document.getElementById('progress-empty');
   const contentEl = document.getElementById('progress-content');
   if (!emptyEl || !contentEl) return;
-  if (!currentUser || !enrolled) {
+  if (!currentUser || !ownsAny()) {
     emptyEl.style.display = 'block';
     contentEl.style.display = 'none';
     return;
   }
+  // B3: the view follows the dashboard's product; a visitor who owns only the
+  // other product is switched to it. Attempts saved before B3 carry no product
+  // field and are CCAR-F.
+  if (ccdvLive() && !owns(activeProduct)) activeProduct = owns('ccdv') ? 'ccdv' : 'ccar';
+  const product = ccdvLive() ? activeProduct : 'ccar';
+  renderProgressProductTabs();
   try {
     await ensureFirestore();
     const fs = window.__fs;
@@ -2893,13 +3238,13 @@ async function loadProgress() {
       contentEl.style.display = 'none';
       return;
     }
-    const attempts = snap.docs.map(d => d.data()).filter(a => a && a.domainScores);
+    const attempts = snap.docs.map(d => d.data()).filter(a => a && a.domainScores && ((a.product || 'ccar') === product));
     if (!attempts.length) {
       emptyEl.style.display = 'block';
       contentEl.style.display = 'none';
       return;
     }
-    renderProgress(attempts);
+    renderProgress(attempts, product);
     emptyEl.style.display = 'none';
     contentEl.style.display = 'block';
   } catch (e) {
@@ -2910,11 +3255,25 @@ async function loadProgress() {
   }
 }
 
-function renderProgress(attempts) {
+// (B3) Product tabs above the progress view, mirroring the dashboard's.
+function renderProgressProductTabs() {
+  const sec = document.getElementById('progress-section');
+  if (!sec) return;
+  let host = document.getElementById('progress-product-tabs');
+  if (!ccdvLive() || !(owns('ccar') && owns('ccdv'))) { if (host) host.remove(); return; }
+  dashStylesOnce();
+  const anchor = document.getElementById('progress-empty');
+  if (!host) { host = document.createElement('div'); host.id = 'progress-product-tabs'; (anchor ? anchor.parentNode : sec).insertBefore(host, anchor || sec.firstChild); }
+  const tab = (code, label) => '<button type="button" aria-pressed="' + (activeProduct === code) + '" onclick="setDashProduct(\'' + code + '\')">' + label + '</button>';
+  host.innerHTML = '<div class="dash-product-tabs" role="group" aria-label="Choose the exam">' + tab('ccar', 'Architect (CCAR-F)') + tab('ccdv', 'Developer (CCDV-F)') + '</div>';
+}
+
+function renderProgress(attempts, product) {
+  const DOMAINS = productDef(product).domains;
   // Aggregate correct/total per domain across every attempt, plus a
   // chronological per-attempt history (used for the "over time" trend bars).
   const agg = {};
-  PROGRESS_DOMAINS.forEach(d => { agg[d.key] = { correct: 0, total: 0, history: [] }; });
+  DOMAINS.forEach(d => { agg[d.key] = { correct: 0, total: 0, history: [] }; });
 
   attempts.forEach(a => {
     const ds = a.domainScores || {};
@@ -2932,7 +3291,7 @@ function renderProgress(attempts) {
   // the domains the user has actually attempted (never invents data for
   // domains with zero attempts — those are simply excluded from the average).
   let weightedSum = 0, coveredWeight = 0, coveredCount = 0;
-  PROGRESS_DOMAINS.forEach(d => {
+  DOMAINS.forEach(d => {
     const s = agg[d.key];
     if (s.total > 0) {
       weightedSum += (s.correct / s.total) * d.weight;
@@ -2941,7 +3300,7 @@ function renderProgress(attempts) {
     }
   });
   const readinessScore = coveredWeight > 0 ? Math.round((weightedSum / coveredWeight) * 1000) : 0;
-  const passScore = 720;
+  const passScore = productDef(product).pass;
   const readinessCls = readinessScore >= passScore ? 'high' : readinessScore >= passScore * 0.85 ? 'mid' : 'low';
 
   document.getElementById('readiness-score').textContent = readinessScore.toLocaleString() + ' / 1,000';
@@ -2949,13 +3308,24 @@ function renderProgress(attempts) {
   bar.style.width = Math.min(100, (readinessScore / 1000) * 100) + '%';
   bar.className = 'rc-bar-fill ' + readinessCls;
   document.getElementById('attempt-count').textContent = attempts.length;
-  document.getElementById('readiness-coverage-note').textContent = coveredCount < PROGRESS_DOMAINS.length
-    ? ` This estimate currently covers ${coveredCount} of ${PROGRESS_DOMAINS.length} exam domains — keep practicing across all domains to sharpen it.`
+  // (B3) The readiness sentence names the exam shown. index.html ships the
+  // CCAR-F wording ("The official CCA exam uses a scaled 720 / 1,000 passing
+  // standard ..."); on the Developer view the exam name becomes CCDV-F, whose
+  // guide (Section 5) states the same 100 to 1,000 scale and 720 pass mark.
+  // Only the name changes; the Architect view keeps the shipped text.
+  {
+    const noteEl = document.getElementById('readiness-coverage-note');
+    let tn = noteEl ? noteEl.nextSibling : null;
+    while (tn && !(tn.nodeType === 3 && /official (CCA|CCDV-F) exam uses/.test(tn.nodeValue))) tn = tn.nextSibling;
+    if (tn) tn.nodeValue = tn.nodeValue.replace(/official (CCA|CCDV-F) exam uses/, 'official ' + (product === 'ccdv' ? 'CCDV-F' : 'CCA') + ' exam uses');
+  }
+  document.getElementById('readiness-coverage-note').textContent = coveredCount < DOMAINS.length
+    ? ` This estimate currently covers ${coveredCount} of ${DOMAINS.length} exam domains — keep practicing across all domains to sharpen it.`
     : '';
 
   // ── Weakest domain (lowest mastery among domains with attempts) ──
   let weakest = null;
-  PROGRESS_DOMAINS.forEach(d => {
+  DOMAINS.forEach(d => {
     const s = agg[d.key];
     if (s.total > 0) {
       const pct = s.correct / s.total;
@@ -2972,14 +3342,14 @@ function renderProgress(attempts) {
     pctEl.className = 'wc-pct ' + wCls;
   }
 
-  renderDomainMasteryGrid(agg);
+  renderDomainMasteryGrid(agg, DOMAINS);
   renderAttemptsList(attempts);
 }
 
-function renderDomainMasteryGrid(agg) {
+function renderDomainMasteryGrid(agg, DOMAINS) {
   const grid = document.getElementById('domain-mastery-grid');
   if (!grid) return;
-  grid.innerHTML = PROGRESS_DOMAINS.map(d => {
+  grid.innerHTML = (DOMAINS || PROGRESS_DOMAINS).map(d => {
     const s = agg[d.key];
     const hasData = s.total > 0;
     const pct = hasData ? Math.round((s.correct / s.total) * 100) : null;
@@ -3017,7 +3387,7 @@ function renderAttemptsList(attempts) {
     }
     const pct = typeof a.pct === 'number' ? a.pct : (a.totalQuestions ? Math.round((a.correct / a.totalQuestions) * 100) : 0);
     const cls = pct >= 70 ? 'high' : pct >= 50 ? 'mid' : 'low';
-    const typeLabel = PROGRESS_TYPE_LABELS[a.type] || a.type || 'Practice session';
+    const typeLabel = (a.product === 'ccdv' && a.type === 'full') ? 'Full Mock Exam' : (PROGRESS_TYPE_LABELS[a.type] || a.type || 'Practice session');
     return `<div class="attempt-row">
       <span class="ar-type">${typeLabel}</span>
       <span class="ar-date">${dateStr}</span>
@@ -3073,23 +3443,25 @@ function isOptionCorrect(q, i) { return isMR(q) ? q.a.includes(i) : i === q.a; }
 let currentTest = null;
 let timerInterval = null;
 
-function getTestConfig(type) {
+function getTestConfig(type, product) {
   const drill = domainDrillEntry(type);
   if (drill) {
     // Context Management holds the fewest questions, so take what the domain
-    // actually has rather than assuming 20 exists everywhere.
+    // actually has rather than assuming 20 exists everywhere. (B3: the drill's
+    // product comes from its slug; a CCDV-F drill's time scales with its count.)
+    const def = productDef(drill.product);
+    const q = Math.min(DOMAIN_DRILL_QUESTIONS, domainQuestionCount(drill.key, drill.product));
     return {
       name: domainLabel(drill.key) + ' Drill',
-      questions: Math.min(DOMAIN_DRILL_QUESTIONS, domainQuestionCount(drill.key)),
-      minutes: DOMAIN_DRILL_MINUTES
+      questions: q,
+      minutes: def.drillMinutes(q),
+      product: drill.product
     };
   }
-  switch(type) {
-    case 'quick': return {name:'Quick Sprint', questions:10, minutes:20};
-    case 'focused': return {name:'Focused Session', questions:20, minutes:40};
-    case 'deep': return {name:'Deep Practice', questions:30, minutes:60};
-    case 'full': return {name:'Full Certification Exam', questions:60, minutes:120};
-  }
+  const def = productDef(productOf(product));
+  const mode = def.modes[type];
+  if (!mode) return undefined;
+  return { name: mode.name, questions: mode.questions, minutes: mode.minutes, product: def.code };
 }
 
 function shuffleArray(arr) {
@@ -3116,9 +3488,10 @@ function shuffleArray(arr) {
 // floors sum to 59, and the one leftover seat goes to the largest fractional
 // part, which is Tool Design at 0.80 and is the only one above zero. Result:
 // 16/12/12/11/9.
-function domainQuota(count) {
-  const total = PROGRESS_DOMAINS.reduce((s, d) => s + d.weight, 0);
-  const rows  = PROGRESS_DOMAINS.map(d => {
+function domainQuota(count, domains) {
+  const DOMAINS = domains || PROGRESS_DOMAINS;
+  const total = DOMAINS.reduce((s, d) => s + d.weight, 0);
+  const rows  = DOMAINS.map(d => {
     const exact = count * d.weight / total;
     return { key: d.key, n: Math.floor(exact), rem: exact - Math.floor(exact) };
   });
@@ -3133,9 +3506,9 @@ function domainQuota(count) {
 // so the paper is not served in domain blocks. This runs on the INPUT side of
 // the option shuffle -- the same place the domain drill narrows -- so the
 // correct-index remap, MR handling and the option cap downstream are untouched.
-function stratifiedDraw(pool, count) {
+function stratifiedDraw(pool, count, domains) {
   const out = [];
-  for (const row of domainQuota(count)) {
+  for (const row of domainQuota(count, domains)) {
     out.push(...shuffleArray(pool.filter(q => q.d === row.key)).slice(0, row.n));
   }
   // A domain holding fewer questions than its seats would leave the paper short.
@@ -3255,30 +3628,75 @@ const FREE_POOL = [
   {"d":"Context Management & Reliability","q":"A document-analysis subagent is partway through analyzing a batch of 20 source documents when it hits a permission error on the remaining 6, an error it has no way to resolve on its own. Which three of the following are anti-patterns for how the subagent should report this to the coordinator?","o":["Returning a generic document-access-failed status with no further detail, discarding the fact that 14 of the 20 documents were already analyzed successfully.","Marking the batch as successfully completed and silently omitting the 6 inaccessible documents from the results, leaving the coordinator no way to know coverage is incomplete.","Halting the entire four-agent pipeline the moment the permission error occurs, discarding the other three subagents' completed work along with the 14 documents already analyzed.","Retrying the 6 permission-denied documents immediately with exponential backoff before reporting anything to the coordinator.","Confirming that the tool_choice setting on the document tool automatically routes different error codes to different recovery subagents, so no additional detail needs to be reported.","Having the coordinator route all inter-subagent communication through itself so it can log every message centrally."],"a":[0,1,2],"type":"mr","e":"Three anti-patterns are named across Task Statement 5.3's knowledge bullets, and all three appear here. Returning a generic document-access-failed status hides valuable context — the coordinator never learns that 14 of the 20 documents were analyzed successfully. Marking the batch as completed while silently omitting the 6 inaccessible documents suppresses the failure as success, leaving coverage incomplete with no way to detect it. Halting the entire four-agent pipeline over a single recoverable failure is disproportionate, and discards three other subagents' finished work as well. Retrying the permission-denied documents with exponential backoff misapplies a real technique to the wrong problem: permission errors are access failures, not transient ones, so retrying does not help. The claim that tool_choice routes different error codes to different recovery subagents misdescribes what that setting does — it controls whether or which tool the model must call, not error-code routing. Routing all inter-subagent communication through the coordinator is true, but it belongs to Task Statement 1.2's hub-and-spoke pattern, not to what a failure report should contain."},
 ];
 // cca:free-pool:end
+// B3: the CCDV-F free sample, 28 items with three multiple-response items,
+// listed by id in cca-question-banks/ccdv-f/free-sample.txt and stamped here
+// by scripts/build-pools.js in the same key order as FREE_POOL. The logged-out
+// Quick Sprint and Focused preview on the Developer tab draw from it.
+// cca:free-pool-ccdv:start
+const FREE_POOL_CCDV = [
+  {"d":"Applications and Integration","q":"A developer builds a support chat on the Messages API. The code stores a conversation_id in the request metadata and sends only the user's newest message on each turn, expecting the API to recall the earlier turns from that id. Users complain that Claude forgets details they gave two messages earlier and asks for them again. What is the cause?","o":["The Messages API is stateless, so every request must carry the full conversation history for Claude to see it.","Earlier turns are retained server-side for as long as the HTTP connection stays open, so the client must keep it alive.","Earlier turns expire from the server-side conversation store after a few minutes, so the id must be refreshed each turn.","The stored conversation grew past the model's context window, so the API silently dropped its oldest turns."],"a":0,"e":"The Using the Messages API documentation says the Messages API is stateless, which means that you always send the full conversational history to the API, and that you use this pattern to build up a conversation over time. The Messages API reference describes metadata as an object describing metadata about the request whose user_id is an opaque identifier Anthropic may use to help detect abuse, not a key to stored turns. Why the open-connection explanation is wrong: a stateless API holds nothing between requests, so keeping the connection open cannot make earlier turns visible. Why the expiring-store explanation is wrong: there is no server-side conversation store to expire from; the page says the full history is sent with every request. Why the silent-drop explanation is wrong: the context windows page says that if the input already exceeds the model's context window the API returns a 400 invalid_request_error, so turns are never dropped silently, and in any case the request here carried only one turn."},
+  {"d":"Applications and Integration","q":"A customer-support assistant receives requests every few seconds. Each sends a large static policy document followed by one block holding the current timestamp and the user's question, with cache_control on that final block. The usage field reports cache_creation_input_tokens on every request and cache_read_input_tokens is always zero. What is the fix?","o":["Add a second cache_control marker on the user question block so that the system has two entries to compare.","Switch to the one-hour cache lifetime, because entries are expiring between consecutive requests.","Move cache_control to the last block that is identical across requests, the end of the policy text.","Shorten the policy document, because the cache skips any prefix above the maximum cacheable length."],"a":2,"e":"The prompt caching documentation describes exactly this common mistake: a breakpoint on content that changes every request produces a different prefix hash each time, so you pay for a fresh cache write and never get a read, and the fix it gives is to move cache_control to the last block that stays the same across requests. Why adding a marker on the question block is wrong: the page says cache writes happen only at your breakpoint, and a breakpoint on a block that changes every request never matches a prior write. Why the one-hour lifetime is wrong: the page says the cache has a 5-minute lifetime by default and is refreshed each time the cached content is used, and with requests arriving every few seconds an entry cannot be expiring; the symptom is a prefix mismatch. Why shortening the document is wrong: the page documents a minimum cacheable length, not a maximum, and lists large amounts of context as a use the feature is for."},
+  {"d":"Applications and Integration","q":"A Claude agent's custom tool creates shipments by sending a POST request to a carrier's REST API. The wrapper retries any request that times out. Operations staff report that some orders now have two shipments booked, and the carrier confirms that both requests arrived. What should the developer change?","o":["Retry only when the connection closed before any response byte arrived, since that proves the request was never applied.","Give each shipment request a client-generated key that the carrier dedupes on, so a repeat has the same effect as one.","Treat a timed-out POST as successful and move on, since the carrier will surely have processed it before the timeout fired.","Mark the order as failed on any timeout and never retry, since a timed-out request can be assumed not to have been applied."],"a":1,"e":"RFC 9110 says a client should not automatically retry a request with a non-idempotent method unless it has some means to know that the request semantics are actually idempotent, regardless of the method, or some means to detect that the original request was never applied; a client-generated key the server dedupes on makes the create operation idempotent by design. Why retrying on an early-closed connection is wrong: RFC 9110 describes exactly that as a riskier approach in which clients attempt to guess when an automatic retry is possible, and a closed connection does not prove the server never applied the request. Why assuming success is wrong: a timeout gives the client no means to detect whether the original request was applied, so the order may have no shipment at all. Why assuming the request was never applied is wrong: RFC 9110 conditions an automatic retry on having some means to detect that the original request was never applied, and a timeout provides no such means, so the carrier may well have booked the shipment that the order now records as failed."},
+  {"d":"Applications and Integration","q":"An internal operations service exposes GET /jobs/{id}/retry, and a Claude agent's tool calls it to requeue failed jobs. Last week a link-checking crawler run by the docs team requeued hundreds of jobs simply by following links to those URLs. What is the correct fix?","o":["Keep the GET endpoint but require a custom request header on it, since crawlers never send custom headers.","List the retry endpoint in robots.txt, since the HTTP specification delegates crawler behavior to that file.","Rename the endpoint so that its path contains the word action, since crawlers skip URLs that signal a state change.","Move the retry action to a POST endpoint, because GET is defined as safe and must not perform an unsafe action."],"a":3,"e":"RFC 9110 defines GET as a safe method, meaning the client does not request and does not expect any state change on the origin server, and says that if a resource's purpose is to perform an unsafe action, the resource owner must disable or disallow that action when it is accessed using a safe request method, precisely so that automated processes performing a GET on every URI for link maintenance or pre-fetching cause no harm. Why a header gate is wrong: it leaves an unsafe action reachable through a safe method, which the RFC says the owner must disallow, and nothing guarantees what headers a crawler sends. Why robots.txt is wrong: RFC 9110 places the responsibility on the resource owner to keep actions consistent with method semantics and does not delegate it to a crawler convention. Why renaming is wrong: RFC 9110 says the purpose of safe methods is to let spiders and pre-fetching work without fear of causing harm, and a crawler has no reason to read meaning into a path segment."},
+  {"d":"Applications and Integration","q":"A developer committed a .env file holding the team's Anthropic API key to a shared repository. They add .env to .gitignore, but the file is still in the repository and each edit still shows up in git status. What should they do?","o":["Add the .env rule to a .gitignore in every subdirectory as well, since a root ignore file does not cover tracked paths.","Add the pattern to .git/info/exclude instead, since that file applies to tracked files while .gitignore does not.","Amend the commit that added the .gitignore rule, since an amended rule applies to the earlier commits as well.","Untrack the file with git rm --cached so that the ignore rule takes effect, and rotate the key that was exposed."],"a":3,"e":"The gitignore documentation says a gitignore file specifies intentionally untracked files that git should ignore and that files already tracked by git are not affected; to stop tracking a file that is currently tracked, use git rm --cached to remove it from the index, after which the ignore rule keeps it from being reintroduced. The key stays in the repository's history, so it must also be rotated. Why nested ignore files are wrong: the documentation says tracked files are not affected by any gitignore file, wherever it sits. Why info/exclude is wrong: the documentation describes it as another place for ignore patterns, which govern untracked files just as .gitignore does. Why amending is wrong: an ignore rule only prevents untracked files from being added; it does not remove a file that is already tracked, in any commit."},
+  {"d":"Applications and Integration","q":"A document question-answering app builds each prompt by concatenating the operator's instructions, three worked examples and the retrieved documents into one block of text. Claude sometimes treats an example as the question and sometimes answers a question that appears inside a retrieved document. What change addresses this?","o":["Separate the parts with markdown horizontal rules, since Claude treats a rule as a hard boundary between sections.","Wrap the instructions, the examples and each document in their own XML tags so that Claude tells every part apart.","Lower the temperature so that the model follows the instructions and ignores any text found inside the documents.","Cut the examples down to a single one, so that there is less example text for the model to confuse with the question."],"a":1,"e":"The prompting best practices page says XML tags help Claude parse complex prompts unambiguously, especially when a prompt mixes instructions, context, examples and variable inputs, that wrapping each type of content in its own tag reduces misinterpretation, and that examples should be wrapped in example tags so Claude can distinguish them from instructions. Why horizontal rules are wrong: the page's guidance for separating content types is descriptive XML tags, and a rule carries no label saying what the section is. Why temperature is wrong: sampling settings govern how output tokens are chosen and do not tell the model which text is an instruction, which is the structural problem here. Why a single example is wrong: the page recommends three to five examples for best results, and the confusion comes from unlabeled structure, not from the number of examples."},
+  {"d":"Applications and Integration","q":"A triage agent calls a route_ticket tool whose priority field is a free-text string. The application switches on that value and keeps falling into its default branch, because Claude sends variants such as High, high priority and urgent. The developer wants values the application can rely on. Which schema change fits best?","o":["Declare priority as an enum of the allowed values in input_schema, so the schema states what the application accepts.","List the allowed values in the tool's description and keep the field a free string, since the description constrains the input.","Change the field to an integer priority code that the application maps to labels, since a number cannot be misspelled.","Add a system prompt instruction requiring the value in uppercase, so that the application needs a single string comparison."],"a":0,"e":"The define tools page's example tool expects an input object with a required location string and an optional unit string that must be either celsius or fahrenheit, which is the schema itself stating the allowed values, and the prompting best practices page says that for classification tasks you should use either tools with an enum field containing your valid labels or structured outputs. Why a description alone is wrong: the define tools page says the description explains what the tool does, when to use it and how it behaves, while the input_schema is what defines the expected parameters, so a free string stays free. Why an integer code is wrong: an unconstrained integer is as open as an unconstrained string, and the page's mechanism for a fixed set of values is the enum. Why an uppercase instruction is wrong: it asks the model to follow a convention instead of letting the schema define the accepted values, so the application still cannot rely on what arrives."},
+  {"d":"Applications and Integration","q":"A pull request for a Claude application adds a new tool, changes the system prompt and reworks logging in one change of about 1,500 lines. The reviewer is pressed for time. Which two review practices most improve the chance of catching defects? (Select 2.)","o":["Ask the author to split the change into small, self-contained changes that each address just one thing at a time.","Approve on the strength of the description, since the author knows the code better than the reviewer.","Require tests for the new behavior in the same change and check that they would fail if the code were broken.","Review the lines the diff highlights and nothing else, since the surrounding code was already reviewed when it was written.","Batch this review together with the team's other open changes into one sitting, so that context is shared across all of them."],"a":[0,2],"type":"mr","e":"Google's engineering practices guide says small, simple changes are reviewed more quickly, reviewed more thoroughly and less likely to introduce bugs, and that the right size is one self-contained change that addresses just one thing; its reviewer guide says to ask for tests as appropriate, that tests should be added in the same change as the production code, and to ask whether the tests will actually fail when the code is broken. Why approving on the description is wrong: the reviewer guide says to look at every line of code you have been assigned to review and not to assume that what is inside a human-written block is okay. Why diff lines only is wrong: the same guide says not to scan over a human-written class, function or block and assume its contents are fine, and the change's effect depends on the code around it. Why batching reviews is wrong: the developer guide's case for small changes is that large volumes of commentary cause important points to be missed or dropped, which piling several changes together makes worse."},
+  {"d":"Claude Code","q":"A release pipeline runs claude -p to summarize the changes in each merge request, then pulls the summary out of Claude's free-text reply with a regular expression that breaks whenever the wording of the reply shifts. What should the pipeline use instead?","o":["The --output-format json option, which returns a result field, or --json-schema for a set shape.","The --bare option, which makes Claude Code print the reply as a JSON object instead of as free text.","The --verbose option, which wraps the reply in a JSON envelope so that scripts parse it reliably.","An interactive session driven by an expect script, which exposes the reply as a structured object."],"a":0,"e":"The Claude Code headless page says to use --output-format to control how responses are returned: text is plain text, json is structured JSON with the result, session ID and metadata, and stream-json is newline-delimited JSON for streaming; to get output conforming to a specific schema, it says to use --output-format json with --json-schema, with the structured output in the structured_output field. Why --bare is wrong: the page describes bare mode as reducing startup time by skipping auto-discovery of hooks, skills, plugins, MCP servers and CLAUDE.md, and it says nothing about the output format. Why --verbose is wrong: the page pairs --verbose with stream-json to receive events, not as a JSON envelope for a single reply. Why an expect script is wrong: non-interactive mode exists precisely so that scripts get a result without driving a terminal."},
+  {"d":"Claude Code","q":"An engineer asks Claude Code to find the cause of a failure buried in a two-gigabyte archive of service logs. Reading the logs floods the main conversation, and the engineer loses the earlier discussion of the planned fix. Which Claude Code component keeps the log reading out of the main conversation?","o":["A skill holding the log-analysis procedure, since the content of a skill runs in its own context window whenever it is invoked.","A subagent, which works in its own context window and returns a summary, keeping its tool calls out of your context.","A PostToolUse hook that greps the archive, since hook output is delivered to the user rather than to Claude.","A plugin bundling the analysis, since plugin components run in a separate process with separate context."],"a":1,"e":"The how Claude Code works page says subagents work in their own context window, that a subagent starts fresh unless it is a fork, and that either way the subagent's tool calls stay out of your context and Claude gets back a summary when the subagent finishes. Why a skill is wrong: the page says a skill's full content loads into the conversation when it is used; it is instructions, not a separate context, unless the skill is set to run in a subagent. Why a hook is wrong: the hooks guide says text a hook returns as additionalContext is injected as a system reminder that Claude reads, so grepped output would land in the main conversation. Why a plugin is wrong: the plugins page describes a plugin as a directory of skills, agents, hooks and MCP servers that Claude Code installs and loads as one unit, a packaging mechanism rather than a context boundary."},
+  {"d":"Eval, Testing, and Debugging","q":"An integration intermittently receives 500 api_error responses from the Messages API. The client SDK retries them automatically, but a few persist, and the team wants to escalate to Anthropic support with something support can act on. What should the integration record for each failed request?","o":["The full prompt text, since support needs the content of the request in order to reproduce the failure.","The SDK version string, since a persistent 500 error indicates an SDK that needs to be upgraded.","The request-id header, also request_id in the error body, which support uses to find the call.","The local timestamp of the failure, which support matches against its own logs to find the request."],"a":2,"e":"The Claude API errors page says every API response includes a unique request-id header, that the same identifier appears as the request_id field in error response bodies, and that when contacting support about a specific request you should include this ID to help quickly resolve your issue; for a 500 api_error it says to retry with exponential backoff and, if the error persists, contact support with the request ID. Why the prompt text is wrong: the page's instruction for support is the request ID, and sending prompt content shares data support did not ask for. Why the SDK version is wrong: the page defines 500 as an unexpected error internal to Anthropic's systems, not a client-version problem. Why a timestamp is wrong: the page gives the request ID, not timing, as what identifies a request on Anthropic's side."},
+  {"d":"Eval, Testing, and Debugging","q":"A customer-service agent's order-lookup tool fails whenever the backing service times out. The loop catches the exception and sends back an empty tool_result, after which Claude tells customers that their order does not exist. What should the loop send instead?","o":["A retry inside the tool that keeps calling the service until it answers, so that Claude never sees a failure.","A tool_result containing the last successful lookup for that customer, so the conversation can continue.","No tool_result for that call, so the assistant turn ends and the loop can start a fresh request.","The error in the tool_result content with is_error true, saying what failed and what to try next."],"a":3,"e":"The handle tool calls page says that if the tool itself throws an error during execution you can return the error message in the content along with is_error set to true, that Claude will then incorporate this error into its response to the user, and that you should write instructive error messages that include what went wrong and what Claude should try next, so Claude has the context it needs to recover without guessing. Why retrying inside the tool is wrong: an unbounded retry hides a real outage from Claude and can hang the turn, while the page's mechanism is to report the error. Why a stale result is wrong: it presents old data as the answer to a lookup that did not happen. Why omitting the tool_result is wrong: the page says tool result blocks must immediately follow their corresponding tool use blocks, so a missing result makes the next request invalid."},
+  {"d":"Model Selection and Optimization","q":"An agent framework budgets its context window by summing the characters of the user messages it has sent, and its authors are surprised when the API reports usage far above that sum and eventually returns a context error on a turn whose user message is short. Which parts of a request count toward the context window?","o":["The user messages and the assistant replies, while the system prompt is held separately and billed on its own.","The messages array and the system prompt, with tool definitions counted toward rate limits but not toward the window.","The current turn's user message and the generated reply, since earlier turns are compressed into a summary by the API.","The system prompt, every message with its tool results, images and documents, the tool definitions, and the output."],"a":3,"e":"The context windows page says everything in the request counts toward the context window: the system prompt, every message in messages including tool results, images and documents, and your tool definitions, and that the output Claude generates for the turn, including its extended thinking, counts too, with every response reporting what the request consumed in its usage field. Why a separate system prompt is wrong: the page names the system prompt first among the things that count. Why tool definitions outside the window is wrong: the page lists tool definitions among what counts toward the window. Why an automatic summary is wrong: the page says each user message and assistant response accumulates within the context window and previous turns are preserved completely, with compaction described as a separate strategy you choose."},
+  {"d":"Model Selection and Optimization","q":"A ticket-classification prompt includes four examples, all of them billing complaints labeled Billing, wrapped in example tags. In production Claude labels nearly every ticket Billing, including password resets and refund requests. Which change to the examples does the prompting guidance support?","o":["Remove the examples entirely, since examples bias the model and zero-shot instructions produce more neutral labels.","Add ten more billing examples so that the pattern is unmistakable, since more examples of one kind improve accuracy.","Replace them with a diverse set covering the other categories and edge cases, so no unintended pattern forms.","Move the examples below the ticket text, since examples placed above the input are weighted more heavily than the input."],"a":2,"e":"The prompting best practices page says examples are one of the most reliable ways to steer Claude's output format, tone and structure, that a few well-crafted examples, known as few-shot or multishot prompting, improve accuracy and consistency, and that examples should be relevant, mirroring your actual use case closely, and diverse, covering edge cases and varying enough that Claude doesn't pick up unintended patterns. Why removing them is wrong: the page calls examples one of the most reliable ways to steer output, and the problem is their lack of variety, not their presence. Why more of one kind is wrong: the page's diversity rule exists precisely so that Claude does not pick up an unintended pattern, and the stem's pattern is a single label. Why moving them is wrong: the page attributes the problem to what the examples teach, and their position would not change what four identical examples teach."},
+  {"d":"Model Selection and Optimization","q":"A team wants token-by-token output from the Messages API and starts writing a WebSocket client for the API host, reasoning that streaming needs a persistent two-way socket. Before investing further, the lead checks how the API actually streams a response. What does the streaming documentation describe?","o":["Streaming is delivered on the HTTP response as server-sent events, each carrying a named event type and JSON data.","Streaming is negotiated by upgrading the HTTP connection to a WebSocket, after which events arrive as binary frames.","Streaming is delivered by repeated HTTP polling of a message resource, with each poll returning the text generated so far.","Streaming is available through the SDKs alone, which hold a private channel to the API that raw HTTP clients cannot use."],"a":0,"e":"The streaming page says each server-sent event includes a named event type and associated JSON data, that each event uses an SSE event name such as message_stop and includes the matching event type in its data, and that the SDK's stream call keeps the HTTP connection alive with server-sent events; the versioning page records the current format as named server-sent events. Why a WebSocket upgrade is wrong: the page describes server-sent events on the HTTP response, and MDN describes WebSockets as a separate API for two-way sessions. Why polling is wrong: the page describes events arriving on one kept-alive HTTP connection. Why SDK-only is wrong: the page describes the SDK helper as keeping the same HTTP connection alive with server-sent events, the mechanism any HTTP client receives."},
+  {"d":"Security and Safety","q":"An internal assistant that summarizes support tickets is given the same service credentials as the ticketing system's admin role, plus a shell tool that runs on the production host, because that was easiest to set up. A security reviewer asks what the guardrails guidance says about this design. Which principle applies?","o":["Least privilege: withhold secrets Claude does not need, run tools in sandboxed environments, and scope permissions narrowly.","Defense by model: rely on Claude's own refusals, since the model declines any destructive action regardless of the permissions it holds.","Full privilege with audit: keep the admin credentials but log every tool call, since logging makes any misuse reversible.","Privilege by prompt: state in the system prompt that read operations alone are allowed, which the runtime enforces as a permission boundary."],"a":0,"e":"The mitigate jailbreaks page says to limit Claude's access to sensitive data and actions by applying the principle of least privilege so that a successful injection can do minimal damage: don't give Claude access to secrets it doesn't need, run tools in sandboxed environments, and scope permissions as narrowly as possible. Why relying on refusals is wrong: the page says Claude is inherently resilient but that its additional steps are what strengthen your guardrails, and the Claude Code security page says no system is completely immune to all attacks. Why audit alone is wrong: the page's continuous monitoring exists to refine prompts, validation and filtering, not to undo actions, and the broad credentials stay in place. Why a prompt-stated boundary is wrong: an instruction is not a permission, and the page's mechanism is scoping permissions and sandboxing the tools themselves."},
+  {"d":"Security and Safety","q":"A CRM assistant builds each tool result by concatenating a customer record's free-text notes field into a free-form string with a label in front of it. A record edited by an outside party contained a closing tag followed by a directive addressed to the assistant, and the agent treated the rest of the notes as instructions. Which change does the guidance recommend for how the untrusted content is packaged?","o":["HTML-escape the notes text before insertion, since escaped angle brackets stop the model from reading the text as markup.","Truncate the notes to their first paragraph, since injected directives sit at the end of a field where they are read last.","Wrap the notes text as a string inside a JSON object, since JSON escaping gives delimiters that an attacker cannot break out of.","Prefix the notes text with a warning sentence in capital letters, since the model gives a capitalized warning precedence over the content."],"a":2,"e":"The mitigate jailbreaks page says to JSON-encode untrusted content: where possible, wrap third-party strings in a JSON object rather than concatenating them into free-form text, because JSON escaping provides unambiguous delimiters between the untrusted payload and the surrounding structure, so an attacker cannot close a quote or tag to break out into an instruction context. Why HTML-escaping is wrong: escaping changes how brackets render, but the model still reads the words, and the page's mechanism is a delimited JSON payload. Why truncation is wrong: nothing fixes where an injected directive sits in a field, and truncation discards the content the assistant needs. Why a capitalized warning is wrong: the page's remedy is structural encoding, and a warning is more free-form text in the same string."},
+  {"d":"Security and Safety","q":"After adopting tool results for untrusted content, a team appends its own routing rules to the end of every tool result so that Claude sees them next to the data they apply to. Claude now ignores some of those rules and occasionally flags them as suspicious. What does the guidance say about where the team's instructions belong?","o":["Instructions belong at the top of the tool result, since Claude reads the first lines of a result with full trust.","Instructions belong in the tool's input_schema descriptions, which Claude reads as the standing rules for using the result.","Instructions belong in a second tool result that follows the first, marked with is_error false so Claude treats it as trusted.","Instructions belong in a user turn after the tool_result block, since Claude treats tool-result content as untrusted data."],"a":3,"e":"The mitigate jailbreaks page says not to put your own instructions in tool results: because Claude treats tool-result content as untrusted data, instructions you place there may be ignored or flagged as a potential injection, so you send your instructions in a user turn that follows the tool_result block. Why the top of the result is wrong: the page treats the whole tool-result content as untrusted, with no trusted first lines. Why schema descriptions are wrong: the define tools page describes input_schema as defining the expected parameters, not as a channel for runtime rules. Why a second tool result is wrong: it is still a tool result, and the handle tool calls page defines is_error as a flag for a failed execution, not a trust marker."},
+  {"d":"Tools and MCPs","q":"An agent harness receives an assistant turn containing three tool_use blocks, runs the three tools, and returns each result in its own user message, sending three requests in a row. From then on Claude calls one tool per turn, and the latency the team hoped to gain from parallel calls is gone. What does the parallel tool use guidance require?","o":["Run the three tools strictly in the order they appear, since parallel calls stop when results come back out of order.","Return one tool_result for each tool_use block, all together in the next user message, matched by tool_use_id.","Set disable_parallel_tool_use to false on the request, since the setting switched itself on after the first split message.","Merge the three results into a single tool_result block, since Claude expects one result per assistant turn."],"a":1,"e":"The parallel tool use page says that whichever execution strategy you use, you return one tool_result for each tool_use block, all together in the next user message, matching each result to its call with tool_use_id, and that the formatting rule that keeps parallelism working is that every tool result returns in a single user message. Why strict order is wrong: the page says the API does not prescribe an execution order, and independent read-only calls can run concurrently. Why the disable flag is wrong: the page describes disabling parallel tool use as a choice you make, and the stem's message format is what broke parallelism. Why merging is wrong: the page requires one tool_result per tool_use block, matched by id."},
+  {"d":"Tools and MCPs","q":"A team ships an agent whose tools can send emails and delete calendar events. Legal asks for human oversight without making the user approve every harmless lookup. The team reads the MCP guidance on how applications keep users in control of model-invoked tools. Which two mechanisms does it describe? (Select 2.)","o":["Running every tool automatically and showing a summary afterwards, since a listed tool cannot be interrupted.","Approval dialogs for individual tool executions, so a user confirms an action such as sending an email before it runs.","Removing destructive tools from the server entirely, since the protocol offers no way to gate a tool once it has been listed.","Permission settings that pre-approve certain safe operations, so harmless lookups run without any prompt at all.","Logging each execution to an activity log after it completes, since the protocol forbids blocking a tool call for human input."],"a":[1,3],"type":"mr","e":"The MCP server concepts page says tools are model-controlled, meaning AI models can discover and invoke them automatically, but that MCP emphasizes human oversight, and that applications can implement user control through mechanisms such as displaying available tools in the UI, approval dialogs for individual tool executions, permission settings for pre-approving certain safe operations, and activity logs that show all tool executions with their results; it also says tools may require user consent prior to execution so that users maintain control over actions taken by a model. Why automatic running is wrong: the page says tools may require consent prior to execution. Why removing tools is wrong: the page's mechanisms gate listed tools through display control and approvals. Why logging alone is wrong: the page lists activity logs beside approval dialogs, and consent prior to execution is exactly a block for human input."},
+  {"d":"Prompt and Context Engineering","q":"An architect reviews an agent whose designers load every document that might be relevant into the context at the start of each task, on the grounds that the model has a million-token window. Results get worse as tasks grow longer. Which two statements reflect Anthropic's guidance on context engineering? (Select 2.)","o":["Good context engineering means finding the smallest set of high-signal tokens that makes the desired outcome most likely.","A larger window removes the need to curate, since recall stays constant across the whole window on current models.","Context should be loaded in full at the start of a task, since retrieving data during the task interrupts the model's reasoning.","As the number of tokens in the context grows, the model's ability to recall information from that context accurately drops.","Sub-agents should be avoided for long tasks, since splitting work across context windows loses the shared state."],"a":[0,3],"type":"mr","e":"Anthropic's engineering article on effective context engineering says that because LLMs are constrained by a finite attention budget, good context engineering means finding the smallest possible set of high-signal tokens that maximize the likelihood of some desired outcome, that needle-in-a-haystack benchmarking has uncovered context rot, where the model's ability to accurately recall information decreases as the number of tokens in the context window increases, so context must be treated as a finite resource with diminishing returns, that just-in-time strategies keep lightweight identifiers and load data dynamically rather than pre-processing everything up front, and that sub-agent architectures let specialized sub-agents handle focused tasks with clean context windows. Why constant recall is wrong: the article describes context rot across all models. Why loading everything up front is wrong: the article describes just-in-time retrieval as the agentic approach. Why avoiding sub-agents is wrong: the article presents sub-agent architectures as a way around context limitations."},
+  {"d":"Prompt and Context Engineering","q":"An agent harness appends a short text block reading continue to every user message that carries tool results, intending to keep Claude going. After a few tool calls Claude starts returning empty responses with a stop_reason of end_turn, and resending the empty response changes nothing. What does the stop reasons documentation say?","o":["Empty end_turn responses mean the model has hit its output budget for the conversation, so the harness should start a new conversation.","Empty end_turn responses are a transient service fault, so the harness should resend the same empty response until content appears.","Text after tool results teaches Claude to expect user input after every tool use, so the harness should stop adding it.","Empty end_turn responses signal a refusal, so the harness should read stop_details and route the request to a fallback model."],"a":2,"e":"The handling stop reasons page says Claude sometimes returns an empty response, a few tokens with no content, with a stop_reason of end_turn, typically when it interprets the assistant turn as complete, particularly after tool results; it lists adding text blocks immediately after tool results as a common cause, because Claude learns to expect the user to insert text after tool results and ends its turn to follow the pattern, along with sending Claude's completed response back unchanged, and its best practices are never to add text blocks immediately after tool results, not to retry empty responses without modification, and to use a continuation prompt in a new user message as a last resort. Why an output budget is wrong: the page attributes the empty response to the turn structure, not to a budget. Why a transient fault is wrong: the page says sending the empty response back will not help. Why a refusal is wrong: the page lists refusal as a separate stop reason with its own handling."},
+  {"d":"Prompt and Context Engineering","q":"A support bot's system prompt says never use ellipses in responses. Claude follows the rule in plain replies but still writes ellipses inside quoted customer messages and in code samples, where the rule turns out not to matter. The team wants the rule applied the way a colleague would apply it. What does the prompting guidance recommend?","o":["Add a few-shot example of a compliant reply, since Claude follows a demonstrated pattern over a stated rule.","Move the rule to the very first line of the system prompt, since Claude applies the earliest rule it reads most strictly of all.","List every exception as its own rule, since Claude applies each rule literally and generalizes from nothing.","Explain the motivation behind the rule, such as text read aloud by a screen reader, since Claude generalizes from the reason."],"a":3,"e":"The prompting best practices page says providing context or motivation behind your instructions, such as explaining to Claude why a behavior is important, helps Claude better understand your goals and deliver more targeted responses, and that Claude is smart enough to generalize from the explanation. Why a few-shot example is wrong: the page's lever is the explanation, and one example of a compliant reply does not tell Claude where the rule stops applying. Why moving the rule to the top is wrong: the page's advice concerns the content of the instruction, not its position. Why listing every exception is wrong: the page says Claude generalizes from the explanation, so the exceptions follow from the reason."},
+  {"d":"Agents and Workflows","q":"A product team describes its new document pipeline as an agent: a fixed sequence in which one model call extracts fields, code validates them, a second call drafts a letter, and a third call checks tone, with every branch decided in code. An architect says the label matters for how the system is tested and governed. How does Anthropic's guidance classify this system?","o":["As an agent, since any system with more than one model call directs its own process by the guidance's definition.","As a workflow, since its LLM calls and tools are orchestrated through predefined code paths rather than by the model.","As an agent, since the tone check lets a model judge the output, which is the defining mark of agency in the guidance.","As neither, since the guidance reserves both terms for systems that call external tools during a task."],"a":1,"e":"Anthropic's guidance on building effective agents draws an architectural distinction between workflows and agents: workflows are systems where LLMs and tools are orchestrated through predefined code paths, while agents are systems where LLMs dynamically direct their own processes and tool usage, maintaining control over how they accomplish tasks; it calls both kinds agentic systems. Why more than one call is wrong: the distinction turns on who directs the process, not on the number of calls. Why the tone check is wrong: a model judging an output inside paths fixed in code is still orchestrated by code. Why neither is wrong: the guidance applies the two terms to exactly these systems and does not require external tools."},
+  {"d":"Agents and Workflows","q":"A marketing team generates product copy in one model call and finds that quality drops when the same call must also translate the copy and check it against brand rules. A developer proposes three calls in sequence, each consuming the previous output, with a code check between steps. Which pattern is this, and when does the guidance say it fits?","o":["Routing, since the second and third calls are specialized follow-ups that the first call directs the copy to for processing.","Parallelization by sectioning, since three independent calls each handle one aspect of the copy at the same time.","Prompt chaining, which fits when a task decomposes cleanly into fixed subtasks and trades latency for accuracy.","An autonomous agent, since the model decides at each step whether the copy is ready to pass on to the next stage."],"a":2,"e":"Anthropic's guidance on building effective agents says prompt chaining decomposes a task into a sequence of steps where each LLM call processes the output of the previous one, with programmatic checks, called gates, on intermediate steps to ensure the process is still on track; it is ideal when the task can be easily and cleanly decomposed into fixed subtasks, trading latency for higher accuracy by making each LLM call an easier task, and its first example is generating marketing copy and then translating it. Why routing is wrong: every input here takes the same fixed sequence, with nothing classified or directed. Why sectioning is wrong: each call consumes the previous output, so the calls are sequential, not independent. Why an agent is wrong: the order and the checks are fixed in code."},
+  {"d":"Agents and Workflows","q":"A translation service produces literary translations that reviewers say miss nuance. A developer proposes a loop in which one model call translates, a second call critiques the translation against stated criteria, and the first call revises until the critique passes. Which pattern is this, and when does the guidance say it fits?","o":["Evaluator-optimizer, which fits when there are clear evaluation criteria and iterative refinement adds measurable value.","Voting, since the critique call casts a vote on each sentence of the translation and the majority wording is kept.","Orchestrator-workers, since the critique call acts as the orchestrator that assigns revisions to the translator and merges them.","Prompt chaining, since the critique is simply the second step of a fixed two-step pipeline that runs once for every passage."],"a":0,"e":"Anthropic's guidance on building effective agents says that in the evaluator-optimizer workflow one LLM call generates a response while another provides evaluation and feedback in a loop, and that it is particularly effective when there are clear evaluation criteria and when iterative refinement provides measurable value, with literary translation, where an evaluator LLM can provide useful critiques of nuances the translator might miss at first, as its first example. Why voting is wrong: the critique gives feedback that drives a revision, and no majority is counted. Why orchestrator-workers is wrong: the critique call decomposes nothing and assigns no subtasks. Why chaining is wrong: the loop repeats until the criteria pass, which is not a fixed sequence that runs once."},
+  {"d":"Agents and Workflows","q":"A lead research agent spawns subagents for every query. For a simple fact lookup it has spawned dozens of subagents and burned a large budget, while complex comparisons sometimes get a single under-resourced subagent. The team asks what Anthropic's write-up of its multi-agent research system did about this. What did it do?","o":["Fixed the subagent count at three for every query, since the write-up found a constant fan-out the one workable way to bound spend.","Removed the subagents and ran every query through a single agent, since the write-up found that parallel agents rarely pay off.","Let the subagents negotiate the fan-out among themselves, since the write-up found that a lead agent cannot judge complexity.","Embedded effort-scaling rules in the prompt: one agent with a few calls for simple facts, many subagents for complex research."],"a":3,"e":"Anthropic's write-up of its multi-agent research system says early agents made errors like spawning 50 subagents for simple queries, that agents struggle to judge appropriate effort for different tasks so the team embedded scaling rules in the prompts, with simple fact-finding requiring one agent with 3 to 10 tool calls, direct comparisons 2 to 4 subagents with 10 to 15 calls each, and complex research more than 10 subagents with clearly divided responsibilities, and that these explicit guidelines help the lead agent allocate resources and prevent overinvestment in simple queries. Why a fixed count is wrong: the write-up scales the count to query complexity. Why dropping subagents is wrong: the write-up reports the multi-agent system outperforming a single agent on its research evaluation. Why self-negotiation is wrong: the write-up has the lead agent allocate resources using rules embedded in its prompt."},
+  {"d":"Agents and Workflows","q":"In a multi-agent pipeline, subagents produce long reports that the coordinator copies into its own context and forwards, and by the time a report reaches the final stage details have been garbled and the token bill has doubled. What pattern does Anthropic's write-up of its multi-agent research system suggest for this?","o":["Have the coordinator re-request each report until two copies match, since repeated transfer averages out the garbling.","Shorten every subagent prompt so that reports stay short enough to copy, since the write-up sets a limit on report size.","Have subagents store their outputs in an external system and pass lightweight references back to the coordinator.","Merge the subagents into the coordinator so that nothing is transferred, since the write-up found relays always lose fidelity."],"a":2,"e":"Anthropic's write-up of its multi-agent research system says that direct subagent outputs can bypass the main coordinator for certain types of results, improving both fidelity and performance, and that rather than requiring subagents to communicate everything through the lead agent you implement artifact systems where specialized agents create outputs that persist independently: subagents call tools to store their work in external systems and pass lightweight references back to the coordinator, which prevents information loss during multi-stage processing and reduces token overhead from copying large outputs through conversation history. Why re-requesting is wrong: the write-up removes the relay rather than repeating it. Why shorter reports are wrong: the write-up's pattern keeps full outputs in an external store and sets no size limit. Why merging is wrong: the write-up keeps specialized subagents because their specialized prompts produce better results than filtering through a general coordinator."},
+];
+// cca:free-pool-ccdv:end
 
-async function startTest(type) {
-  // quick: always free. focused: first 5 free. deep/full: need enrollment.
-  if (type !== 'quick' && type !== 'focused' && !enrolled) {
-    if (!currentUser) { openPaymentModal(); return; }
-    // The global `enrolled` can lag if onAuthStateChanged fired concurrently.
+async function startTest(type, product) {
+  // B3: the product is the drill's (from its slug) or the one asked for; before
+  // the launch everything is CCAR-F. A free type on the Developer tab draws
+  // from the CCDV-F free sample; a locked type needs that product.
+  const drillEntry = domainDrillEntry(type);
+  product = drillEntry ? drillEntry.product : productOf(product);
+  if (ccdvLive()) activeProduct = product;
+  // quick: always free. focused: first 5 free. deep/full: need the product.
+  if (type !== 'quick' && type !== 'focused' && !owns(product)) {
+    if (!currentUser) { openPaymentModal(product); return; }
+    // The ownership flags can lag if onAuthStateChanged fired concurrently.
     // Re-verify from the in-memory cached JWT — no network call, instant.
     try {
       const tok = await fbAuth.getIdTokenResult(currentUser); // cached, not forced
-      if (tok.claims.enrolled) {
+      applyProductClaims(tok.claims);
+      if (tok.claims.enrolled || owns('ccar')) {
         markEnrolled(currentUser); // fix the stale global + fire-once analytics in one shot
-        updateNavUI();     // sync the badge too
-        updateDashCards(); // sync the card badges too
       }
+      updateNavUI();     // sync the badge too
+      updateDashCards(); // sync the card badges too
     } catch(e) { console.warn('[startTest] token check failed', e.message); }
-    if (!enrolled) { openPaymentModal(); return; }
+    if (!owns(product)) { openPaymentModal(product); return; }
   }
 
-  const config = getTestConfig(type);
+  const config = getTestConfig(type, product);
   // An unrecognised type -- a mistyped ?startTest= in the address bar, or a
   // drill slug that no longer exists -- used to throw on config.questions and
   // leave the visitor looking at a blank test screen.
   if (!config) { console.warn('[startTest] unknown test type:', type); return; }
-  const isFreePreview = (type === 'focused' && !enrolled);
+  const own = owns(product);
+  const freePool = product === 'ccdv' ? FREE_POOL_CCDV : FREE_POOL;
+  const isFreePreview = (type === 'focused' && !own);
   const questionCount = isFreePreview ? 5 : config.questions;
 
   // Narrow on the INPUT side of the shuffle. Everything downstream -- the
@@ -3287,16 +3705,16 @@ async function startTest(type) {
   // The logged-out free tier (the Focused preview and the unenrolled Quick
   // Sprint) draws from FREE_POOL, the fixed sample resolved above. Every
   // enrolled mode draws from the whole bank.
-  const isFreeQuickSprint = (type === 'quick' && !enrolled);
+  const isFreeQuickSprint = (type === 'quick' && !own);
   // Stage B2: every enrolled mode draws from the loaded bank; the two free
-  // surfaces draw from FREE_POOL and never wait on the read. If the bank
+  // surfaces draw from the free pool and never wait on the read. If the bank
   // cannot be loaded after the retries, the dashboard shows the error box.
   let BANK;
-  if (isFreePreview || isFreeQuickSprint) BANK = FREE_POOL;
-  else { try { BANK = (await activeBank()).bank; } catch (e) { showBankLoadError(type); return; } }
-  const drill = domainDrillEntry(type);
+  if (isFreePreview || isFreeQuickSprint) BANK = freePool;
+  else { try { BANK = (await activeBank(product)).bank; } catch (e) { showBankLoadError(type, product); return; } }
+  const drill = drillEntry;
   const pool  = drill ? BANK.filter(q => q.d === drill.key)
-              : (isFreePreview || isFreeQuickSprint) ? FREE_POOL
+              : (isFreePreview || isFreeQuickSprint) ? freePool
               : BANK;
 
   // The full exam is stratified so each domain carries its published share on
@@ -3308,7 +3726,7 @@ async function startTest(type) {
   // takes exactly one MR item and the rest single-select, then shuffles. The
   // Focused preview (five) and the unenrolled Quick Sprint (ten) both use it;
   // an ENROLLED Quick Sprint and every paid mode keep the plain uniform draw.
-  const drawn = (type === 'full')  ? stratifiedDraw(pool, questionCount)
+  const drawn = (type === 'full')  ? stratifiedDraw(pool, questionCount, productDef(product).domains)
               : (isFreePreview || isFreeQuickSprint)
                                    ? freePreviewDraw(pool, questionCount)
                                    : shuffleArray(pool).slice(0, questionCount);
@@ -3321,6 +3739,7 @@ async function startTest(type) {
 
   currentTest = {
     type,
+    product,
     config: Object.assign({}, config, { questions: questionCount }),
     questions: selected,
     answers: new Array(questionCount).fill(-1),
@@ -3533,7 +3952,7 @@ function finishTest() {
   document.getElementById('results-verdict').textContent = 'Practice complete';
   document.getElementById('results-verdict').style.color = 'var(--text2)';
   document.getElementById('results-detail').textContent =
-    `You answered ${correct} out of ${t.config.questions} questions correctly in ${mUsed}m ${sUsed}s. Practice score only — the real CCA exam uses a scaled 720 / 1,000 scoring system, not a raw percentage.`;
+    `You answered ${correct} out of ${t.config.questions} questions correctly in ${mUsed}m ${sUsed}s. Practice score only${t.product === 'ccdv' ? '. The real CCDV-F exam' : ' — the real CCA exam'} uses a scaled 720 / 1,000 scoring system, not a raw percentage.`;
 
   let breakdownHTML = `
     <div class="rb-card"><div class="rb-val" style="color:var(--accent)">${correct}/${t.config.questions}</div><div class="rb-label">Correct answers</div></div>
@@ -3551,11 +3970,12 @@ function finishTest() {
   // Persist this attempt for the Progress dashboard (enrolled users only —
   // the dashboard itself is gated to enrolled accounts). Fire-and-forget:
   // never block the results screen on a Firestore write.
-  if (enrolled && currentUser) {
+  if (owns(t.product || 'ccar') && currentUser) {
     ensureFirestore().then(() => {
       const fs = window.__fs;
       return fs.addDoc(fs.collection(db, 'users', currentUser.uid, 'attempts'), {
         type: t.type,
+        product: t.product || 'ccar',
         totalQuestions: t.config.questions,
         correct: correct,
         pct: pct,
@@ -3609,14 +4029,17 @@ async function renderLessons() {
   lessonsLoaded = true;
   // (A) The lessons are paid content. Wait for the session to settle, then show
   // the plan with an unlock button to anyone not entitled; no Firestore read.
+  // A CCDV-F-only owner gets the note that points at the Developer tab instead.
   {
     const nav0 = document.getElementById('lesson-nav'), content0 = document.getElementById('lesson-content');
-    if (content0 && !(currentUser && enrolled)) content0.innerHTML = '<p>Loading…</p>';
+    if (content0 && !(currentUser && owns('ccar'))) content0.innerHTML = '<p>Loading…</p>';
     await whenAuthSettled();
-    if (!currentUser || !enrolled) {
+    if (!currentUser || !owns('ccar')) {
       lessonsLoaded = false;
       if (nav0) nav0.innerHTML = '';
-      if (content0) content0.innerHTML = lessonPlanPreviewHtml();
+      if (content0) content0.innerHTML = (ccdvLive() && currentUser && owns('ccdv'))
+        ? '<p>The five lesson modules are part of the CCAR-F practice bank. Your CCDV-F questions are on the <a href="#" onclick="setDashProduct(\'ccdv\'); showSection(\'dashboard\'); return false;">Developer tab of Practice Tests</a>.</p>'
+        : lessonPlanPreviewHtml();
       return;
     }
   }
@@ -3967,6 +4390,19 @@ function gradeSampleAnswerMulti(card, need) {
 
 function showFocusedPaywall() {
   clearInterval(timerInterval);
+  const product = (currentTest && currentTest.product === 'ccdv') ? 'ccdv' : 'ccar';
+  if (product === 'ccdv') {
+    // B3: the Developer preview's paywall. A CCAR-F owner sees the upgrade price.
+    const label = owns('ccar') ? 'Add CCDV-F: $50' : 'Unlock full access: $69';
+    document.getElementById('question-area').innerHTML = `
+    <div class="q-paywall">
+      <div class="q-paywall-icon">🔓</div>
+      <h2>You've seen the first 5. Unlock all 200 CCDV-F questions and timed exams for ${owns('ccar') ? '$50' : '$69'}</h2>
+      <p>All 200 scenario-based questions across the eight CCDV-F domains, five timed modes including the 53-question mock exam, each explaining the correct answer and why every other option is wrong.</p>
+      <button class="btn-primary" onclick="openPaymentModal('ccdv')">${label}</button>
+      <div class="q-paywall-sub">One-time payment · Lifetime access · 10-day money-back guarantee</div>
+    </div>`;
+  } else {
   document.getElementById('question-area').innerHTML = `
     <div class="q-paywall">
       <div class="q-paywall-icon">🔓</div>
@@ -3976,6 +4412,7 @@ function showFocusedPaywall() {
       <p class="q-paywall-altlink">Not sure yet? <a href="/diagnostic/">Take the free diagnostic</a> to see your weakest domain first</p>
       <div class="q-paywall-sub">One-time payment · Lifetime access · 10-day money-back guarantee</div>
     </div>`;
+  }
   document.getElementById('question-dots').innerHTML = '';
   document.getElementById('test-progress').textContent = '';
   document.getElementById('test-progress-bar').style.width = '100%';

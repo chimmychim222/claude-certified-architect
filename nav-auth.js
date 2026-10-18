@@ -89,6 +89,55 @@
       ' onclick="if(window.closeNav)closeNav()">Sign Up Free</a>';
   }
 
+  // ── B3 (Oct 2026): buy buttons for signed-in owners ───────────────────────
+  // On the CCAR-F pages (register, cca-practice-questions, cca-foundations-exam,
+  // cca-exam-guide, diagnostic) a CCAR-F owner sees every $49 button as
+  // "Enrolled ✓ Go to dashboard" linking to the dashboard. On the CCDV-F page a
+  // CCDV-F owner sees the same, opening the Developer tab, and a CCAR-F-only
+  // owner sees the $50 add button. Logged-out and free visitors keep the
+  // buttons exactly as served. Runs from the localStorage hint first (instant),
+  // then again from the ID token claims; an authoritative sign-out restores
+  // every button from the attributes saved on first swap.
+  var BUY_SEL = 'a[href="/?checkout=true"], a[href="/?startTest=full"], button[onclick*="buyNow()"], a[href="/?checkout=ccdv"]';
+  var ENROLLED_LABEL = 'Enrolled \u2713 Go to dashboard';
+  function applyBuyButtons(products) {
+    if (products === undefined) return;
+    var ccar = products === 'ccar' || products === 'both', ccdv = products === 'ccdv' || products === 'both';
+    var els = document.querySelectorAll(BUY_SEL);
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      if (!el.hasAttribute('data-buy-orig')) {
+        el.setAttribute('data-buy-orig', el.textContent);
+        el.setAttribute('data-buy-href', el.getAttribute('href') || '');
+        el.setAttribute('data-buy-onclick', el.getAttribute('onclick') || '');
+      }
+      var isCcdv = el.getAttribute('data-buy-href') === '/?checkout=ccdv';
+      var label = null, href = null;
+      if (isCcdv) {
+        if (ccdv) { label = ENROLLED_LABEL; href = '/?hub=practice-tests&product=ccdv'; }
+        else if (ccar) { label = 'Add CCDV-F: $50'; href = '/?checkout=ccdv'; }
+      } else if (ccar) { label = ENROLLED_LABEL; href = '/?hub=practice-tests'; }
+      if (label) {
+        el.textContent = label;
+        el.classList.add('btn-enrolled');
+        if (el.tagName === 'A') el.setAttribute('href', href);
+        else { el.removeAttribute('onclick'); el.onclick = (function (h) { return function () { window.location.href = h; }; })(href); }
+      } else if (el.classList.contains('btn-enrolled')) {
+        el.textContent = el.getAttribute('data-buy-orig');
+        el.classList.remove('btn-enrolled');
+        if (el.tagName === 'A') el.setAttribute('href', el.getAttribute('data-buy-href'));
+        else { el.onclick = null; el.setAttribute('onclick', el.getAttribute('data-buy-onclick')); }
+      }
+    }
+  }
+  function hintProducts() {
+    try {
+      if (!localStorage.getItem(LS_EMAIL)) return '';
+      return localStorage.getItem(LS_PRODUCTS) || (localStorage.getItem(LS_ENROLLED) === 'true' ? 'ccar' : '');
+    } catch (e) { return ''; }
+  }
+  applyBuyButtons(hintProducts());
+
   // ── Deferred Firebase Auth load ────────────────────────────────────────────
   // Uses requestIdleCallback (with 3 s timeout fallback) so the Firebase SDK
   // download never competes with the page's critical rendering path.
@@ -157,6 +206,7 @@
               var prod = ccar && ccdv ? 'both' : ccdv ? 'ccdv' : ccar ? 'ccar' : '';
               try { if (prod) localStorage.setItem(LS_PRODUCTS, prod); else localStorage.removeItem(LS_PRODUCTS); } catch (e) {}
               applyLoggedIn(user.email, prod);
+              applyBuyButtons(prod);
             }).catch(function () {});
           }
         } else if (appName === '[DEFAULT]') {
@@ -171,6 +221,7 @@
           // If the inline hint applied logged-in state (stale localStorage),
           // correct it now that we have the authoritative answer.
           applyLoggedOut();
+          applyBuyButtons('');
         }
         // else: appName === 'nav-auth' — a fresh, separately-named app with no
         // persisted session under that name. This null is not evidence of
