@@ -3,16 +3,19 @@
  * Successor to build-diagnostic.js (renamed 2026-09-03 when the free pool arrived).
  *
  *   SUBSET_STEMS  -> diagnostic/index.html  const POOL = {...};   (content, 40 items)
- *   FREE_STEMS    -> app.js                 const FREE_POOL_STEMS = [...];   (stems, 55)
+ *   FREE_STEMS    -> app.js                 const FREE_POOL = [...];         (objects, 55)
+ *   (and)         -> app.js                 const BANK_DOMAIN_COUNTS = {...}; (per-domain counts)
  *
  * Both lists are keyed by EXACT STEM TEXT, never by index: indices shift when an
- * item is retired, stems do not. QUESTIONS in app.js is the only source; nothing
- * here authors content. The diagnostic gets a content copy because that page
- * renders without app.js's bank; the free pool ships as stems because app.js
- * resolves them against QUESTIONS at load (see resolveFreePool() there).
+ * item is retired, stems do not. Since Stage B2 (Oct 2026) the bank is NOT in
+ * app.js: the only source is the private repository cca-question-banks (one JSON
+ * file per domain, read through its lib.js; override the location with BANK_DIR).
+ * Nothing here authors content. The diagnostic gets a content copy because that
+ * page renders without the bank; the free pool ships as 55 question objects
+ * because app.js no longer holds anything to resolve stems against.
  *
  * ABORTS, and writes nothing, when:
- *   - a listed stem matches zero items, or more than one, in QUESTIONS
+ *   - a listed stem matches zero items, or more than one, in the JSON bank
  *   - a listed stem sits under the wrong domain heading
  *   - a diagnostic stem is multiple-response (the page renders single-select only)
  *   - a free stem is also a diagnostic stem (the two pools must be disjoint)
@@ -43,51 +46,23 @@ function die(msg) {
   process.exit(1);
 }
 
-// ── 1. Extract QUESTIONS from app.js ──────────────────────────────────────────
-// The bracket counter is string-aware AND comment-aware. Until 3 Sep 2026 it
-// was not comment-aware: an apostrophe in a // comment between items ("the
-// model's output", app.js:2892) opened a phantom string, the count
-// desynchronised, and the slice ran on to the close of LESSONS (:4522, not
-// :3806). It still returned 400 items only because the over-long slice
-// happened to be valid JavaScript. The three guards after the extraction
-// exist so the next desynchronisation is loud: a SHORT slice that is still
-// valid JavaScript would otherwise stamp smaller pools with no error, and this
-// script writes app.js on every bank edit.
-const BANK_SIZE = 400;   // the bank is 400 by decision (primer §0); a different count is a parser fault or a bank edit that must be deliberate
-
-function extractArrayLiteral(src, marker) {
-  const start = src.indexOf(marker);
-  if (start === -1) return null;
-  const open = start + marker.length - 1;            // index of '['
-  let depth = 0, inStr = false, strCh = '', esc = false;
-  for (let i = open; i < src.length; i++) {
-    const c = src[i], n = src[i + 1];
-    if (inStr) {
-      if (esc) esc = false;
-      else if (c === '\\') esc = true;
-      else if (c === strCh) inStr = false;
-      continue;
-    }
-    if (c === '/' && n === '/') { const nl = src.indexOf('\n', i); if (nl === -1) return null; i = nl; continue; }
-    if (c === '/' && n === '*') { const ce = src.indexOf('*/', i + 2); if (ce === -1) return null; i = ce + 1; continue; }
-    if (c === '"' || c === "'" || c === '`') { inStr = true; strCh = c; continue; }
-    if (c === '[') depth++;
-    else if (c === ']') { depth--; if (depth === 0) return { text: src.slice(open, i + 1), end: i }; }
-  }
-  return null;                                        // never closed
-}
-
+// ── 1. Load the bank from the private JSON repository ───────────────────────
+// Stage B2 (Oct 2026): the bank lives in ../cca-question-banks (or $BANK_DIR),
+// one JSON file per domain in bank order, read through that repository's
+// lib.js. The served objects carry d, q, o, a, e and type; the export index i
+// is dropped so FREE_POOL stays byte-for-byte what the old stem resolution
+// produced. app.js is still read for FREE_PREVIEW_MR_EXCLUDE and written for
+// FREE_POOL and BANK_DOMAIN_COUNTS.
+const BANK_SIZE = 400;   // the bank is 400 by decision (primer §0); a different count is a bank edit that must be deliberate
+const BANK_DIR  = process.env.BANK_DIR || path.join(ROOT, '..', 'cca-question-banks');
+if (!fs.existsSync(path.join(BANK_DIR, 'lib.js'))) die('bank repository not found at ' + BANK_DIR + ' (clone cca-question-banks beside this repo, or set BANK_DIR)');
+const bankLib = require(path.join(BANK_DIR, 'lib.js'));
+const ALL_Q_RAW = bankLib.loadBankFiles(BANK_DIR, 'ccar').items;
+if (ALL_Q_RAW.length !== BANK_SIZE) die('the JSON bank holds ' + ALL_Q_RAW.length + ' items, expected exactly ' + BANK_SIZE + '.');
+// Key order d, q, o, a, [type,] e: the order the app.js literal always used, so the stamped objects diff cleanly.
+const ALL_Q = ALL_Q_RAW.map(q => { const o = { d: q.d, q: q.q, o: q.o, a: q.a }; if (q.type) o.type = q.type; o.e = q.e; return o; });
 const appSrc = fs.readFileSync(APP, 'utf8');
-const extracted = extractArrayLiteral(appSrc, 'const QUESTIONS = [');
-if (!extracted) die('Could not find a CLOSED "const QUESTIONS = [ ... ]" literal in app.js (marker missing, or the bracket count never returned to zero).');
-const arrStr = extracted.text;
-if (arrStr.includes('const LESSONS')) die('QUESTIONS extraction ran past its own close into LESSONS (the slice contains "const LESSONS"). The bracket counter is desynchronised; refusing to continue.');
-const tmp    = path.join(__dirname, '_qtmp_pools.js');
-fs.writeFileSync(tmp, 'module.exports = ' + arrStr + ';');
-let ALL_Q;
-try { ALL_Q = require(tmp); } finally { fs.unlinkSync(tmp); }
-if (!Array.isArray(ALL_Q) || ALL_Q.length !== BANK_SIZE) die('QUESTIONS parsed to ' + (Array.isArray(ALL_Q) ? ALL_Q.length : typeof ALL_Q) + ' items, expected exactly ' + BANK_SIZE + '. A short extraction that is still valid JavaScript would stamp smaller pools silently; refusing. If the bank size has genuinely changed, update BANK_SIZE deliberately.');
-console.log('QUESTIONS literal closes at app.js line ' + appSrc.slice(0, extracted.end).split('\n').length + ' (' + ALL_Q.length + ' items, no LESSONS text in the slice).');
+console.log('Bank loaded from ' + BANK_DIR + ' (' + ALL_Q.length + ' items).');
 
 // ── 2. Domain metadata ────────────────────────────────────────────────────────
 const DOMAINS = [
@@ -105,7 +80,7 @@ console.log('Loaded ' + ALL_Q.length + ' questions across ' + Object.keys(byDoma
 Object.entries(byDomain).forEach(([d, qs]) =>
   console.log(' ' + qs.length.toString().padStart(3) + '  ' + d)
 );
-DOMAINS.forEach(d => { if (!byDomain[d.key]) die('Domain not found in app.js: "' + d.key + '"'); });
+DOMAINS.forEach(d => { if (!byDomain[d.key]) die('Domain not found in the JSON bank: "' + d.key + '"'); });
 
 // ── 3a. The diagnostic subset: eight single-select stems per domain ──────────
 // Chosen 2026-09-02: spread across each domain's index range, excluding [277],
@@ -382,19 +357,24 @@ const REQUIRED = [
 const missing = REQUIRED.filter(r => !page.includes(r.marker));
 if (missing.length) die('diagnostic page is missing required elements after pool replacement:\n' + missing.map(r => '  ✗  ' + r.label + '  (looking for: "' + r.marker + '")').join('\n'));
 
-// ── 7. Stamp FREE_POOL_STEMS into app.js between its markers ─────────────────
+// ── 7. Stamp FREE_POOL (objects) and BANK_DOMAIN_COUNTS into app.js ─────────
 const EOL = appSrc.includes('\r\n') ? '\r\n' : '\n';
-const START = '// cca:free-pool-stems:start', END = '// cca:free-pool-stems:end';
-const sIdx = appSrc.indexOf(START), eIdx = appSrc.indexOf(END);
-if (sIdx === -1 || eIdx === -1 || eIdx < sIdx) die('app.js is missing the cca:free-pool-stems markers.');
-if (appSrc.indexOf(START, sIdx + 1) !== -1 || appSrc.indexOf(END, eIdx + 1) !== -1) die('app.js has duplicate cca:free-pool-stems markers.');
-const stemLines = [];
+function stamp(src, START, END, body) {
+  const sIdx = src.indexOf(START), eIdx = src.indexOf(END);
+  if (sIdx === -1 || eIdx === -1 || eIdx < sIdx) die('app.js is missing the ' + START + ' / ' + END + ' markers.');
+  if (src.indexOf(START, sIdx + 1) !== -1 || src.indexOf(END, eIdx + 1) !== -1) die('app.js has duplicate ' + START + ' markers.');
+  return src.slice(0, sIdx) + START + EOL + body + EOL + END + src.slice(eIdx + END.length);
+}
+const jsSafe = s => s.replace(/<\/script>/gi, '<\\/script>').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+const poolLines = [];
 DOMAINS.forEach(d => {
-  stemLines.push('  // ' + d.key);
-  FREE_STEMS[d.key].forEach(stem => stemLines.push('  ' + JSON.stringify(stem) + ','));
+  poolLines.push('  // ' + d.key);
+  FREE_STEMS[d.key].forEach(stem => poolLines.push('  ' + jsSafe(JSON.stringify(ALL_Q.find(q => q.q === stem))) + ','));
 });
-const block = START + EOL + 'const FREE_POOL_STEMS = [' + EOL + stemLines.join(EOL) + EOL + '];' + EOL + END;
-const newApp = appSrc.slice(0, sIdx) + block + appSrc.slice(eIdx + END.length);
+const poolBody = 'const FREE_POOL = [' + EOL + poolLines.join(EOL) + EOL + '];';
+const countsBody = 'const BANK_DOMAIN_COUNTS = ' + JSON.stringify(Object.fromEntries(DOMAINS.map(d => [d.key, byDomain[d.key].length]))) + ';';
+let newApp = stamp(appSrc, '// cca:free-pool:start', '// cca:free-pool:end', poolBody);
+newApp = stamp(newApp, '// cca:bank-domain-counts:start', '// cca:bank-domain-counts:end', countsBody);
 
 // ── 8. Write both, report ─────────────────────────────────────────────────────
 const diagChanged = page !== fs.readFileSync(DIAG, 'utf8');
@@ -413,4 +393,4 @@ DOMAINS.forEach(d => {
 });
 console.log('');
 console.log((diagChanged ? '✓  diagnostic/index.html POOL refreshed (' : '=  diagnostic/index.html unchanged (') + poolJson.length.toLocaleString() + ' chars)');
-console.log((appChanged ? '✓  app.js FREE_POOL_STEMS refreshed (' : '=  app.js unchanged (') + freeItems.length + ' stems)');
+console.log((appChanged ? '✓  app.js FREE_POOL and BANK_DOMAIN_COUNTS refreshed (' : '=  app.js unchanged (') + freeItems.length + ' objects, counts ' + DOMAINS.map(d => byDomain[d.key].length).join('/') + ')');

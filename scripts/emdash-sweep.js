@@ -32,8 +32,11 @@
  *
  * In scope: post title/description/h1/FAQ and body prose; every served HTML
  * page's prose, meta content and JSON-LD; llms.txt; schema.json strings;
- * app.js QUESTIONS stems, explanations and options, LESSONS, and UI strings
- * outside the arrays; diagnostic/index.html POOL and page strings; the
+ * the CCAR-F bank and lessons in the private repository cca-question-banks
+ * (stems, explanations, options, module text; read from ../cca-question-banks
+ * or $BANK_DIR since Stage B2, Oct 2026); app.js UI strings outside the
+ * generated FREE_POOL and BANK_DOMAIN_COUNTS literals (FREE_POOL mirrors 55
+ * bank items and is counted once, in the bank); diagnostic/index.html POOL and page strings; the
  * customer-facing regions of scripts/stripe-webhook.js (emails, unsubscribe
  * page, diagnostic-results mail, STUDY_TIPS, SAMPLE_QUESTIONS).
  *
@@ -64,6 +67,8 @@
 'use strict';
 const fs = require('fs'), path = require('path'), { execSync } = require('child_process');
 const REPO = path.join(__dirname, '..');
+const BANK_DIR = process.env.BANK_DIR || path.join(REPO, '..', 'cca-question-banks');
+const BANK_PREFIX = 'cca-question-banks/';   // report key for bank files, which live outside this repo
 const BASELINE_PATH = path.join(__dirname, 'emdash-baseline.json');
 const argv = process.argv.slice(2);
 const MODE = argv.includes('--staged') ? 'staged' : argv.includes('--files') ? 'files' : argv.includes('--write-baseline') ? 'write' : 'all';
@@ -154,13 +159,19 @@ function scanBankItems(res, items, where) {
     (q.o || []).forEach((o, oi) => { if (!emIn(o)) return; const exempt = typeof q.q === 'string' && q.q.startsWith(OPTION_EXCEPTION_STEM); push(res, exempt ? 'option-exception-232' : 'option', where + '[' + i + '] o[' + oi + ']', o, !exempt, emIn(o)); });
   });
 }
+function scanBankJson(rel, text) {
+  const res = { hits: [], excluded: {} };
+  let doc; try { doc = JSON.parse(text); } catch (e) { res.hits.push({ ctx: 'PARSE-FAILURE', where: rel, snippet: 'bank JSON did not parse; treat this run as invalid' }); return res; }
+  if (Array.isArray(doc.items)) scanBankItems(res, doc.items, rel);
+  else if (typeof doc.content === 'string') { const n = emIn(JSON.stringify({ title: doc.title, content: doc.content })); if (n) push(res, 'lesson', rel + ' ×' + n, (doc.title || '') + ' (' + n + ' em-dashes in module text)', true, n); }
+  return res;
+}
 function scanAppJs(rel, text) {
   const res = { hits: [], excluded: {} };
-  const qLit = extractLiteral(text, 'const QUESTIONS = [', '[', ']'); const lLit = extractLiteral(text, 'const LESSONS = [', '[', ']'); const fLit = extractLiteral(text, 'const FREE_POOL_STEMS = [', '[', ']');
-  if (!qLit || !lLit) { res.hits.push({ ctx: 'PARSE-FAILURE', where: 'app.js', snippet: 'QUESTIONS or LESSONS literal not found; treat this run as invalid' }); return res; }
-  const Q = evalLiteral(qLit.text); scanBankItems(res, Q, 'QUESTIONS');
-  const L = evalLiteral(lLit.text); L.forEach((l, i) => { const n = emIn(JSON.stringify(l)); if (n) push(res, 'lesson', 'LESSONS[' + i + '] ×' + n, (l.title || '') + ' (' + n + ' em-dashes in module text)', true, n); });
-  const skip = [qLit, lLit, fLit].filter(Boolean).map(x => [x.start, x.end]);
+  // Stage B2: no bank literal here. FREE_POOL mirrors 55 bank items (counted in the bank files) and BANK_DOMAIN_COUNTS is data; both are skipped.
+  const fLit = extractLiteral(text, 'const FREE_POOL = [', '[', ']'); const cLit = extractLiteral(text, 'const BANK_DOMAIN_COUNTS = {', '{', '}');
+  if (!fLit) { res.hits.push({ ctx: 'PARSE-FAILURE', where: 'app.js', snippet: 'FREE_POOL literal not found; treat this run as invalid' }); return res; }
+  const skip = [fLit, cLit].filter(Boolean).map(x => [x.start, x.end]);
   const lines = text.split('\n'); let pos = 0;
   lines.forEach((l, i) => { const start = pos; pos += l.length + 1; if (skip.some(([a, b]) => start >= a && start <= b)) return; const n = emIn(l); if (!n) return; if (isCommentLine(l)) { res.excluded.comment = (res.excluded.comment || 0) + n; return; } if (/^\s*(let|const|var)?\s*\w*\s*=\s*'—';?\s*$/.test(l.replace(/\r$/, ''))) { res.excluded.glyph = (res.excluded.glyph || 0) + n; return; } for (let k = 0; k < n; k++) push(res, 'ui-string', 'line ' + (i + 1), l.trim(), true); });
   return res;
@@ -192,6 +203,7 @@ function scanWebhook(rel, text) {
 function scanPlainLines(rel, text) { const res = { hits: [], excluded: {} }; text.split(/\r?\n/).forEach((l, i) => { const n = emIn(l); for (let k = 0; k < n; k++) push(res, 'line', 'line ' + (i + 1), l, true); }); return res; }
 
 function surfaceOf(rel) {
+  if (rel.startsWith(BANK_PREFIX) && /\.json$/.test(rel)) return 'bank-json';
   if (/^posts\/[^/]+\.json$/.test(rel)) return 'post-json';
   if (rel === 'app.js') return 'app.js';
   if (rel === 'diagnostic/index.html') return 'diagnostic';
@@ -202,9 +214,9 @@ function surfaceOf(rel) {
 }
 function scanFile(rel) {
   const surface = surfaceOf(rel); if (!surface) return null;
-  const abs = path.join(REPO, rel); if (!fs.existsSync(abs)) return { rel, surface, missing: true, hits: [], excluded: {} };
+  const abs = surface === 'bank-json' ? path.join(BANK_DIR, rel.slice(BANK_PREFIX.length)) : path.join(REPO, rel); if (!fs.existsSync(abs)) return { rel, surface, missing: true, hits: [], excluded: {} };
   const text = fs.readFileSync(abs, 'utf8');
-  const r = surface === 'post-json' ? scanPostJson(rel, text) : surface === 'app.js' ? scanAppJs(rel, text) : surface === 'diagnostic' ? scanDiagnostic(rel, text) : surface === 'webhook' ? scanWebhook(rel, text) : surface === 'plain' ? scanPlainLines(rel, text) : scanHtml(rel, text);
+  const r = surface === 'bank-json' ? scanBankJson(rel, text) : surface === 'post-json' ? scanPostJson(rel, text) : surface === 'app.js' ? scanAppJs(rel, text) : surface === 'diagnostic' ? scanDiagnostic(rel, text) : surface === 'webhook' ? scanWebhook(rel, text) : surface === 'plain' ? scanPlainLines(rel, text) : scanHtml(rel, text);
   return { rel, surface, ...r };
 }
 
@@ -234,7 +246,11 @@ if (MODE === 'staged') {
   console.log('mode: --files · ' + targets.join(', '));
 } else {
   targets = tracked.filter(surfaceOf);
-  console.log('mode: ' + (MODE === 'write' ? '--write-baseline' : 'all content surfaces') + ' · ' + targets.length + ' files');
+  // The bank files live in the private repository beside this one; they are content surfaces too.
+  const bankFiles = [];
+  try { for (const sub of ['ccar-f/bank', 'ccar-f/lessons']) fs.readdirSync(path.join(BANK_DIR, sub)).filter(f => f.endsWith('.json')).sort().forEach(f => bankFiles.push(BANK_PREFIX + sub + '/' + f)); } catch (e) { console.log('WARNING: bank repository not readable at ' + BANK_DIR + ' (' + e.message + '); bank surfaces skipped'); }
+  targets = targets.concat(bankFiles);
+  console.log('mode: ' + (MODE === 'write' ? '--write-baseline' : 'all content surfaces') + ' · ' + targets.length + ' files (' + bankFiles.length + ' in the bank repository)');
 }
 
 const results = targets.map(scanFile).filter(Boolean);
