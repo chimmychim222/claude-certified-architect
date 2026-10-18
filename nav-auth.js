@@ -27,6 +27,7 @@
 
   var LS_EMAIL    = 'cca_logged_in'; // value = user's email; absent = logged out
   var LS_ENROLLED = 'cca_enrolled';  // value = 'true' if enrolled
+  var LS_PRODUCTS = 'cca_products';  // 'ccar' | 'ccdv' | 'both' from the ID token claims; absent = free
 
   // Returns the #nav-auth-static wrapper, creating it on-the-fly if the page
   // was served from a stale CDN cache that predates the wrapper injection.
@@ -47,8 +48,28 @@
     return wrapper;
   }
 
-  // Replace the static Log In / Sign Up Free links with a logged-in cluster.
-  function applyLoggedIn(email) {
+  // N1 grouped nav (Oct 2026): the nav element carries class cnav-in while a
+  // visitor is signed in; CSS inside the nav swaps the Log In / Sign Up Free
+  // pair for the account button, and these fill the email and the badge.
+  function navRoot() { var r = document.querySelector('nav .cnav'); return r ? r.parentNode : null; }
+  function badgeFor(p) {
+    return p === 'both' ? 'ENROLLED \u00B7 BOTH' : p === 'ccdv' ? 'ENROLLED \u00B7 CCDV-F' : p === 'ccar' ? 'ENROLLED \u00B7 CCAR-F' : 'FREE';
+  }
+  // Show the signed-in state. products is undefined until the claims are read.
+  function applyLoggedIn(email, products) {
+    var nav = navRoot();
+    if (nav) {
+      nav.classList.add('cnav-in');
+      nav.querySelectorAll('[data-acct-email]').forEach(function (x) { x.textContent = email || ''; });
+      if (products !== undefined) {
+        nav.querySelectorAll('[data-acct-badge]').forEach(function (x) {
+          x.textContent = badgeFor(products);
+          x.className = 'cnav-badge ' + (products ? 'enrolled' : 'free');
+        });
+      }
+      return;
+    }
+    // Pre-N1 markup (served from a cache during the deploy window): old behaviour.
     var c = getCluster(); if (!c) return;
     var name = (email || 'Account').split('@')[0].slice(0, 20);
     c.innerHTML =
@@ -56,8 +77,10 @@
       '<button class="nav-logout-btn" onclick="window.__navSO&&window.__navSO()">Log out</button>';
   }
 
-  // Restore the static Log In / Sign Up Free links.
+  // Restore the signed-out state.
   function applyLoggedOut() {
+    var nav = navRoot();
+    if (nav) { nav.classList.remove('cnav-in'); return; }
     var c = getCluster(); if (!c) return;
     c.innerHTML =
       '<a href="/?login=true" class="nav-auth-login"' +
@@ -110,6 +133,7 @@
           try {
             localStorage.removeItem(LS_EMAIL);
             localStorage.removeItem(LS_ENROLLED);
+            localStorage.removeItem(LS_PRODUCTS);
           } catch (e) {}
           window.location.reload();
         });
@@ -124,6 +148,17 @@
         if (user) {
           applyLoggedIn(user.email);
           try { localStorage.setItem(LS_EMAIL, user.email); } catch (e) {}
+          // Badge wording from the cached ID token (no network call): enrolled
+          // or products.ccar is CCAR-F, products.ccdv is CCDV-F, both is BOTH.
+          if (user.getIdTokenResult) {
+            user.getIdTokenResult().then(function (tok) {
+              var cl = (tok && tok.claims) || {}, p = cl.products || {};
+              var ccar = cl.enrolled === true || p.ccar === true, ccdv = p.ccdv === true;
+              var prod = ccar && ccdv ? 'both' : ccdv ? 'ccdv' : ccar ? 'ccar' : '';
+              try { if (prod) localStorage.setItem(LS_PRODUCTS, prod); else localStorage.removeItem(LS_PRODUCTS); } catch (e) {}
+              applyLoggedIn(user.email, prod);
+            }).catch(function () {});
+          }
         } else if (appName === '[DEFAULT]') {
           // Authoritative: this is the same app instance app.js signs in/out
           // on, so null here means the visitor is genuinely not logged in.
@@ -131,6 +166,7 @@
           try {
             localStorage.removeItem(LS_EMAIL);
             localStorage.removeItem(LS_ENROLLED);
+            localStorage.removeItem(LS_PRODUCTS);
           } catch (e) {}
           // If the inline hint applied logged-in state (stale localStorage),
           // correct it now that we have the authoritative answer.
