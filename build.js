@@ -32,253 +32,80 @@ const FIRST_RUN_RE = /<!-- Structured Data[\s\S]*?<\/script>/;
 const REBUILD_RE   = /<!-- cca:schema:start -->[\s\S]*?<!-- cca:schema:end -->/;
 
 // ── Nav injection ─────────────────────────────────────────────────────────────
-// processFile() calls spliceNav(), which replaces everything between the
-// <!-- cca:nav:start/end --> markers inside <nav> with renderNav(activePage):
-// the N1 grouped navigation below (bar, dropdown panels, mobile panel, its
-// styles and its script). The apply script that shipped N1 by hand (17 Oct
-// 2026) emits the identical block, so a build is a no-op on the nav.
+// Canonical 10-item navbar in fixed order. processFile() calls spliceNav()
+// which either replaces between <!-- cca:nav:start/end --> markers (subsequent
+// runs) or finds the <div class="nav-links" id="nav-links"> div directly (first
+// run), so no manual marker seeding is required on the first build.
 const NAV_START  = '<!-- cca:nav:start -->';
 const NAV_END    = '<!-- cca:nav:end -->';
 const NAV_RE     = /<!-- cca:nav:start -->[\s\S]*?<!-- cca:nav:end -->/;
+const NAV_DIV_RE = /<div class="nav-links" id="nav-links">[\s\S]*?<\/div>/;
 
-// NAVGEN-START
-// ── N1 grouped navigation (Oct 2026) ─────────────────────────────────────────
-// One nav block for every page family. Everything the nav needs (markup, styles,
-// behaviour) lives INSIDE the <nav> element between the cca:nav markers, so no
-// page <head> changes. Every link is a plain <a href> in the HTML; the dropdown
-// panels and the mobile panel are hidden with CSS until opened. The marked,
-// empty developer slot is where B3 adds the Developer dropdown at launch.
-const NAV2_START = '<!-- cca:nav:start -->';
-const NAV2_END   = '<!-- cca:nav:end -->';
-const NAV2_DEV_SLOT_BAR = '<!-- cca:nav:developer-slot (B3 adds the Developer dropdown here at launch; empty in N1) -->';
-const NAV2_DEV_SLOT_MOB = '<!-- cca:nav:developer-slot (B3 adds the DEVELOPER (CCDV-F) section here at launch; empty in N1) -->';
-const NAV2_CHEV = '<svg class="cnav-chev" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
-const NAV2_FONT = "font-family:-apple-system,system-ui,'Segoe UI',sans-serif;";
-// Row heights per page family: the bar keeps today's rendered height on every
-// page (desktop row, then the burger row below 1200 px). nav adds a 1px border.
-const NAV2_HEIGHTS = {
-  home:       { desk: 78, mob: 72, narrow: 68 },   // 79 / 73 / 69 today (69 at <=640)
-  static:     { desk: 63, mob: 72 },               // 64 / 73 today
-  register:   { desk: 68, mob: 72 },               // 69 / 73 today
-  diagnostic: { desk: 62, mob: 72 },               // 63 / 73 today
-  blog:       { desk: 63, mob: 72 }                // today's blog row wraps to 100; the article offset is a fixed 86px
-};
-const NAV2_CSS =
-  'nav .cnav{justify-content:flex-start;gap:4px;padding-top:0;padding-bottom:0}' +
-  'nav .cnav .logo{margin-right:14px}' +
-  '.cnav-item,.cnav-item:link,.cnav-item:visited{' + NAV2_FONT + 'font-size:.9rem;line-height:1.3;color:var(--text2,#5a5a52);text-decoration:none;background:none;border:0;padding:9px 12px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;margin:0}' +
-  '.cnav-item:hover,.cnav-item[aria-expanded="true"]{background:rgba(0,0,0,.05);color:var(--text,#191918)}' +
-  '.cnav-item.active,.cnav-item.on{color:var(--text,#191918);font-weight:600}' +
-  '.cnav-dd{position:relative;display:inline-flex}' +
-  '.cnav-panel{display:none;position:absolute;top:calc(100% + 6px);left:0;background:var(--surface,#fff);border:1px solid var(--border,#d9d5ca);border-radius:12px;box-shadow:0 12px 32px rgba(40,30,20,.12);padding:8px;min-width:330px;z-index:20;' + NAV2_FONT + '}' +
-  '.cnav-dd.open>.cnav-panel{display:block}' +
-  '.cnav-panel-sm{min-width:220px}' +
-  '.cnav-panel-r{left:auto;right:0;min-width:250px}' +
-  '.cnav-ph{font-size:.7rem;font-weight:700;letter-spacing:.08em;color:var(--accent-text,#b04928);padding:8px 12px 4px}' +
-  '.cnav-row{position:relative;padding:9px 12px;border-radius:8px}' +
-  '.cnav-row:hover,.cnav-row:focus-within{background:var(--bg,#f5f3ea)}' +
-  '.cnav-row:focus-within{outline:2px solid var(--accent-text,#b04928);outline-offset:-2px}' +
-  '.cnav-rl,.cnav-rl:link,.cnav-rl:visited{font:inherit;font-size:.9rem;font-weight:600;line-height:1.35;color:var(--text,#191918);text-decoration:none;background:none;border:0;padding:0;margin:0;cursor:pointer;text-align:left;display:inline}' +
-  '.cnav-rl::after{content:"";position:absolute;inset:0;border-radius:8px}' +
-  '.cnav-rl:focus-visible{outline:none}' +
-  '.cnav-rd{font-size:.78rem;line-height:1.4;color:var(--text3,#6f6f66);margin-top:2px}' +
-  '.cnav-signed{padding:8px 12px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}' +
-  '.cnav-right{margin-left:auto;display:flex;align-items:center;gap:10px;flex-shrink:0}' +
-  '.cnav-btn,.cnav-btn:link,.cnav-btn:visited{' + NAV2_FONT + 'font-size:.85rem;line-height:1.3;padding:8px 14px;border-radius:8px;text-decoration:none;white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;margin:0}' +
-  '.cnav-ghost,.cnav-ghost:visited{border:1px solid var(--border,#d9d5ca);background:transparent;color:var(--text2,#5a5a52);font-weight:600}' +
-  '.cnav-ghost:hover{color:var(--text,#191918);border-color:var(--border2,#c5c0b5)}' +
-  '.cnav-main,.cnav-main:visited{border:1px solid var(--accent-btn,#c4522c);background:var(--accent-btn,#c4522c);color:#fff;font-weight:700}' +
-  '.cnav-main:hover{background:var(--accent2,#a04f31);border-color:var(--accent2,#a04f31);color:#fff}' +
-  '.cnav-cta,.cnav-cta:visited{' + NAV2_FONT + 'font-size:.85rem;line-height:1.3;font-weight:600;color:var(--text2,#5a5a52);background:transparent;border:1px solid var(--border,#d9d5ca);padding:8px 14px;border-radius:8px;text-decoration:none;white-space:nowrap;display:inline-flex;align-items:center}' +
-  '.cnav-cta:hover{color:var(--text,#191918);border-color:var(--border2,#c5c0b5);background:transparent}' +
-  '.cnav-auth{display:inline-flex;align-items:center;gap:10px}' +
-  // Same declarations again at id specificity: the logo block's #nav-auth-static rules
-  // (kept for the pre-N1 nav-auth.js during the deploy cache window) would otherwise win.
-  '#nav-auth-static .cnav-ghost{' + NAV2_FONT + 'font-size:.85rem;font-weight:600;padding:8px 14px;border:1px solid var(--border,#d9d5ca);border-radius:8px;background:transparent;color:var(--text2,#5a5a52);max-width:none;width:auto;min-height:0}' +
-  '#nav-auth-static .cnav-ghost:hover{color:var(--text,#191918);border-color:var(--border2,#c5c0b5)}' +
-  '#nav-auth-static .cnav-main{' + NAV2_FONT + 'font-size:.85rem;font-weight:700;padding:8px 14px;border:1px solid var(--accent-btn,#c4522c);border-radius:8px;background:var(--accent-btn,#c4522c);color:#fff;max-width:none;width:auto;min-height:0}' +
-  '#nav-auth-static .cnav-main:hover{background:var(--accent2,#a04f31);border-color:var(--accent2,#a04f31);color:#fff}' +
-  '.cnav-acctbtn{' + NAV2_FONT + 'font-size:.74rem;font-weight:700;letter-spacing:.06em;line-height:1.3;padding:8px 12px;border-radius:8px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;border:1px solid var(--border,#d9d5ca);background:transparent;color:var(--text2,#5a5a52);white-space:nowrap;margin:0}' +
-  '.cnav-acctbtn:hover,.cnav-acctbtn[aria-expanded="true"]{background:rgba(0,0,0,.05);color:var(--text,#191918)}' +
-  '.cnav-acctbtn:has(.enrolled){border-color:rgba(45,122,95,.3);background:rgba(45,122,95,.1);color:var(--green,#2d7a5f)}' +
-  '.cnav-acctbtn:has(.enrolled):hover,.cnav-acctbtn:has(.enrolled)[aria-expanded="true"]{background:rgba(45,122,95,.16);color:var(--green,#2d7a5f)}' +
-  'nav .cnav-acctbtn .user-badge,nav .cnav-acctbtn .cnav-badge{font:inherit;letter-spacing:inherit;padding:0;border:0;background:none;color:inherit;border-radius:0}' +
-  '.cnav-badge{' + NAV2_FONT + 'font-size:.7rem;font-weight:700;letter-spacing:.06em;color:var(--text2,#5a5a52)}' +
-  '.cnav-badge.enrolled{color:var(--green,#2d7a5f)}' +
-  'nav:not(.cnav-in) .cnav-acct{display:none!important}' +
-  'nav.cnav-in .cnav-out{display:none!important}' +
-  '.cnav-burger{display:none;margin-left:auto;width:48px;height:48px;border:1px solid var(--border,#d9d5ca);background:var(--surface,#fff);border-radius:10px;align-items:center;justify-content:center;cursor:pointer;padding:0;flex-shrink:0;color:var(--text,#191918)}' +
-  '.cnav-burger svg{display:block}' +
-  '.cnav-burger .ic-close{display:none}' +
-  '.cnav-burger[aria-expanded="true"] .ic-open{display:none}' +
-  '.cnav-burger[aria-expanded="true"] .ic-close{display:block}' +
-  '.cnav-item:focus-visible,.cnav-btn:focus-visible,.cnav-cta:focus-visible,.cnav-acctbtn:focus-visible,.cnav-burger:focus-visible,.cnav-ml:focus-visible,nav .cnav .logo:focus-visible{outline:2px solid var(--accent-text,#b04928);outline-offset:2px}' +
-  '.cnav-mob{display:none;position:absolute;top:100%;left:0;right:0;padding:16px 16px 28px;background:var(--bg,#f5f3ea);border-bottom:1px solid var(--border,#d9d5ca);box-shadow:0 8px 24px rgba(0,0,0,.08);max-height:calc(100vh - var(--banner-h,0px) - 73px);max-height:calc(100dvh - var(--banner-h,0px) - 73px);overflow-y:auto;overscroll-behavior:contain;' + NAV2_FONT + '}' +
-  '.cnav-mob.open{display:block}' +
-  '.cnav-ml,.cnav-ml:link,.cnav-ml:visited{display:flex;justify-content:space-between;align-items:center;min-height:48px;padding:0 4px;font-size:1rem;line-height:1.3;color:var(--text,#191918);text-decoration:none;border-bottom:1px solid var(--border,#d9d5ca);margin:0}' +
-  '.cnav-ml span{color:inherit}' +
-  '.cnav-ml:hover,.cnav-ml:hover span{color:var(--accent-text,#b04928)}' +
-  '.cnav-ml-main{font-weight:700}' +
-  '.cnav-mh{font-size:.7rem;font-weight:700;letter-spacing:.08em;color:var(--accent-text,#b04928);margin:22px 4px 4px}' +
-  '.cnav-mauth{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:8px}' +
-  '.cnav-mauth .cnav-btn{min-height:48px}' +
-  '.cnav-mcard{background:var(--surface,#fff);border:1px solid var(--border,#d9d5ca);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px}' +
-  '.cnav-mcard .cnav-btn{min-height:44px}' +
-  '.cnav-memail{display:block;font-size:.85rem;line-height:1.4;color:var(--text3,#6f6f66);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:210px}' +
-  'nav .cnav-mob .mobile-nav-user{display:none}' +
-  'nav .cnav-mob .mobile-nav-user.nav-signed-in{display:flex}' +
-  'nav .cnav-mob .user-email{display:block;max-width:210px;font-size:.85rem;color:var(--text3,#6f6f66)}' +
-  '@media(max-width:1199px){nav .cnav>.cnav-item,nav .cnav>.cnav-dd,nav .cnav>.cnav-right{display:none!important}nav .cnav-burger{display:flex}}' +
-  '@media(min-width:1200px){.cnav-mob{display:none!important}}';
-// Synchronous hint for the static and blog pages: a visitor whose last sign-in
-// left the cca_logged_in hint sees the account button before nav-auth.js loads.
-// nav-auth.js later confirms or corrects it. The homepage does not use this:
-// app.js's updateNavUI() drives its ids directly, exactly as before.
-const NAV2_HINT =
-  '(function(){try{var e=localStorage.getItem("cca_logged_in");if(!e)return;var r=document.querySelector("nav .cnav");if(!r)return;var n=r.parentNode;n.classList.add("cnav-in");' +
-  'var p=localStorage.getItem("cca_products")||(localStorage.getItem("cca_enrolled")==="true"?"ccar":"");' +
-  'var t=p==="both"?"ENROLLED \\u00B7 BOTH":p==="ccdv"?"ENROLLED \\u00B7 CCDV-F":p==="ccar"?"ENROLLED \\u00B7 CCAR-F":"FREE";' +
-  'n.querySelectorAll("[data-acct-email]").forEach(function(x){x.textContent=e;});' +
-  'n.querySelectorAll("[data-acct-badge]").forEach(function(x){x.textContent=t;x.className="cnav-badge "+(p?"enrolled":"free");});}catch(x){}})();';
-// Behaviour: dropdowns open on click or tap, one at a time; click outside or
-// Escape closes; the burger toggles the mobile panel. On the homepage only,
-// links that have an in-page equivalent (Practice Tests, Lessons, Progress,
-// My dashboard, Log In, Sign Up Free, Log out) run it instead of navigating;
-// the hrefs stay valid for everyone else. Every lookup is null-guarded.
-const NAV2_SCRIPT =
-  '(function(){var root=document.querySelector("nav .cnav");if(!root)return;var nav=root.parentNode;' +
-  'function closeAll(){nav.querySelectorAll(".cnav-dd.open").forEach(function(d){d.classList.remove("open");var b=d.querySelector("button");if(b)b.setAttribute("aria-expanded","false");});}' +
-  'nav.querySelectorAll(".cnav-dd>button").forEach(function(b){b.addEventListener("click",function(e){e.stopPropagation();var d=b.parentNode,was=d.classList.contains("open");closeAll();if(!was){d.classList.add("open");b.setAttribute("aria-expanded","true");}});});' +
-  'document.addEventListener("click",function(){closeAll();});' +
-  'var burger=document.getElementById("cnav-burger"),mob=document.getElementById("cnav-mob");' +
-  'function setMob(o){if(!burger||!mob)return;mob.classList.toggle("open",o);burger.setAttribute("aria-expanded",o?"true":"false");burger.setAttribute("aria-label",o?"Close menu":"Open menu");}' +
-  'if(burger&&mob)burger.addEventListener("click",function(e){e.stopPropagation();setMob(!mob.classList.contains("open"));});' +
-  'document.addEventListener("keydown",function(e){if(e.key!=="Escape")return;var o=nav.querySelector(".cnav-dd.open>button");closeAll();if(o)o.focus();if(mob&&mob.classList.contains("open")){setMob(false);if(burger)burger.focus();}});' +
-  'var home=!!document.getElementById("home-section");' +
-  'nav.addEventListener("click",function(e){var a=e.target.closest("[data-go],[data-auth],[data-logout]");if(!a||!nav.contains(a))return;' +
-  'if(a.hasAttribute("data-go")){if(home&&typeof showSection==="function"){e.preventDefault();closeAll();setMob(false);showSection(a.getAttribute("data-go"));}}' +
-  'else if(a.hasAttribute("data-auth")){if(home&&typeof openAuthModal==="function"){e.preventDefault();closeAll();setMob(false);openAuthModal(a.getAttribute("data-auth"));}}' +
-  'else if(a.hasAttribute("data-logout")){e.preventDefault();closeAll();setMob(false);if(home&&typeof logOut==="function")logOut();else if(window.__navSO)window.__navSO();}});' +
-  '})();';
-
-const NAV2_ARCH = [
-  ['/cca-practice-questions/', 'Question Bank',  '400 practice questions with explanations', ''],
-  ['/cca-foundations-exam/',   'Full Mock Exam', '60 questions in 120 minutes', ''],
-  ['/diagnostic/',             'Diagnostic',     '10 questions, no account needed', ''],
-  ['/study-plan-generator/',   'Study Plan',     'A free schedule built from your exam date', ''],
-  ['/register/',               'Exam Info',      'Format, passing score and how to book', ' aria-label="Official Claude Certified Architect exam registration on Anthropic\'s site"']
-];
-const NAV2_RES = [
-  ['/cca-exam-guide/', 'Guide'],
-  ['/blog/',           'Blog'],
-  ['/faq/',            'FAQ']
+// Rendered order. The null entry is the group separator: the five product
+// surfaces sit above it, the four information pages below. Home was removed on
+// Aug 22 2026 - the logo is an <a href="/"> on every page and already does that
+// job, and dropping it buys back a slot in a row that cannot wrap.
+const NAV_PAGES = [
+  ['/cca-foundations-exam/',  'Full Mock Exam'],
+  ['/?hub=practice-tests',    'Practice Tests'],
+  ['/cca-practice-questions/','Question Bank' ],
+  ['/diagnostic/',            'Diagnostic'    ],
+  ['/study-plan-generator/',  'Study Plan'    ],
+  null,
+  ['/cca-exam-guide/',        'Guide'         ],
+  ['/blog/',                  'Blog'          ],
+  ['/faq/',                   'FAQ'           ],
 ];
 
-// opts: { logo, family: 'home'|'static'|'blog', activePage, heights }
-function renderNavInner(opts) {
-  const A = opts.activePage || '';
-  const H = opts.heights;
-  const isHome = opts.family === 'home';
-  const isRegister = A === '/register/';
-  const act = href => href === A ? ' active" aria-current="page' : '';
-  const L = [];
-  L.push('<div class="inner cnav">');
-  L.push('    ' + opts.logo);
-  L.push('    <a href="/?hub=practice-tests" class="cnav-item' + (A === '/?hub=practice-tests' ? ' active' : '') + '"' + (isHome ? ' data-nav="dashboard" data-go="dashboard"' : '') + '>Practice Tests</a>');
-  if (isHome) {
-    L.push('    <a href="#lessons-section" class="cnav-item" data-nav="lessons" data-go="lessons" id="nav-lessons-link" style="display:none">Lessons</a>');
-    L.push('    <a href="#progress-section" class="cnav-item" data-nav="progress" data-go="progress" id="nav-progress-link" style="display:none">Progress</a>');
-  }
-  const archOn = NAV2_ARCH.some(r => r[0] === A);
-  L.push('    <div class="cnav-dd"><button type="button" class="cnav-item' + (archOn ? ' on' : '') + '" aria-expanded="false" aria-haspopup="true">Architect ' + NAV2_CHEV + '</button>');
-  L.push('      <div class="cnav-panel">');
-  L.push('        <div class="cnav-ph">CLAUDE CERTIFIED ARCHITECT (CCAR-F)</div>');
-  NAV2_ARCH.forEach(r => {
-    L.push('        <div class="cnav-row"><a href="' + r[0] + '" class="cnav-rl' + act(r[0]) + '"' + r[3] + '>' + r[1] + '</a><div class="cnav-rd">' + r[2] + '</div></div>');
-  });
-  L.push('      </div></div>');
-  L.push('    ' + NAV2_DEV_SLOT_BAR);
-  const resOn = NAV2_RES.some(r => r[0] === A);
-  L.push('    <div class="cnav-dd"><button type="button" class="cnav-item' + (resOn ? ' on' : '') + '" aria-expanded="false" aria-haspopup="true">Resources ' + NAV2_CHEV + '</button>');
-  L.push('      <div class="cnav-panel cnav-panel-sm">');
-  NAV2_RES.forEach(r => {
-    L.push('        <div class="cnav-row"><a href="' + r[0] + '" class="cnav-rl' + act(r[0]) + '">' + r[1] + '</a></div>');
-  });
-  L.push('      </div></div>');
-  L.push('    <div class="cnav-right">');
-  if (isRegister) L.push('      <a href="#register-action" class="cnav-cta" aria-label="Jump to the exam registration portal link below">Register</a>');
-  if (isHome) {
-    L.push('      <span class="cnav-auth" id="nav-logged-out"><a href="/?login=true" class="cnav-btn cnav-ghost" data-auth="login">Log In</a><a href="/?signup=true" class="cnav-btn cnav-main" data-auth="signup">Sign Up Free</a></span>');
-    L.push('      <div class="cnav-dd" id="nav-logged-in" style="display:none"><button type="button" class="cnav-acctbtn" aria-expanded="false" aria-haspopup="true"><span class="user-badge free" id="nav-user-badge">FREE</span>' + NAV2_CHEV + '</button>');
-    L.push('        <div class="cnav-panel cnav-panel-r">');
-    L.push('          <div class="cnav-rd cnav-signed">Signed in as <span id="nav-user-email"></span></div>');
-  } else {
-    L.push('      <span class="cnav-auth cnav-out" id="nav-auth-static"><a href="/?login=true" class="cnav-btn cnav-ghost nav-auth-login">Log In</a><a href="/?signup=true" class="cnav-btn cnav-main nav-auth-signup">Sign Up Free</a></span>');
-    L.push('      <div class="cnav-dd cnav-acct" id="nav-auth-in"><button type="button" class="cnav-acctbtn" id="nav-acct-btn" aria-expanded="false" aria-haspopup="true"><span class="cnav-badge free" data-acct-badge>FREE</span>' + NAV2_CHEV + '</button>');
-    L.push('        <div class="cnav-panel cnav-panel-r">');
-    L.push('          <div class="cnav-rd cnav-signed">Signed in as <span data-acct-email></span></div>');
-  }
-  L.push('          <div class="cnav-row"><a href="/?hub=practice-tests" class="cnav-rl" data-go="dashboard">My dashboard</a></div>');
-  L.push('          <div class="cnav-row"><button type="button" class="cnav-rl" data-logout>Log out</button></div>');
-  L.push('        </div></div>');
-  L.push('    </div>');
-  L.push('    <button type="button" class="cnav-burger" id="cnav-burger" aria-label="Open menu" aria-expanded="false" aria-controls="cnav-mob"><svg class="ic-open" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="2" fill="none"/></svg><svg class="ic-close" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" fill="none"/></svg></button>');
-  L.push('</div>');
-  L.push('<div class="cnav-mob" id="cnav-mob">');
-  if (isHome) {
-    L.push('  <div class="cnav-mauth"><a href="/?login=true" class="cnav-btn cnav-ghost" id="mobile-nav-login" data-auth="login">Log In</a><a href="/?signup=true" class="cnav-btn cnav-main" id="mobile-nav-signup" data-auth="signup">Sign Up Free</a></div>');
-    L.push('  <div class="cnav-mcard mobile-nav-user" id="mobile-nav-user"><div><span class="user-badge free" id="mobile-nav-user-badge">FREE</span><span class="user-email" id="mobile-nav-user-email"></span></div><button type="button" class="cnav-btn cnav-ghost" data-logout>Log out</button></div>');
-  } else {
-    L.push('  <div class="cnav-mauth cnav-out"><a href="/?login=true" class="cnav-btn cnav-ghost">Log In</a><a href="/?signup=true" class="cnav-btn cnav-main">Sign Up Free</a></div>');
-    L.push('  <div class="cnav-mcard cnav-acct"><div><span class="cnav-badge free" data-acct-badge>FREE</span><span class="cnav-memail" data-acct-email></span></div><button type="button" class="cnav-btn cnav-ghost" data-logout>Log out</button></div>');
-  }
-  if (isRegister) L.push('  <a href="#register-action" class="cnav-ml cnav-ml-main" aria-label="Jump to the exam registration portal link below">Register<span aria-hidden="true">&rsaquo;</span></a>');
-  L.push('  <a href="/?hub=practice-tests" class="cnav-ml cnav-ml-main"' + (isHome ? ' data-go="dashboard"' : '') + '>Practice Tests<span aria-hidden="true">&rsaquo;</span></a>');
-  if (isHome) {
-    L.push('  <a href="#lessons-section" class="cnav-ml" id="mobile-nav-lessons-link" data-go="lessons" style="display:none">Lessons<span aria-hidden="true">&rsaquo;</span></a>');
-    L.push('  <a href="#progress-section" class="cnav-ml" id="mobile-nav-progress-link" data-go="progress" style="display:none">Progress<span aria-hidden="true">&rsaquo;</span></a>');
-  }
-  L.push('  <div class="cnav-mh">ARCHITECT (CCAR-F)</div>');
-  NAV2_ARCH.forEach(r => {
-    L.push('  <a href="' + r[0] + '" class="cnav-ml' + (r[0] === A ? ' active" aria-current="page' : '') + '"' + r[3] + '>' + r[1] + '<span aria-hidden="true">&rsaquo;</span></a>');
-  });
-  L.push('  ' + NAV2_DEV_SLOT_MOB);
-  L.push('  <div class="cnav-mh">RESOURCES</div>');
-  NAV2_RES.forEach(r => {
-    L.push('  <a href="' + r[0] + '" class="cnav-ml' + (r[0] === A ? ' active" aria-current="page' : '') + '">' + r[1] + '<span aria-hidden="true">&rsaquo;</span></a>');
-  });
-  L.push('</div>');
-  let css = NAV2_CSS + 'nav .cnav{height:' + H.desk + 'px}@media(max-width:1199px){nav .cnav{height:' + H.mob + 'px}}';
-  if (H.narrow) css += '@media(max-width:640px){nav .cnav{height:' + H.narrow + 'px}}';
-  L.push('<style>' + css + '</style>');
-  L.push('<script>' + (isHome ? '' : NAV2_HINT) + NAV2_SCRIPT + '<' + '/script>');
-  return L.join('\n');
-}
-function navHeightsFor(family, activePage) {
-  if (family === 'home') return NAV2_HEIGHTS.home;
-  if (family === 'blog') return NAV2_HEIGHTS.blog;
-  if (activePage === '/register/') return NAV2_HEIGHTS.register;
-  if (activePage === '/diagnostic/') return NAV2_HEIGHTS.diagnostic;
-  return NAV2_HEIGHTS.static;
-}
-function wrapNav(navHtml) {
-  return NAV2_START + '\n      ' + navHtml + '\n      ' + NAV2_END;
-}
-// NAVGEN-END
+// Orientation-agnostic hairline. flex-basis 1px sizes it on the MAIN axis while
+// align-self:stretch sizes it on the CROSS axis, so the same element is a
+// vertical rule in the desktop row and a horizontal rule in the <=640px
+// dropdown column - no media query, no per-page CSS to ship.
+const NAV_SEP =
+  '<span class="nav-sep" aria-hidden="true"' +
+  ' style="flex:0 0 1px;align-self:stretch;background:var(--border);margin:4px 6px"></span>';
+
+const OFFICIAL_EXAM_LINK =
+  '<a href="/register/"' +
+  ' aria-label="Official Claude Certified Architect exam registration on Anthropic\'s site"' +
+  ' onclick="closeNav()">Exam Info</a>';
+
+const REGISTER_CTA_LINK =
+  '<a href="#register-action" class="nav-cta active"' +
+  ' aria-label="Jump to the exam registration portal link below"' +
+  ' onclick="closeNav()">Register</a>';
 
 function renderNav(activePage) {
-  return renderNavInner({
-    logo: LOGO_START + LOGO_HTML + LOGO_END,
-    family: 'static',
-    activePage: activePage,
-    heights: navHeightsFor('static', activePage)
+  const items = NAV_PAGES.map(entry => {
+    if (!entry) return NAV_SEP;
+    const [href, label] = entry;
+    const active = href === activePage ? ' class="active" aria-current="page"' : '';
+    return `<a href="${href}" onclick="closeNav()"${active}>${label}</a>`;
   });
+  items.push(activePage === '/register/' ? REGISTER_CTA_LINK : OFFICIAL_EXAM_LINK);
+  // #nav-auth-static: fixed-min-width wrapper that holds the auth cluster.
+  // margin-left:auto (via LOGO_CSS) pushes it to the right on desktop.
+  // nav-auth.js (deferred) and the inline NAV_HINT_SCRIPT swap its contents
+  // to the logged-in cluster when the user is authenticated.
+  items.push(
+    '<div id="nav-auth-static">' +
+      '<a href="/?login=true" class="nav-auth-login" onclick="closeNav()">Log In</a>' +
+      '<a href="/?signup=true" class="nav-auth-signup" onclick="closeNav()">Sign Up Free</a>' +
+    '</div>'
+  );
+  // Inline hint: synchronous localStorage read before first paint → zero CLS.
+  items.push(NAV_HINT_SCRIPT);
+  return items.join('\n      ');
 }
 
 function spliceNav(html, navHtml) {
-  const wrapped = wrapNav(navHtml);
-  if (NAV_RE.test(html)) return html.replace(NAV_RE, wrapped);
-  return html; // no nav markers found: skip silently
+  const wrapped = `${NAV_START}\n      ${navHtml}\n      ${NAV_END}`;
+  if (NAV_RE.test(html))     return html.replace(NAV_RE, wrapped);
+  if (NAV_DIV_RE.test(html)) {
+    return html.replace(NAV_DIV_RE,
+      `<div class="nav-links" id="nav-links">\n      ${wrapped}\n    </div>`);
+  }
+  return html; // no nav div found — skip silently
 }
 
 // ── Footer injection ──────────────────────────────────────────────────────────
@@ -392,6 +219,27 @@ const LOGO_CSS  =
   // Homepage only: hide the JS-driven user-area on mobile (it overflows the bar)
   '@media(max-width:768px){.user-area{display:none!important}}';
 
+// Inline hint — synchronous localStorage read that runs BEFORE first paint
+// so a logged-in user never sees the logged-out state (zero CLS). Placed
+// inside nav-links after #nav-auth-static so the element already exists.
+// Inline hint: synchronous localStorage read before first paint → zero CLS.
+// Falls back to wrapping bare .nav-auth-login links if #nav-auth-static was
+// served from a stale CDN cache without the wrapper div.
+const NAV_HINT_SCRIPT =
+  '<script>(function(){' +
+  'try{var e=localStorage.getItem(\'cca_logged_in\');if(!e)return;' +
+  'var c=document.getElementById(\'nav-auth-static\');' +
+  'if(!c){' +
+    'var l=document.querySelector(\'a.nav-auth-login\');if(!l)return;' +
+    'c=document.createElement(\'div\');c.id=\'nav-auth-static\';' +
+    'l.parentElement.insertBefore(c,l);c.appendChild(l);' +
+    'var s=document.querySelector(\'a.nav-auth-signup\');if(s)c.appendChild(s);' +
+  '}' +
+  'c.innerHTML=' +
+    '\'<span class="nav-user-name" title="\'+e+\'">\'+e.split(\'@\')[0]+\'</span>\'' +
+    '+\'<button class="nav-logout-btn" onclick="window.__navSO&&window.__navSO()">Log out</button>\';' +
+  '}catch(x){}})()' +
+  '<' + '/script>';
 
 const LOGO_HTML  =
   // Preconnect to Firebase/gstatic CDN — minimises the cold-load round-trip
@@ -1022,12 +870,25 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 
 /** Shared nav HTML */
 function blogNav(activePage) {
-  return "<div id=\"site-banner\" role=\"note\" aria-label=\"Independence notice\">Independent exam prep · Not affiliated with or endorsed by Anthropic · Not the official CCA exam or certification<button id=\"site-banner-close\" aria-label=\"Dismiss notice\">✕</button></div>\n<script>(function(){var b=document.getElementById(\"site-banner\"),c=document.getElementById(\"site-banner-close\");if(!b)return;if(localStorage.getItem(\"ccaBanner\")===\"0\"){b.style.display=\"none\";document.documentElement.style.setProperty(\"--banner-h\",\"0px\");return;}function setH(){document.documentElement.style.setProperty(\"--banner-h\",b.offsetHeight+\"px\");}setH();window.addEventListener(\"resize\",setH);c.addEventListener(\"click\",function(){b.style.display=\"none\";document.documentElement.style.setProperty(\"--banner-h\",\"0px\");localStorage.setItem(\"ccaBanner\",\"0\");});})()</script>\n" + `<nav aria-label="Main navigation">\n  ` + wrapNav(renderNavInner({
-    logo: LOGO_START + LOGO_HTML + LOGO_END,
-    family: 'blog',
-    activePage: activePage,
-    heights: navHeightsFor('blog', activePage)
-  })) + `\n</nav>`;
+  const link = (href, label) => {
+    const cls = activePage === href ? ' class="active"' : '';
+    return `<a href="${href}"${cls}>${label}</a>`;
+  };
+  return "<div id=\"site-banner\" role=\"note\" aria-label=\"Independence notice\">Independent exam prep · Not affiliated with or endorsed by Anthropic · Not the official CCA exam or certification<button id=\"site-banner-close\" aria-label=\"Dismiss notice\">✕</button></div>\n<script>(function(){var b=document.getElementById(\"site-banner\"),c=document.getElementById(\"site-banner-close\");if(!b)return;if(localStorage.getItem(\"ccaBanner\")===\"0\"){b.style.display=\"none\";document.documentElement.style.setProperty(\"--banner-h\",\"0px\");return;}function setH(){document.documentElement.style.setProperty(\"--banner-h\",b.offsetHeight+\"px\");}setH();window.addEventListener(\"resize\",setH);c.addEventListener(\"click\",function(){b.style.display=\"none\";document.documentElement.style.setProperty(\"--banner-h\",\"0px\");localStorage.setItem(\"ccaBanner\",\"0\");});})()</script>\n" + `<nav aria-label="Main navigation">
+  <div class="inner">
+    ${LOGO_START}${LOGO_HTML}${LOGO_END}
+    <div class="nav-links" id="blog-nav-links">
+      ${NAV_PAGES.map(e => e ? link(e[0], e[1]) : NAV_SEP).join('\n      ')}
+      <a href="/register/" aria-label="Official Claude Certified Architect exam registration on Anthropic's site">Exam Info</a>
+      <div id="nav-auth-static"><a href="/?login=true" class="nav-auth-login">Log In</a><a href="/?signup=true" class="nav-auth-signup">Sign Up Free</a></div>
+      ${NAV_HINT_SCRIPT}
+    </div>
+    <button class="nav-hamburger" aria-label="Toggle menu"
+      onclick="document.getElementById('blog-nav-links').classList.toggle('open')">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>`;
 }
 
 /** Shared footer HTML */
