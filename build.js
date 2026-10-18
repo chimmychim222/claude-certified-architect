@@ -47,11 +47,10 @@ const NAV_RE     = /<!-- cca:nav:start -->[\s\S]*?<!-- cca:nav:end -->/;
 // behaviour) lives INSIDE the <nav> element between the cca:nav markers, so no
 // page <head> changes. Every link is a plain <a href> in the HTML; the dropdown
 // panels and the mobile panel are hidden with CSS until opened. The marked,
-// empty developer slot is where B3 adds the Developer dropdown at launch.
+// Developer dropdown (B3, Oct 2026) sits between Architect and Resources.
 const NAV2_START = '<!-- cca:nav:start -->';
 const NAV2_END   = '<!-- cca:nav:end -->';
-const NAV2_DEV_SLOT_BAR = '<!-- cca:nav:developer-slot (B3 adds the Developer dropdown here at launch; empty in N1) -->';
-const NAV2_DEV_SLOT_MOB = '<!-- cca:nav:developer-slot (B3 adds the DEVELOPER (CCDV-F) section here at launch; empty in N1) -->';
+// The N1 slot markers were replaced by the Developer dropdown at the B3 launch (Oct 2026).
 const NAV2_CHEV = '<svg class="cnav-chev" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
 const NAV2_FONT = "font-family:-apple-system,system-ui,'Segoe UI',sans-serif;";
 // Row heights per page family: the bar keeps today's rendered height on every
@@ -168,6 +167,12 @@ const NAV2_ARCH = [
   ['/study-plan-generator/',   'Study Plan',     'A free schedule built from your exam date', ''],
   ['/register/',               'Exam Info',      'Format, passing score and how to book', ' aria-label="Official Claude Certified Architect exam registration on Anthropic\'s site"']
 ];
+// B3 (Oct 2026): the Developer dropdown that fills the slot N1 left empty.
+const NAV2_DEV = [
+  ['/ccdv-f-practice-questions/',                        'Practice Questions',     '200 questions across all eight domains', ''],
+  ['/?startTest=quick&product=ccdv',                     'Free 10-Question Sprint', 'Try the question style, no payment', ''],
+  ['/blog/ccdv-f-vs-ccar-f-claude-developer-exam/',      'CCDV-F vs CCAR-F',       'Which exam fits your role', '']
+];
 const NAV2_RES = [
   ['/cca-exam-guide/', 'Guide'],
   ['/blog/',           'Blog'],
@@ -197,7 +202,14 @@ function renderNavInner(opts) {
     L.push('        <div class="cnav-row"><a href="' + r[0] + '" class="cnav-rl' + act(r[0]) + '"' + r[3] + '>' + r[1] + '</a><div class="cnav-rd">' + r[2] + '</div></div>');
   });
   L.push('      </div></div>');
-  L.push('    ' + NAV2_DEV_SLOT_BAR);
+  const devOn = NAV2_DEV.some(r => r[0] === A);
+  L.push('    <div class="cnav-dd"><button type="button" class="cnav-item' + (devOn ? ' on' : '') + '" aria-expanded="false" aria-haspopup="true">Developer ' + NAV2_CHEV + '</button>');
+  L.push('      <div class="cnav-panel">');
+  L.push('        <div class="cnav-ph">CLAUDE CERTIFIED DEVELOPER (CCDV-F)</div>');
+  NAV2_DEV.forEach(r => {
+    L.push('        <div class="cnav-row"><a href="' + r[0] + '" class="cnav-rl' + act(r[0]) + '"' + r[3] + '>' + r[1] + '</a><div class="cnav-rd">' + r[2] + '</div></div>');
+  });
+  L.push('      </div></div>');
   const resOn = NAV2_RES.some(r => r[0] === A);
   L.push('    <div class="cnav-dd"><button type="button" class="cnav-item' + (resOn ? ' on' : '') + '" aria-expanded="false" aria-haspopup="true">Resources ' + NAV2_CHEV + '</button>');
   L.push('      <div class="cnav-panel cnav-panel-sm">');
@@ -242,7 +254,10 @@ function renderNavInner(opts) {
   NAV2_ARCH.forEach(r => {
     L.push('  <a href="' + r[0] + '" class="cnav-ml' + (r[0] === A ? ' active" aria-current="page' : '') + '"' + r[3] + '>' + r[1] + '<span aria-hidden="true">&rsaquo;</span></a>');
   });
-  L.push('  ' + NAV2_DEV_SLOT_MOB);
+  L.push('  <div class="cnav-mh">DEVELOPER (CCDV-F)</div>');
+  NAV2_DEV.forEach(r => {
+    L.push('  <a href="' + r[0] + '" class="cnav-ml' + (r[0] === A ? ' active" aria-current="page' : '') + '"' + r[3] + '>' + r[1] + '<span aria-hidden="true">&rsaquo;</span></a>');
+  });
   L.push('  <div class="cnav-mh">RESOURCES</div>');
   NAV2_RES.forEach(r => {
     L.push('  <a href="' + r[0] + '" class="cnav-ml' + (r[0] === A ? ' active" aria-current="page' : '') + '">' + r[1] + '<span aria-hidden="true">&rsaquo;</span></a>');
@@ -292,6 +307,7 @@ const FOOTER_NAV_PAGES = [
   ['/cca-foundations-exam/',  'Full Mock Exam'],
   ['/?hub=practice-tests',    'Practice Tests'],
   ['/cca-practice-questions/','Question Bank' ],
+  ['/ccdv-f-practice-questions/','Developer (CCDV-F)' ],
   ['/cca-exam-guide/',        'Guide'         ],
   ['/diagnostic/',            'Diagnostic'    ],
   ['/study-plan-generator/',  'Study Plan'    ],
@@ -306,7 +322,7 @@ function renderFooter(year) {
     .join(' &middot; ');
   return (
     `<div class="links-row">${links}</div>\n` +
-    `<p class="footer-disclaimer">CCA Practice Platforms is an independent exam-preparation resource. We are not affiliated with, endorsed by, sponsored by, or authorized by Anthropic, and this is not the official Claude Certified Architect exam or certification. 'Claude', 'Claude Certified Architect', and 'CCA' are trademarks of Anthropic, PBC, used here only to identify the exam our materials help you prepare for.</p>\n` +
+    `<p class="footer-disclaimer">CCA Practice Platforms is an independent exam-preparation resource. We are not affiliated with, endorsed by, sponsored by, or authorized by Anthropic, and this is not the official Claude Certified Architect or Claude Certified Developer exam or certification. 'Claude', 'Claude Certified Architect', 'Claude Certified Developer' and 'CCA' are trademarks of Anthropic, PBC, used here only to identify the exams our materials help you prepare for.</p>\n` +
     `<p style="margin-top:8px;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.78rem;color:var(--text3)"><a href="/privacy/">Privacy Policy</a> &middot; <a href="/terms/">Terms of Service</a> &middot; <a href="/refund/">Refund Policy</a></p>\n` +
     `<p style="margin-top:8px">© ${year} CCA Practice Platforms · 361 Falls Rd #831, Grafton, WI 53024, USA · Questions? <a href="mailto:support@claudecertifiedarchitects.com">support@claudecertifiedarchitects.com</a></p>`
   );
@@ -572,6 +588,40 @@ const questionsSchemas = [
   ])
 ];
 
+/** Schemas for /ccdv-f-practice-questions (B3, Oct 2026) */
+const ccdvQuestionsSchemas = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: 'CCDV-F Practice Questions',
+    description: '200 Claude Certified Developer (CCDV-F) practice questions across all eight exam domains, every answer explained, plus a 53-question mock exam. Try 10 free.',
+    url: BASE + '/ccdv-f-practice-questions/',
+    isPartOf: { '@type': 'WebSite', name: schema.course.provider, url: BASE }
+  },
+  {
+    // FAQPage for the visible FAQ on ccdv-f-practice-questions/index.html; the
+    // mainEntity text must match the page's <h3>/<p> pairs word for word.
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      { '@type': 'Question', name: "How many questions are in the CCDV-F practice bank?",
+        acceptedAnswer: { '@type': 'Answer', text: "200 scenario-based questions across the eight domains in Section 6 of the exam guide (CCDV-F), weighted like the guide, including multiple-response items that state how many answers to select." } },
+      { '@type': 'Question', name: "How is it different from the CCAR-F practice bank?",
+        acceptedAnswer: { '@type': 'Answer', text: "They prepare for different exams. CCAR-F follows the five Architect domains; CCDV-F follows the eight Developer domains, from the API and SDKs to agents, tools, security and model selection. The CCDV-F questions were written separately for the developer guide." } },
+      { '@type': 'Question', name: "What do the explanations cover?",
+        acceptedAnswer: { '@type': 'Answer', text: "Every CCDV-F question explains why the correct answer is right and why each other option is wrong, with the documentation it is based on named in the explanation." } },
+      { '@type': 'Question', name: "Is this the official exam?",
+        acceptedAnswer: { '@type': 'Answer', text: "No. We are an independent exam-prep site, not affiliated with Anthropic. Registration for the exam itself happens through Anthropic Partner Academy." } },
+      { '@type': 'Question', name: "What if it isn't for me?",
+        acceptedAnswer: { '@type': 'Answer', text: "There is a 10-day money-back guarantee: request a full refund within 10 days of purchase." } },
+    ]
+  },
+  breadcrumb([
+    { name: 'Home',                     url: BASE },
+    { name: 'CCDV-F Practice Questions', url: BASE + '/ccdv-f-practice-questions/' }
+  ])
+];
+
 /** Schemas for /cca-exam-guide */
 const guideSchemas = [
   {
@@ -698,7 +748,7 @@ const faqPageQA = [
   },
   {
     q: 'What does the CCA Practice Platform include?',
-    a: 'The platform includes 400 scenario-based practice questions across all five exam domains — multiple-choice and multiple-response, matching the mixed format described in the official exam guide — full-length 120-minute timed exam simulations, a free 10-question diagnostic quiz that estimates your readiness against the 720/1,000 passing standard, and a complete exam guide covering format, domain weights, and study strategy.'
+    a: 'The platform covers both Foundations exams: a CCDV-F bank of 200 questions across the eight Developer domains, and, for the CCAR-F exam, 400 scenario-based practice questions across all five exam domains — multiple-choice and multiple-response, matching the mixed format described in the official exam guide — full-length 120-minute timed exam simulations, a free 10-question diagnostic quiz that estimates your readiness against the 720/1,000 passing standard, and a complete exam guide covering format, domain weights, and study strategy.'
   },
   {
     q: "Aren't these questions just AI-generated? Why pay when I could generate my own?",
@@ -1004,7 +1054,7 @@ nav .logo{font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:1r
 
 /** Shared nav HTML */
 function blogNav(activePage) {
-  return "<div id=\"site-banner\" role=\"note\" aria-label=\"Independence notice\">Independent exam prep · Not affiliated with or endorsed by Anthropic · Not the official CCA exam or certification<button id=\"site-banner-close\" aria-label=\"Dismiss notice\">✕</button></div>\n<script>(function(){var b=document.getElementById(\"site-banner\"),c=document.getElementById(\"site-banner-close\");if(!b)return;if(localStorage.getItem(\"ccaBanner\")===\"0\"){b.style.display=\"none\";document.documentElement.style.setProperty(\"--banner-h\",\"0px\");return;}function setH(){document.documentElement.style.setProperty(\"--banner-h\",b.offsetHeight+\"px\");}setH();window.addEventListener(\"resize\",setH);c.addEventListener(\"click\",function(){b.style.display=\"none\";document.documentElement.style.setProperty(\"--banner-h\",\"0px\");localStorage.setItem(\"ccaBanner\",\"0\");});})()</script>\n" + `<nav aria-label="Main navigation">\n  ` + wrapNav(renderNavInner({
+  return "<div id=\"site-banner\" role=\"note\" aria-label=\"Independence notice\">Independent exam prep · Not affiliated with or endorsed by Anthropic · Not an official Anthropic exam or certification<button id=\"site-banner-close\" aria-label=\"Dismiss notice\">✕</button></div>\n<script>(function(){var b=document.getElementById(\"site-banner\"),c=document.getElementById(\"site-banner-close\");if(!b)return;if(localStorage.getItem(\"ccaBanner\")===\"0\"){b.style.display=\"none\";document.documentElement.style.setProperty(\"--banner-h\",\"0px\");return;}function setH(){document.documentElement.style.setProperty(\"--banner-h\",b.offsetHeight+\"px\");}setH();window.addEventListener(\"resize\",setH);c.addEventListener(\"click\",function(){b.style.display=\"none\";document.documentElement.style.setProperty(\"--banner-h\",\"0px\");localStorage.setItem(\"ccaBanner\",\"0\");});})()</script>\n" + `<nav aria-label="Main navigation">\n  ` + wrapNav(renderNavInner({
     logo: LOGO_START + LOGO_HTML + LOGO_END,
     family: 'blog',
     activePage: activePage,
@@ -1022,7 +1072,7 @@ function blogFooter() {
 <!-- cca:footer:start -->
   <p style="margin:0 0 6px">&copy; ${year} CCA Practice Platforms &middot; 361 Falls Rd #831, Grafton, WI 53024, USA</p>
   <p style="margin:0 0 10px;font-size:.82rem">${links}</p>
-  <p style="max-width:620px;margin:0 auto;font-size:.85rem;line-height:1.65;color:#c8c8be">CCA Practice Platforms is an independent exam-preparation resource. We are not affiliated with, endorsed by, sponsored by, or authorized by Anthropic, and this is not the official Claude Certified Architect exam or certification. 'Claude', 'Claude Certified Architect', and 'CCA' are trademarks of Anthropic, PBC, used here only to identify the exam our materials help you prepare for.</p>
+  <p style="max-width:620px;margin:0 auto;font-size:.85rem;line-height:1.65;color:#c8c8be">CCA Practice Platforms is an independent exam-preparation resource. We are not affiliated with, endorsed by, sponsored by, or authorized by Anthropic, and this is not the official Claude Certified Architect or Claude Certified Developer exam or certification. 'Claude', 'Claude Certified Architect', 'Claude Certified Developer' and 'CCA' are trademarks of Anthropic, PBC, used here only to identify the exams our materials help you prepare for.</p>
   <p style="margin:8px 0 0;font-size:.82rem"><a href="/privacy/">Privacy Policy</a> &middot; <a href="/terms/">Terms of Service</a> &middot; <a href="/refund/">Refund Policy</a></p>
   <p style="margin:8px 0 0;font-size:.82rem">Questions? <a href="mailto:support@claudecertifiedarchitects.com">support@claudecertifiedarchitects.com</a></p>
 <!-- cca:footer:end -->
@@ -1323,6 +1373,7 @@ function generateSitemap(posts = []) {
     { loc: BASE + '/',                         priority: '1.0', changefreq: 'weekly',  lastmod: gitLastmod('index.html') },
     { loc: BASE + '/cca-foundations-exam/',     priority: '0.9', changefreq: 'weekly',  lastmod: gitLastmod('cca-foundations-exam/index.html') },
     { loc: BASE + '/cca-practice-questions/',   priority: '0.9', changefreq: 'weekly',  lastmod: gitLastmod('cca-practice-questions/index.html') },
+    { loc: BASE + '/ccdv-f-practice-questions/', priority: '0.9', changefreq: 'weekly',  lastmod: gitLastmod('ccdv-f-practice-questions/index.html') },
     { loc: BASE + '/cca-exam-guide/',           priority: '0.8', changefreq: 'monthly', lastmod: gitLastmod('cca-exam-guide/index.html') },
     { loc: BASE + '/blog/',                     priority: '0.7', changefreq: 'weekly',  lastmod: gitLastmod('blog/index.html') },
     { loc: BASE + '/register/',               priority: '0.8', changefreq: 'monthly', lastmod: gitLastmod('register/index.html') },
@@ -1355,7 +1406,7 @@ function generateSitemap(posts = []) {
 
   const dest = path.join(__dirname, 'sitemap.xml');
   fs.writeFileSync(dest, xml, 'utf8');
-  console.log('✓ sitemap.xml  (' + today + ', ' + (11 + posts.length) + ' URLs)');
+  console.log('✓ sitemap.xml  (' + today + ', ' + (12 + posts.length) + ' URLs)');
 }
 
 // ---------------------------------------------------------------------------
@@ -1371,6 +1422,9 @@ processFile(path.join(__dirname, 'cca-foundations-exam',   'index.html'), '/cca-
 
 processFile(path.join(__dirname, 'cca-practice-questions',  'index.html'), '/cca-practice-questions/',
   ...questionsSchemas);
+
+processFile(path.join(__dirname, 'ccdv-f-practice-questions', 'index.html'), '/ccdv-f-practice-questions/',
+  ...ccdvQuestionsSchemas);
 
 processFile(path.join(__dirname, 'cca-exam-guide',          'index.html'), '/cca-exam-guide/',
   ...guideSchemas);

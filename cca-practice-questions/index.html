@@ -104,7 +104,7 @@ footer a:hover{color:var(--accent-text)}
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GT-K8FC4RXW" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- End Google Tag Manager (noscript) -->
 
-<div id="site-banner" role="note" aria-label="Independence notice">Independent exam prep · Not affiliated with or endorsed by Anthropic · Not the official CCA exam or certification<button id="site-banner-close" aria-label="Dismiss notice">&#x2715;</button></div>
+<div id="site-banner" role="note" aria-label="Independence notice">Independent exam prep · Not affiliated with or endorsed by Anthropic · Not an official Anthropic exam or certification<button id="site-banner-close" aria-label="Dismiss notice">&#x2715;</button></div>
 <script>(function(){var b=document.getElementById('site-banner'),c=document.getElementById('site-banner-close');if(!b)return;if(localStorage.getItem('ccaBanner')==='0'){b.style.display='none';document.documentElement.style.setProperty('--banner-h','0px');return;}function setH(){document.documentElement.style.setProperty('--banner-h',b.offsetHeight+'px');}setH();window.addEventListener('resize',setH);c.addEventListener('click',function(){b.style.display='none';document.documentElement.style.setProperty('--banner-h','0px');localStorage.setItem('ccaBanner','0');});})()</script>
 <nav>
   <!-- cca:nav:start -->
@@ -120,7 +120,13 @@ footer a:hover{color:var(--accent-text)}
         <div class="cnav-row"><a href="/study-plan-generator/" class="cnav-rl">Study Plan</a><div class="cnav-rd">A free schedule built from your exam date</div></div>
         <div class="cnav-row"><a href="/register/" class="cnav-rl" aria-label="Official Claude Certified Architect exam registration on Anthropic's site">Exam Info</a><div class="cnav-rd">Format, passing score and how to book</div></div>
       </div></div>
-    <!-- cca:nav:developer-slot (B3 adds the Developer dropdown here at launch; empty in N1) -->
+    <div class="cnav-dd"><button type="button" class="cnav-item" aria-expanded="false" aria-haspopup="true">Developer <svg class="cnav-chev" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
+      <div class="cnav-panel">
+        <div class="cnav-ph">CLAUDE CERTIFIED DEVELOPER (CCDV-F)</div>
+        <div class="cnav-row"><a href="/ccdv-f-practice-questions/" class="cnav-rl">Practice Questions</a><div class="cnav-rd">200 questions across all eight domains</div></div>
+        <div class="cnav-row"><a href="/?startTest=quick&product=ccdv" class="cnav-rl">Free 10-Question Sprint</a><div class="cnav-rd">Try the question style, no payment</div></div>
+        <div class="cnav-row"><a href="/blog/ccdv-f-vs-ccar-f-claude-developer-exam/" class="cnav-rl">CCDV-F vs CCAR-F</a><div class="cnav-rd">Which exam fits your role</div></div>
+      </div></div>
     <div class="cnav-dd"><button type="button" class="cnav-item" aria-expanded="false" aria-haspopup="true">Resources <svg class="cnav-chev" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
       <div class="cnav-panel cnav-panel-sm">
         <div class="cnav-row"><a href="/cca-exam-guide/" class="cnav-rl">Guide</a></div>
@@ -148,7 +154,10 @@ footer a:hover{color:var(--accent-text)}
   <a href="/diagnostic/" class="cnav-ml">Diagnostic<span aria-hidden="true">&rsaquo;</span></a>
   <a href="/study-plan-generator/" class="cnav-ml">Study Plan<span aria-hidden="true">&rsaquo;</span></a>
   <a href="/register/" class="cnav-ml" aria-label="Official Claude Certified Architect exam registration on Anthropic's site">Exam Info<span aria-hidden="true">&rsaquo;</span></a>
-  <!-- cca:nav:developer-slot (B3 adds the DEVELOPER (CCDV-F) section here at launch; empty in N1) -->
+  <div class="cnav-mh">DEVELOPER (CCDV-F)</div>
+  <a href="/ccdv-f-practice-questions/" class="cnav-ml">Practice Questions<span aria-hidden="true">&rsaquo;</span></a>
+  <a href="/?startTest=quick&product=ccdv" class="cnav-ml">Free 10-Question Sprint<span aria-hidden="true">&rsaquo;</span></a>
+  <a href="/blog/ccdv-f-vs-ccar-f-claude-developer-exam/" class="cnav-ml">CCDV-F vs CCAR-F<span aria-hidden="true">&rsaquo;</span></a>
   <div class="cnav-mh">RESOURCES</div>
   <a href="/cca-exam-guide/" class="cnav-ml">Guide<span aria-hidden="true">&rsaquo;</span></a>
   <a href="/blog/" class="cnav-ml">Blog<span aria-hidden="true">&rsaquo;</span></a>
@@ -261,8 +270,8 @@ footer a:hover{color:var(--accent-text)}
 <footer>
 <div class="container">
 <!-- cca:footer:start -->
-<div class="links-row"><a href="/">Home</a> &middot; <a href="/cca-foundations-exam/">Full Mock Exam</a> &middot; <a href="/?hub=practice-tests">Practice Tests</a> &middot; <a href="/cca-practice-questions/">Question Bank</a> &middot; <a href="/cca-exam-guide/">Guide</a> &middot; <a href="/diagnostic/">Diagnostic</a> &middot; <a href="/study-plan-generator/">Study Plan</a> &middot; <a href="/blog/">Blog</a> &middot; <a href="/faq/">FAQ</a> &middot; <a href="/register/">Exam Info</a></div>
-<p class="footer-disclaimer">CCA Practice Platforms is an independent exam-preparation resource. We are not affiliated with, endorsed by, sponsored by, or authorized by Anthropic, and this is not the official Claude Certified Architect exam or certification. 'Claude', 'Claude Certified Architect', and 'CCA' are trademarks of Anthropic, PBC, used here only to identify the exam our materials help you prepare for.</p>
+<div class="links-row"><a href="/">Home</a> &middot; <a href="/cca-foundations-exam/">Full Mock Exam</a> &middot; <a href="/?hub=practice-tests">Practice Tests</a> &middot; <a href="/cca-practice-questions/">Question Bank</a> &middot; <a href="/ccdv-f-practice-questions/">Developer (CCDV-F)</a> &middot; <a href="/cca-exam-guide/">Guide</a> &middot; <a href="/diagnostic/">Diagnostic</a> &middot; <a href="/study-plan-generator/">Study Plan</a> &middot; <a href="/blog/">Blog</a> &middot; <a href="/faq/">FAQ</a> &middot; <a href="/register/">Exam Info</a></div>
+<p class="footer-disclaimer">CCA Practice Platforms is an independent exam-preparation resource. We are not affiliated with, endorsed by, sponsored by, or authorized by Anthropic, and this is not the official Claude Certified Architect or Claude Certified Developer exam or certification. 'Claude', 'Claude Certified Architect', 'Claude Certified Developer' and 'CCA' are trademarks of Anthropic, PBC, used here only to identify the exams our materials help you prepare for.</p>
 <p style="margin-top:8px;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.78rem;color:var(--text3)"><a href="/privacy/">Privacy Policy</a> &middot; <a href="/terms/">Terms of Service</a> &middot; <a href="/refund/">Refund Policy</a></p>
 <p style="margin-top:8px">© 2026 CCA Practice Platforms · 361 Falls Rd #831, Grafton, WI 53024, USA · Questions? <a href="mailto:support@claudecertifiedarchitects.com">support@claudecertifiedarchitects.com</a></p>
 <!-- cca:footer:end -->

@@ -170,15 +170,15 @@ function updateProductPricingCards() {
 // product-aware labels. While it is false the site behaves exactly as the
 // single-product site did; the launch commit flips it to true. Ownership is
 // never gated by it: owns('ccdv') reads the products claim whatever the flag.
-const CCDV_LAUNCHED = false;
+const CCDV_LAUNCHED = true;
 function ccdvLive() { return CCDV_LAUNCHED === true; }
 // Payment Links for the two other prices (owner-created in Stripe, mapped on
-// Render through PAYMENT_LINK_CCDV and PAYMENT_LINK_BUNDLE). Empty until the
-// launch commit: an empty link must never fall back to the CCAR-F link, so
-// openPaymentModal() shows "not open yet" instead of sending the buyer to the
-// wrong product.
-const STRIPE_PAYMENT_LINK_CCDV   = '';
-const STRIPE_PAYMENT_LINK_BUNDLE = '';
+// Render through PAYMENT_LINK_CCDV and PAYMENT_LINK_BUNDLE). The links stay
+// deactivated in Stripe until the launch day; an empty link must never fall
+// back to the CCAR-F link, so openPaymentModal() shows "not open yet" instead
+// of sending the buyer to the wrong product.
+const STRIPE_PAYMENT_LINK_CCDV   = 'https://buy.stripe.com/9B6bIUa96d5H1jX7VK3ks02';
+const STRIPE_PAYMENT_LINK_BUNDLE = 'https://buy.stripe.com/7sY9AMbda8PraUx5NC3ks03';
 function paymentLinkFor(product) {
   if (product === 'ccdv')   return STRIPE_PAYMENT_LINK_CCDV;
   if (product === 'bundle') return STRIPE_PAYMENT_LINK_BUNDLE;
@@ -1264,6 +1264,11 @@ function updateDashCards() {
   // The diagnostic is a CCAR-F instrument, so the hint stays on the Architect tab.
   const diagHint = document.getElementById('dash-diagnostic-hint');
   if (diagHint) diagHint.style.display = (own || product !== 'ccar') ? 'none' : '';
+  // The study-plan generator is built on the five CCAR-F domains, so its banner
+  // shows on the Architect tab only (the launch keeps the shipped markup; this
+  // is the first sibling hint in the dashboard, the one without an id).
+  const planHint = document.querySelector('#dashboard-section .dash-diagnostic-hint:not(#dash-diagnostic-hint)');
+  if (planHint) planHint.style.display = product === 'ccar' ? '' : 'none';
 
   // Keep the purchase CTAs in sync with enrollment too — they share the same
   // `enrolled` flips as the dashboard cards, so driving them from here means
