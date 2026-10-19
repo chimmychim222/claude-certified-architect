@@ -141,8 +141,21 @@
   // ── Deferred Firebase Auth load ────────────────────────────────────────────
   // Uses requestIdleCallback (with 3 s timeout fallback) so the Firebase SDK
   // download never competes with the page's critical rendering path.
+  // (G, Oct 2026) A buy button on a static page goes through the homepage
+  // (/?checkout=true), whose app.js is cold for a visitor who landed here.
+  // Prefetch it at idle so that hop finds it in the cache. Pages that already
+  // load app.js (the diagnostic) skip this. No markup changes.
+  function prefetchApp() {
+    try {
+      if (document.querySelector('script[src="/app.js"]') || document.querySelector('link[rel="prefetch"][href="/app.js"]')) return;
+      var l = document.createElement('link'); l.rel = 'prefetch'; l.href = '/app.js'; l.as = 'script';
+      document.head.appendChild(l);
+    } catch (e) {}
+  }
+
   function loadAuth() {
     if (!getCluster()) return; // not a static-nav page
+    prefetchApp();
 
     Promise.all([
       import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js'),

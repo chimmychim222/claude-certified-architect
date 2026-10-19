@@ -1486,6 +1486,10 @@ function closeAuthModal(method) {
 // response to a click (see buyNow() on /diagnostic/).
 function openAuthModalLoading(message) {
   document.getElementById('auth-modal').classList.add('show');
+  // (G) The modal keeps the title of whatever opened it last ("Log In",
+  // "Create Account"); a loading state is neither, so it gets its own title.
+  const loadingTitle = document.getElementById('auth-modal-title');
+  if (loadingTitle) loadingTitle.textContent = 'One moment';
   document.getElementById('auth-error').style.display = 'none';
   const subtitle = document.getElementById('auth-modal-subtitle');
   if (subtitle) subtitle.style.display = 'none';
