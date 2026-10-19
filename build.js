@@ -650,7 +650,7 @@ const registerSchemas = [
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     name: 'Register for the CCA Exam',
-    description: "Register for the Claude Certified Architect (CCAR-F) exam: the $125 fee, who can register, booking with Pearson VUE, and the exam format. Independent guide.",
+    description: "Register for the CCA Foundations exam through Anthropic's official certification page; the exam is delivered via Pearson VUE. Review exam details, passing score, format, and cost before booking.",
     url: BASE + '/register/',
     isPartOf: { '@type': 'WebSite', name: schema.course.provider, url: BASE }
   }
