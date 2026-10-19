@@ -482,8 +482,13 @@ async function loadActiveBankOnce() {
 function activeBank() {
   if (!activeBankPromise) {
     const p = (async function () {
-      let lastErr = null;
+      // (A) Never read the paid bank without an entitled session: wait for the
+      // first auth state, then refuse at once, with no retry and no event.
+      await whenAuthSettled();
+      if (!currentUser || !enrolled) throw Object.assign(new Error('not entitled'), { code: 'not-entitled' });
+      let lastErr = null, attemptsMade = 0;
       for (let attempt = 1; attempt <= 1 + BANK_LOAD_RETRIES; attempt++) {
+        attemptsMade = attempt;
         try {
           const r = await loadActiveBankOnce();
           const counts = {};
@@ -494,10 +499,12 @@ function activeBank() {
           return r;
         } catch (e) {
           lastErr = e;
+          // (A) A rules denial does not change by waiting: fail at once.
+          if (e && e.code === 'permission-denied') break;
           if (attempt <= BANK_LOAD_RETRIES) await sleepMs(BANK_LOAD_BACKOFF_MS[attempt - 1] || 4000);
         }
       }
-      bankLoadError((lastErr && (lastErr.code || lastErr.name)) || 'unknown', 1 + BANK_LOAD_RETRIES);
+      bankLoadError((lastErr && (lastErr.code || lastErr.name)) || 'unknown', attemptsMade);
       throw lastErr || new Error('bank load failed');
     })();
     activeBankPromise = p;
@@ -539,6 +546,20 @@ function hideBankLoadError() { const box = document.getElementById('bank-load-er
 // ═══════════════════════════════════════
 let currentUser = null;
 let enrolled = false;
+// (A, 19 Oct 2026) Resolves once the first auth state AND its entitlement check
+// are known, so no paid read runs before a persisted session has been restored
+// (an enrolled visitor who clicks within the first second on a slow network).
+// Capped so a page whose Firebase never answers still settles.
+let authSettledResolve = null;
+const authSettled = new Promise(function (r) { authSettledResolve = r; });
+function settleAuth() { if (authSettledResolve) { authSettledResolve(); authSettledResolve = null; } }
+const AUTH_SETTLE_MAX_MS = 10000;
+function whenAuthSettled() { return Promise.race([authSettled, sleepMs(AUTH_SETTLE_MAX_MS)]); }
+// The lesson plan shown to a visitor who is not entitled: titles only, no read.
+const LESSON_PLAN_TITLES = ['Agentic Architecture &amp; Orchestration', 'Claude Code Configuration', 'Prompt Engineering &amp; Structured Output', 'Tool Design &amp; MCP Integration', 'Context Management &amp; Reliability'];
+function lessonPlanPreviewHtml() {
+  return '<div class="lesson-plan-preview"><p>The five lesson modules are part of the CCAR-F practice bank:</p><ol>' + LESSON_PLAN_TITLES.map(function (t) { return '<li>' + t + '</li>'; }).join('') + '</ol><p><button type="button" class="btn-primary" onclick="openPaymentModal()">Unlock all 400 questions and the lessons: $49</button></p><p class="q-paywall-sub">One-time payment · Lifetime access · 10-day money-back guarantee</p></div>';
+}
 
 function updateNavUI() {
   const loggedOut = document.getElementById('nav-logged-out');
@@ -721,6 +742,7 @@ function initAuthListener() {
           updateDashCards();
         }
       } catch(e) { console.warn('[Auth] Token refresh error:', e.message); }
+      settleAuth();
 
       // ?claim=1 — this account may have a pending_enrollments record
       // waiting on email verification (see the capture above). Attempt it
@@ -846,6 +868,7 @@ function initAuthListener() {
     } else {
       enrolled = false;
       sessionId = null;
+      settleAuth();
       // Clear the nav-auth.js hint flags so static pages revert to logged-out state.
       try { localStorage.removeItem('cca_logged_in'); localStorage.removeItem('cca_enrolled'); } catch(e) {}
       if (sessionUnsubscribe) { sessionUnsubscribe(); sessionUnsubscribe = null; }
@@ -3584,6 +3607,19 @@ let currentLesson = 0;
 let ACTIVE_LESSONS = [];
 async function renderLessons() {
   lessonsLoaded = true;
+  // (A) The lessons are paid content. Wait for the session to settle, then show
+  // the plan with an unlock button to anyone not entitled; no Firestore read.
+  {
+    const nav0 = document.getElementById('lesson-nav'), content0 = document.getElementById('lesson-content');
+    if (content0 && !(currentUser && enrolled)) content0.innerHTML = '<p>Loading…</p>';
+    await whenAuthSettled();
+    if (!currentUser || !enrolled) {
+      lessonsLoaded = false;
+      if (nav0) nav0.innerHTML = '';
+      if (content0) content0.innerHTML = lessonPlanPreviewHtml();
+      return;
+    }
+  }
   // Stage B2: the lessons come with the bank from Firestore. On a failed load
   // the view shows the error box; Retry renders again from a fresh load.
   try { ACTIVE_LESSONS = (await activeBank()).lessons; }
