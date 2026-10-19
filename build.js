@@ -562,27 +562,9 @@ const questionsSchemas = [
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     name: 'CCAR-F Practice Questions',
-    description: '400 Claude Certified Architect (CCAR-F, CCA-F) practice exam questions with answers and explanations, plus a full 60-question mock exam. Try 10 free.',
+    description: '400 scenario-based CCA practice questions across all 5 exam domains, with detailed explanations, multiple test modes and domain-weighted scoring. A free 55-question sample needs no account.',
     url: BASE + '/cca-practice-questions/',
     isPartOf: { '@type': 'WebSite', name: schema.course.provider, url: BASE }
-  },
-  {
-    // FAQPage for the visible FAQ on cca-practice-questions/index.html; the
-    // mainEntity text must match the page's <h3>/<p> pairs word for word.
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: [
-      { '@type': 'Question', name: 'How many practice questions are included?',
-        acceptedAnswer: { '@type': 'Answer', text: '400 questions across the five CCAR-F exam domains, weighted the way Section 4 of the official exam guide weights them. Every question has a written explanation of why the right answer is right.' } },
-      { '@type': 'Question', name: 'Is there a full-length practice exam?',
-        acceptedAnswer: { '@type': 'Answer', text: 'Yes. The Full Certification Exam draws 60 questions from the 400-question bank in 120 minutes, the same number of items and time limit Section 3 of the exam guide lists for the CCAR-F.' } },
-      { '@type': 'Question', name: 'Can I try it before paying?',
-        acceptedAnswer: { '@type': 'Answer', text: 'Yes. The 10-question Quick Sprint is free and draws from a fixed 55-question sample of the same bank, and the free diagnostic shows where you stand in each domain.' } },
-      { '@type': 'Question', name: 'How much does it cost?',
-        acceptedAnswer: { '@type': 'Answer', text: '$49, one time, with no subscription. Every purchase is covered by a 10-day money-back guarantee.' } },
-      { '@type': 'Question', name: 'Is this the official exam?',
-        acceptedAnswer: { '@type': 'Answer', text: 'No. We are an independent prep site, not affiliated with Anthropic. The official CCAR-F exam is taken through Anthropic Partner Academy and Pearson VUE.' } }
-    ]
   },
   breadcrumb([
     { name: 'Home',                     url: BASE },
