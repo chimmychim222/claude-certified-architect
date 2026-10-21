@@ -4042,8 +4042,17 @@ function exitTest() {
   if (currentTest && !currentTest.finished) {
     if (!confirm('Exit test? Your progress will be lost.')) return;
   }
+  // Leaving a test returns to the Practice Tests dashboard on the tab the test
+  // started from (Developer or Architect), not to the top of the homepage.
+  const exitProduct = (currentTest && currentTest.product === 'ccdv') ? 'ccdv' : 'ccar';
   currentTest = null;
-  window.location.href = '/';
+  if (document.getElementById('dashboard-section')) {
+    if (ccdvLive()) setDashProduct(exitProduct);
+    showSection('dashboard');
+    window.scrollTo(0, 0);
+  } else {
+    window.location.href = '/?hub=practice-tests' + (ccdvLive() && exitProduct === 'ccdv' ? '&product=ccdv' : '');
+  }
 }
 
 // ═══════════════════════════════════════
