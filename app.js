@@ -299,11 +299,17 @@ document.addEventListener('DOMContentLoaded', function() {
       // other two prices (consumed through pendingCheckoutProduct()).
       if (_checkoutParam === 'true' || _checkoutParam === 'resume' || _checkoutParam === 'ccdv' || _checkoutParam === 'bundle') {
         window.__pendingCheckout = true;
+        // (Back from Stripe) this page load is the hop from a static page's link;
+        // trackCheckoutAndGo() then leaves no history entry for it.
+        window.__checkoutHop = true;
         try { sessionStorage.setItem('cca_checkout_intent', '1'); } catch(e) {}
         try { if (_checkoutParam === 'ccdv' || _checkoutParam === 'bundle') sessionStorage.setItem('cca_checkout_product', _checkoutParam); else sessionStorage.removeItem('cca_checkout_product'); } catch(e) {}
         window.history.replaceState({}, '', window.location.pathname);
         if (typeof gtag !== 'undefined') { gtag('event', 'checkout_intent_landed', { checkout_param: _checkoutParam }); }
       }
+      // A ?startTest= arrival from a static page (e.g. /register/) can also end at Stripe for a
+      // non-owner; it is the same kind of hop.
+      if (new URLSearchParams(window.location.search).get('startTest')) window.__checkoutHop = true;
     } catch(e) {}
   })();
 
@@ -463,7 +469,11 @@ window.addEventListener('pageshow', function(e) {
   if (!e.persisted) return;
   // Abandon any pending checkout intent — the user left Stripe voluntarily.
   window.__pendingCheckout = false;
+  window.__checkoutHop = false;
   try { sessionStorage.removeItem('cca_checkout_intent'); } catch (_) {}
+  try { sessionStorage.removeItem('cca_checkout_product'); } catch (_) {}
+  // A redirect still armed on its 1 s timer must not fire into the restored page.
+  try { checkoutCancelled = true; if (typeof _checkoutGoTimer !== 'undefined' && _checkoutGoTimer) { clearTimeout(_checkoutGoTimer); _checkoutGoTimer = null; } } catch (_) {}
   // Unconditionally reset the modal on bfcache restore — don't rely on
   // classList.contains('show') which can be unreliable mid-restore. The
   // page was mid-checkout when it left, so any modal state is stale.
@@ -2689,9 +2699,18 @@ function trackCheckoutAndGo(url) {
     const a = document.createElement('a');
     a.href = url;
     a.style.display = 'none';
+    // (Back from Stripe) When this page load was itself the hop from a static
+    // page's ?checkout= / ?startTest= link, the homepage must leave no history
+    // entry: Stripe replaces it, so Back from Stripe returns to the page the
+    // buyer started on. The anchor is still clicked so the linker can decorate
+    // the href; the navigation itself is then taken with location.replace().
+    const hop = !!window.__checkoutHop;
+    if (hop) a.addEventListener('click', function (ev) { ev.preventDefault(); });
     document.body.appendChild(a);
     a.click();
+    const finalHref = a.href;
     a.remove();
+    if (hop) window.location.replace(finalHref);
   };
   if (checkoutEventSent) { go(); return; }
   checkoutEventSent = true;
