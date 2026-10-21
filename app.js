@@ -1026,7 +1026,7 @@ function initAuthListener() {
         // page reinit (any reload of any page).
         window.__pendingCheckout = false;
         try { sessionStorage.removeItem('cca_checkout_intent'); } catch (e) {}
-        openPaymentModal();
+        openPaymentModal(pendingCheckoutProduct());
       }
       // Static-page header "Log In" / "Sign Up Free" buttons route to
       // /?login=true and /?signup=true respectively. The DOMContentLoaded
