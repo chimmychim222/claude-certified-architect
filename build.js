@@ -169,7 +169,7 @@ const NAV2_ARCH = [
 ];
 // B3 (Oct 2026): the Developer dropdown that fills the slot N1 left empty.
 const NAV2_DEV = [
-  ['/ccdv-f-practice-questions/',                        'Practice Questions',     '200 questions across all eight domains', ''],
+  ['/ccdv-f-practice-questions/',                        'Practice Questions',     '400 questions across all eight domains', ''],
   ['/?startTest=quick&product=ccdv',                     'Free 10-Question Sprint', 'Try the question style, no payment', ''],
   ['/blog/ccdv-f-vs-ccar-f-claude-developer-exam/',      'CCDV-F vs CCAR-F',       'Which exam fits your role', '']
 ];
@@ -594,7 +594,7 @@ const ccdvQuestionsSchemas = [
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     name: 'CCDV-F Practice Questions',
-    description: '200 Claude Certified Developer (CCDV-F) practice questions across all eight exam domains, every answer explained, plus a 53-question mock exam. Try 10 free.',
+    description: '400 Claude Certified Developer (CCDV-F) practice questions across all eight exam domains, every answer explained, plus a 53-question mock exam. Try 10 free.',
     url: BASE + '/ccdv-f-practice-questions/',
     isPartOf: { '@type': 'WebSite', name: schema.course.provider, url: BASE }
   },
@@ -605,7 +605,7 @@ const ccdvQuestionsSchemas = [
     '@type': 'FAQPage',
     mainEntity: [
       { '@type': 'Question', name: "How many questions are in the CCDV-F practice bank?",
-        acceptedAnswer: { '@type': 'Answer', text: "200 scenario-based questions across the eight domains in Section 6 of the exam guide (CCDV-F), weighted like the guide, including multiple-response items that state how many answers to select." } },
+        acceptedAnswer: { '@type': 'Answer', text: "400 scenario-based questions across the eight domains in Section 6 of the exam guide (CCDV-F), weighted like the guide, including multiple-response items that state how many answers to select." } },
       { '@type': 'Question', name: "How is it different from the CCAR-F practice bank?",
         acceptedAnswer: { '@type': 'Answer', text: "They prepare for different exams. CCAR-F follows the five Architect domains; CCDV-F follows the eight Developer domains, from the API and SDKs to agents, tools, security and model selection. The CCDV-F questions were written separately for the developer guide." } },
       { '@type': 'Question', name: "What do the explanations cover?",
@@ -748,7 +748,7 @@ const faqPageQA = [
   },
   {
     q: 'What does the CCA Practice Platform include?',
-    a: 'The platform covers both Foundations exams: a CCDV-F bank of 200 questions across the eight Developer domains, and, for the CCAR-F exam, 400 scenario-based practice questions across all five exam domains — multiple-choice and multiple-response, matching the mixed format described in the official exam guide — full-length 120-minute timed exam simulations, a free 10-question diagnostic quiz that estimates your readiness against the 720/1,000 passing standard, and a complete exam guide covering format, domain weights, and study strategy.'
+    a: 'The platform covers both Foundations exams: a CCDV-F bank of 400 questions across the eight Developer domains, and, for the CCAR-F exam, 400 scenario-based practice questions across all five exam domains — multiple-choice and multiple-response, matching the mixed format described in the official exam guide — full-length 120-minute timed exam simulations, a free 10-question diagnostic quiz that estimates your readiness against the 720/1,000 passing standard, and a complete exam guide covering format, domain weights, and study strategy.'
   },
   {
     q: "Aren't these questions just AI-generated? Why pay when I could generate my own?",

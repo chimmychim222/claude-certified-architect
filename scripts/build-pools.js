@@ -72,7 +72,7 @@ console.log('Bank loaded from ' + BANK_DIR + ' (' + ALL_Q.length + ' items).');
 // volatile item, every domain represented, the three product-page samples
 // present. The sample is listed by id, never by stem, because the ids are
 // stable in that bank.
-const CCDV_BANK_SIZE = 200, CCDV_FREE_SIZE = 28, CCDV_FREE_MR = 3;
+const CCDV_BANK_SIZE = 400, CCDV_FREE_SIZE = 28, CCDV_FREE_MR = 3;
 const CCDV_PAGE_SAMPLES = ['ccdv-171', 'ccdv-053', 'ccdv-123'];
 const CCDV_RAW = bankLib.loadBankFiles(BANK_DIR, 'ccdv').items;
 if (CCDV_RAW.length !== CCDV_BANK_SIZE) die('the CCDV-F JSON bank holds ' + CCDV_RAW.length + ' items, expected exactly ' + CCDV_BANK_SIZE + '.');
