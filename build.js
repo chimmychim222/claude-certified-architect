@@ -171,10 +171,12 @@ const NAV2_ARCH = [
 const NAV2_DEV = [
   ['/ccdv-f-practice-questions/',                        'Practice Questions',     '400 questions across all eight domains', ''],
   ['/?startTest=quick&product=ccdv',                     'Free 10-Question Sprint', 'Try the question style, no payment', ''],
-  ['/blog/ccdv-f-vs-ccar-f-claude-developer-exam/',      'CCDV-F vs CCAR-F',       'Which exam fits your role', '']
+  ['/blog/ccdv-f-vs-ccar-f-claude-developer-exam/',      'CCDV-F vs CCAR-F',       'Which exam fits your role', ''],
+  ['/ccdv-f-exam-guide/',                                'Exam Info',              'Format, domains, scoring and how to book', '']
 ];
 const NAV2_RES = [
   ['/cca-exam-guide/', 'Guide'],
+  ['/ccdv-f-exam-guide/', 'CCDV-F Exam Guide'],
   ['/blog/',           'Blog'],
   ['/faq/',            'FAQ']
 ];
