@@ -70,6 +70,7 @@ CCA Practice Platforms (claudecertifiedarchitects.com) provides unofficial pract
 - [Already a Developer? What Transfers to the CCAR-F Exam](https://www.claudecertifiedarchitects.com/blog/ccar-f-for-developers/): Moving from software development into AI? Which Claude Certified Architect exam domains build on skills you already have, and where to focus your study.
 - [Turn Your CCAR-F Prep Into a Portfolio Project](https://www.claudecertifiedarchitects.com/blog/ccar-f-portfolio-project/): Build a public project while you study for the CCAR-F: how to choose one, make it portfolio-grade, and turn the build into exam prep.
 - [How to Get Your Employer to Pay for the CCAR-F](https://www.claudecertifiedarchitects.com/blog/ccar-f-employer-pay/): Your employer may already have a reason to pay for your CCAR-F. What the exam costs at each partner tier, why it counts for the company, and how to ask.
+- [CCAR-F in a Job Interview: Turning Exam Prep Into Answers](https://www.claudecertifiedarchitects.com/blog/ccar-f-job-interview/): How to use your CCAR-F preparation in a technical interview: what you can and cannot share, one story per domain, and how to practice the design round.
 
 ## Claude Development Skills
 
