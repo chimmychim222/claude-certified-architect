@@ -175,7 +175,7 @@ const NAV2_DEV = [
   ['/ccdv-f-exam-guide/',                                'Exam Info',              'Format, domains, scoring and how to book', '']
 ];
 const NAV2_RES = [
-  ['/cca-exam-guide/', 'Guide'],
+  ['/cca-exam-guide/', 'CCAR-F Exam Guide'],
   ['/ccdv-f-exam-guide/', 'CCDV-F Exam Guide'],
   ['/blog/',           'Blog'],
   ['/faq/',            'FAQ']
@@ -310,7 +310,7 @@ const FOOTER_NAV_PAGES = [
   ['/?hub=practice-tests',    'Practice Tests'],
   ['/cca-practice-questions/','Question Bank' ],
   ['/ccdv-f-practice-questions/','Developer (CCDV-F)' ],
-  ['/cca-exam-guide/',        'Guide'         ],
+  ['/cca-exam-guide/',        'CCAR-F Exam Guide'],
   ['/diagnostic/',            'Diagnostic'    ],
   ['/study-plan-generator/',  'Study Plan'    ],
   ['/blog/',                  'Blog'          ],
