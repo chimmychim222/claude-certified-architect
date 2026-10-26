@@ -4136,8 +4136,36 @@ document.querySelectorAll('.nav-links button[data-nav]').forEach(btn => {
 // for enrollment state — this early check is purely cosmetic: prevents the visible flash
 // where /?hub=practice-tests briefly renders the homepage hero before Firebase swaps it.
 if (!enrolled) {
-  const _earlyHub = new URLSearchParams(window.location.search).get('hub');
-  showSection(_earlyHub === 'practice-tests' ? 'dashboard' : 'home');
+  const _earlyParams = new URLSearchParams(window.location.search);
+  const _earlyHub = _earlyParams.get('hub');
+  // (26 Oct 2026) The email deep links ?product=ccdv and ?startTest=quick were
+  // handled only inside onAuthStateChanged, so a slow or blocked Firebase load
+  // left the visitor on the homepage (sprint link) or on the dashboard's
+  // Architect tab (hub link) for as long as the SDK took. Mirror the callback
+  // here: ?product=ccdv selects the Developer tab before the early dashboard
+  // render, and the free sprint starts at once when nothing says the visitor is
+  // signed in (no cca_logged_in hint). With the hint, wait for Firebase as
+  // before, so an enrolled visitor's sprint still draws from the full bank.
+  const _earlyProduct = ccdvLive() && _earlyParams.get('product') === 'ccdv';
+  if (_earlyProduct) activeProduct = 'ccdv';
+  showSection((_earlyHub === 'practice-tests' || (_earlyProduct && !_earlyParams.get('startTest'))) ? 'dashboard' : 'home');
+  let _earlyHint = null;
+  try { _earlyHint = localStorage.getItem('cca_logged_in'); } catch (e) {}
+  if (_earlyParams.get('startTest') === 'quick' && !_earlyHint) {
+    // A ?startTest= arrival is the same kind of hop the DOMContentLoaded
+    // capture marks (line 312), so a buy click after the sprint keeps the
+    // 21 Oct back-button behaviour.
+    window.__checkoutHop = true;
+    // Only the two handled parameters come out, the way the ?login=true
+    // capture keeps the rest of the query string: UTM tags, gclid, checkout,
+    // login and signup stay in the address for the later handlers and GA4.
+    // The callback then finds no ?startTest= and the sprint never starts twice.
+    var _earlyUrl = new URL(window.location.href);
+    _earlyUrl.searchParams.delete('startTest');
+    _earlyUrl.searchParams.delete('product');
+    window.history.replaceState({}, '', _earlyUrl.pathname + (_earlyUrl.searchParams.toString() ? '?' + _earlyUrl.searchParams.toString() : ''));
+    startTest('quick', productOf(_earlyParams.get('product')));
+  }
 }
 
 // updateDashCards() also renders the picker, but it only runs from
