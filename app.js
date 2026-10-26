@@ -321,7 +321,10 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
       if (new URLSearchParams(window.location.search).get('login') === 'true') {
         window.__pendingLogin = true;
-        window.history.replaceState({}, '', window.location.pathname);
+        // Strip only login=true so a companion ?product= or ?hub= still reaches the dashboard routing in onAuthStateChanged
+        // (the "log in to add CCDV-F" links use /?login=true&product=ccdv). Every existing link carries login=true alone.
+        var _loginUrl = new URL(window.location.href); _loginUrl.searchParams.delete('login');
+        window.history.replaceState({}, '', _loginUrl.pathname + (_loginUrl.searchParams.toString() ? '?' + _loginUrl.searchParams.toString() : ''));
       }
     } catch(e) {}
   })();
