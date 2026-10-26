@@ -161,18 +161,22 @@ const NAV2_SCRIPT =
   '})();';
 
 const NAV2_ARCH = [
-  ['/cca-practice-questions/', 'Question Bank',  '400 practice questions with explanations', ''],
-  ['/cca-foundations-exam/',   'Full Mock Exam', '60 questions in 120 minutes', ''],
-  ['/diagnostic/',             'Diagnostic',     '10 questions, no account needed', ''],
-  ['/study-plan-generator/',   'Study Plan',     'A free schedule built from your exam date', ''],
-  ['/register/',               'Exam Info',      'Format, passing score and how to book', ' aria-label="Official Claude Certified Architect exam registration on Anthropic\'s site"']
+  ['/cca-practice-questions/', 'CCAR-F Practice Questions', '400 practice questions with explanations', ''],
+  ['/?hub=practice-tests', 'Practice Dashboard', 'All CCAR-F test modes in one place', ''],
+  ['/?startTest=quick', 'Free 10-Question Sprint', 'Try the question style, no account needed', ''],
+  ['/cca-foundations-exam/', 'Full Mock Exam', '60 questions in 120 minutes', ''],
+  ['/diagnostic/', 'Diagnostic', '10 questions, no account needed', ''],
+  ['/study-plan-generator/', 'Study Plan', 'A free schedule built from your exam date', ''],
+  ['/register/', 'Exam Info', 'Format, passing score and how to book', ' aria-label="Official Claude Certified Architect exam registration on Anthropic\'s site"']
 ];
 // B3 (Oct 2026): the Developer dropdown that fills the slot N1 left empty.
 const NAV2_DEV = [
-  ['/ccdv-f-practice-questions/',                        'Practice Questions',     '400 questions across all eight domains', ''],
-  ['/?startTest=quick&product=ccdv',                     'Free 10-Question Sprint', 'Try the question style, no payment', ''],
-  ['/blog/ccdv-f-vs-ccar-f-claude-developer-exam/',      'CCDV-F vs CCAR-F',       'Which exam fits your role', ''],
-  ['/ccdv-f-exam-guide/',                                'Exam Info',              'Format, domains, scoring and how to book', '']
+  ['/ccdv-f-practice-questions/', 'CCDV-F Practice Questions', '400 questions across all eight domains', ''],
+  ['/?hub=practice-tests&product=ccdv', 'Practice Dashboard', 'All CCDV-F test modes in one place', ''],
+  ['/?startTest=quick&product=ccdv', 'Free 10-Question Sprint', 'Try the question style, no payment', ''],
+  ['/ccdv-f-mock-exam/', 'Full Mock Exam', '53 questions in 120 minutes', ''],
+  ['/blog/ccdv-f-vs-ccar-f-claude-developer-exam/', 'CCDV-F vs CCAR-F', 'Which exam fits your role', ''],
+  ['/ccdv-f-exam-guide/', 'Exam Info', 'Format, domains, scoring and how to book', '']
 ];
 const NAV2_RES = [
   ['/cca-exam-guide/', 'CCAR-F Exam Guide'],
