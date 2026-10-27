@@ -3,10 +3,10 @@
 // CURRENCY DATA
 // ═══════════════════════════════════════
 const RATES = {
-  USD:1,EUR:.92,GBP:.79,CAD:1.36,AUD:1.53,JPY:149.5,CNY:7.24,INR:83.1,
-  BRL:4.97,KRW:1335,MXN:17.15,CHF:.88,SEK:10.42,SGD:1.34,NZD:1.63,
-  ZAR:18.65,NGN:1550,AED:3.67,SAR:3.75,PLN:3.98,THB:35.5,IDR:15650,
-  PHP:56.2,TWD:31.5,HKD:7.82,ILS:3.65,COP:3920,CLP:935,EGP:30.9,NOK:10.55,DKK:6.87
+  USD:1,EUR:.89,GBP:.75,CAD:1.40,AUD:1.42,JPY:157.4,CNY:6.68,INR:95.3,
+  BRL:5.43,KRW:1325,MXN:18.59,CHF:.83,SEK:9.95,SGD:1.28,NZD:1.76,
+  ZAR:16.64,NGN:1360,AED:3.67,SAR:3.75,PLN:3.94,THB:33.8,IDR:18149,
+  PHP:64,TWD:32.6,HKD:7.84,ILS:3.08,COP:3155,CLP:996,EGP:56.3,NOK:9.32,DKK:6.68
 };
 const SYMBOLS = {
   USD:'$',EUR:'€',GBP:'£',CAD:'CA$',AUD:'A$',JPY:'¥',CNY:'¥',INR:'₹',
@@ -16,14 +16,20 @@ const SYMBOLS = {
 };
 const NO_DECIMALS = ['JPY','KRW','CLP','IDR','COP','NGN'];
 
-function formatPrice(cur, usd) {
+function formatPrice(cur, usd, whole) {
   const amount = (usd || 49) * RATES[cur];
   const sym = SYMBOLS[cur] || cur + ' ';
-  const dec = NO_DECIMALS.includes(cur) ? 0 : 2;
+  // whole: round to whole units (the pricing-card buttons, 27 Oct 2026)
+  const dec = (whole || NO_DECIMALS.includes(cur)) ? 0 : 2;
   return sym + amount.toLocaleString('en-US', {minimumFractionDigits:dec, maximumFractionDigits:dec});
 }
-function updateCurrency() {
+function updateCurrency(opts) {
   const cur = document.getElementById('currency-select').value;
+  // (27 Oct 2026) GA4 currency_select, with the code picked, only when the
+  // visitor changes the dropdown (the select's onchange calls this with no
+  // argument); the sign-in re-apply below passes {reapply:true} and sends
+  // nothing, and nothing calls this on page load.
+  if (!(opts && opts.reapply)) { try { if (typeof gtag === 'function') gtag('event', 'currency_select', { currency: cur }); } catch (e) {} }
   const display = document.getElementById('price-display');
   const note = document.getElementById('price-note');
   // The Stripe Payment Link behind "Proceed to Secure Checkout" always
@@ -48,7 +54,7 @@ function updateCurrency() {
       note.style.display = 'none';
     } else {
       display.textContent = '≈ ' + formatPrice(cur);
-      note.textContent = 'Billed as $49.00 USD — shown amount is an estimate';
+      note.textContent = 'Amounts in other currencies are estimates. The exact amount is shown at checkout.';
       note.style.display = 'block';
     }
   }
@@ -62,9 +68,20 @@ function updateCurrency() {
   });
   const multiNote = document.getElementById('price-note-multi');
   if (multiNote) {
-    multiNote.textContent = cur === 'USD' ? '' : 'Billed in USD at the dollar price shown on each button; converted amounts are estimates.';
+    multiNote.textContent = cur === 'USD' ? '' : 'Amounts in other currencies are estimates. The exact amount is shown at checkout.';
     multiNote.style.display = cur === 'USD' ? 'none' : 'block';
   }
+  // (27 Oct 2026) The three launch pricing-card buttons follow the same
+  // ownership states updateProductPricingCards() uses (Get, Add at the
+  // upgrade price, Enrolled) and show the converted estimate, rounded to
+  // whole units, for a non-USD currency. Enrolled labels and every handler
+  // stay as they are; only the text of a buy label changes.
+  const money = function (usd) { return cur === 'USD' ? '$' + usd : '≈ ' + formatPrice(cur, usd, true); };
+  const setLabel = function (id, text) { const b = document.getElementById(id); if (b && !b.classList.contains('btn-enrolled')) b.textContent = text; };
+  const ownCcar = owns('ccar'), ownCcdv = owns('ccdv');
+  if (!ownCcar) setLabel('buy-ccar-btn', (ownCcdv ? 'Add CCAR-F: ' : 'Get CCAR-F: ') + money(ownCcdv ? 30 : 49));
+  if (!ownCcdv) setLabel('buy-ccdv-btn', (ownCcar ? 'Add CCDV-F: ' : 'Get CCDV-F: ') + money(ownCcar ? 50 : 69));
+  if (!ownCcar && !ownCcdv) setLabel('buy-bundle-btn', 'Get both: ' + money(99));
 }
 
 // ═══════════════════════════════════════
@@ -164,6 +181,9 @@ function updateProductPricingCards() {
     else if (ccdv) { h.textContent = 'You\'re enrolled in CCDV-F'; sub.textContent = 'Add the architect exam bank at your enrolled price. Both banks together come to $99, the same as the bundle.'; }
     else { h.textContent = 'Pick the exam you are preparing for'; sub.textContent = 'One-time payment, lifetime access, and a 10-day money-back guarantee on every option.'; }
   }
+  // (27 Oct 2026) The labels above are dollar labels; re-apply a currency the
+  // visitor picked before signing in, so the sign-in does not reset them.
+  try { const sel = document.getElementById('currency-select'); if (sel && sel.value !== 'USD') updateCurrency({ reapply: true }); } catch (e) {}
 }
 // CCDV_LAUNCHED gates every CCDV-F surface in this file: the dashboard tabs,
 // the Developer cards, the second free pool, the upgrade checkout and the
