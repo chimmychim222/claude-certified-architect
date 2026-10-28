@@ -161,7 +161,7 @@ const NAV2_SCRIPT =
   '})();';
 
 const NAV2_ARCH = [
-  ['/cca-practice-questions/', 'CCAR-F Practice Questions', '400 practice questions with explanations', ''],
+  ['/cca-practice-questions/', 'CCAR-F Practice Questions', '500 practice questions with explanations', ''],
   ['/?hub=practice-tests', 'Practice Dashboard', 'All CCAR-F test modes in one place', ''],
   ['/?startTest=quick', 'Free 10-Question Sprint', 'Try the question style, no account needed', ''],
   ['/cca-foundations-exam/', 'Full Mock Exam', '60 questions in 120 minutes', ''],

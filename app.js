@@ -551,7 +551,7 @@ function ensureFirestore() {
 // ═══════════════════════════════════════
 // BANK SOURCE (Stage B2 of the bank move, Oct 2026)
 // ═══════════════════════════════════════
-// The paid CCAR-F bank (400 items) and the five lessons live ONLY in Firestore
+// The paid CCAR-F bank (500 items) and the five lessons live ONLY in Firestore
 // (bank_ccar, one document per domain; lessons_ccar, one per module), readable
 // by an account whose ID token carries enrolled:true or products.ccar:true
 // (firestore.rules). Their source of truth is the private repository
@@ -621,7 +621,7 @@ function providerOf(user) {
 }
 function bankExpectedItems(product) {
   const table = product === 'ccdv' ? CCDV_BANK_DOMAIN_COUNTS : BANK_DOMAIN_COUNTS;
-  try { return Object.keys(table).reduce(function (n, k) { return n + table[k]; }, 0); } catch (e) { return product === 'ccdv' ? 400 : 400; }
+  try { return Object.keys(table).reduce(function (n, k) { return n + table[k]; }, 0); } catch (e) { return product === 'ccdv' ? 400 : 500; }
 }
 function bankLoadError(code, attempts) {
   try { if (typeof gtag !== 'undefined') gtag('event', 'bank_load_error', { error_code: String(code || 'none').slice(0, 40), attempts: attempts, provider: providerOf(currentUser) }); } catch (e) {}
@@ -722,7 +722,7 @@ function whenAuthSettled() { return Promise.race([authSettled, sleepMs(AUTH_SETT
 // The lesson plan shown to a visitor who is not entitled: titles only, no read.
 const LESSON_PLAN_TITLES = ['Agentic Architecture &amp; Orchestration', 'Claude Code Configuration', 'Prompt Engineering &amp; Structured Output', 'Tool Design &amp; MCP Integration', 'Context Management &amp; Reliability'];
 function lessonPlanPreviewHtml() {
-  return '<div class="lesson-plan-preview"><p>The five lesson modules are part of the CCAR-F practice bank:</p><ol>' + LESSON_PLAN_TITLES.map(function (t) { return '<li>' + t + '</li>'; }).join('') + '</ol><p><button type="button" class="btn-primary" onclick="openPaymentModal()">Unlock all 400 questions and the lessons: $49</button></p><p class="q-paywall-sub">One-time payment · Lifetime access · 10-day money-back guarantee</p></div>';
+  return '<div class="lesson-plan-preview"><p>The five lesson modules are part of the CCAR-F practice bank:</p><ol>' + LESSON_PLAN_TITLES.map(function (t) { return '<li>' + t + '</li>'; }).join('') + '</ol><p><button type="button" class="btn-primary" onclick="openPaymentModal()">Unlock all 500 questions and the lessons: $49</button></p><p class="q-paywall-sub">One-time payment · Lifetime access · 10-day money-back guarantee</p></div>';
 }
 
 function updateNavUI() {
@@ -1221,7 +1221,7 @@ function renderDashProductTabs() {
     }
     html += '<div class="dash-exam-strip"><span><b>53</b>items</span><span><b>120</b>minutes</span><span><b>MC + MR</b>multiple-choice and multiple-response</span><span><b>Scaled 720</b>to pass</span><span><b>8</b>domains</span><span class="strip-note">Section 5 of the exam guide (CCDV-F).' + (owns('ccdv') ? '' : ' Not sure which to start with? Try a free 10-question CCDV-F sprint and see the question style first.') + '</span></div>';
   } else if (!owns('ccar') && owns('ccdv')) {
-    html += '<div class="dash-upsell"><div class="kicker">YOU\'RE ENROLLED IN CCDV-F</div><h3>Add the architect exam to your prep</h3><p>400 scenario-based questions across the five CCAR-F domains, every one with a written explanation, a 60-question practice exam at the guide\'s weights and five lesson modules. It sits in this same dashboard, next to your CCDV-F tab.</p><button class="btn-primary" onclick="openPaymentModal(\'ccar\')">Add CCAR-F: $30</button><p class="fine">Your CCDV-F price: $30 instead of $49, so both banks total $99. 10-day money-back guarantee.</p></div>';
+    html += '<div class="dash-upsell"><div class="kicker">YOU\'RE ENROLLED IN CCDV-F</div><h3>Add the architect exam to your prep</h3><p>500 scenario-based questions across the five CCAR-F domains, every one with a written explanation, a 60-question practice exam at the guide\'s weights and five lesson modules. It sits in this same dashboard, next to your CCDV-F tab.</p><button class="btn-primary" onclick="openPaymentModal(\'ccar\')">Add CCAR-F: $30</button><p class="fine">Your CCDV-F price: $30 instead of $49, so both banks total $99. 10-day money-back guarantee.</p></div>';
   }
   host.innerHTML = html;
   foot.innerHTML = (!owns('ccar') && !owns('ccdv'))
@@ -1331,7 +1331,7 @@ function updatePricingCTAs() {
   const heroPrompt = document.getElementById('hero-enroll-prompt');
   if (heroPrompt) heroPrompt.style.display = enrolled ? 'none' : '';
   updateProductPricingCards();
-  // The hero's primary "Unlock all 400 questions: $49" button (index.html,
+  // The hero's primary "Unlock all 500 questions: $49" button (index.html,
   // lever 1, 12 Oct 2026) shares openPaymentModal() with #hero-enroll-btn; an
   // enrolled visitor already gets "Go to dashboard" below the stats, so this
   // one is simply hidden rather than relabeled.
@@ -3451,7 +3451,7 @@ function renderAttemptsList(attempts) {
 // ═══════════════════════════════════════
 // QUESTION BANK AND LESSONS
 // ═══════════════════════════════════════
-// Stage B2 (Oct 2026): the 400-item CCAR-F bank and the five lessons are no
+// Stage B2 (Oct 2026): the 500-item CCAR-F bank and the five lessons are no
 // longer bundled here. They live in Firestore (bank_ccar, lessons_ccar), read
 // by activeBank() above for enrolled accounts only; the source of truth is the
 // private repository cca-question-banks (its README carries the editing and
@@ -3526,7 +3526,7 @@ function shuffleArray(arr) {
 }
 
 // -- FULL-EXAM STRATIFICATION ----------------------------------------------
-// A uniform draw of 60 from a 400-item bank lands on the published weights
+// A uniform draw of 60 from a 500-item bank lands on the published weights
 // only in expectation. Context Management averages 9 but runs +/- 2.6, so an
 // individual attempt could serve 6 or 12 of it. These two functions make every
 // attempt carry the blueprint exactly.
@@ -3576,7 +3576,7 @@ function stratifiedDraw(pool, count, domains) {
 // -- FREE-PREVIEW DRAW ------------------------------------------------------
 // The draw for the two surfaces a logged-out visitor can run: the Focused
 // Session preview (five questions) and the unenrolled Quick Sprint (ten). Both
-// draw from FREE_POOL (below), a fixed sample of the bank, never from all 400.
+// draw from FREE_POOL (below), a fixed sample of the bank, never from all 500.
 // It draws ONE multiple-response item and count-1 single-select items, then
 // shuffles them so the MR item's slot is uniform. Every paid mode, and an
 // enrolled Quick Sprint, keeps the plain uniform draw over the whole bank in
@@ -4495,8 +4495,8 @@ function showFocusedPaywall() {
   document.getElementById('question-area').innerHTML = `
     <div class="q-paywall">
       <div class="q-paywall-icon">🔓</div>
-      <h2>You've seen the first 5. Unlock all 400 questions and timed exams for $49</h2>
-      <p>All 400 scenario-based questions across five CCAR-F domains, four timed exam modes, and every answer fully explained.</p>
+      <h2>You've seen the first 5. Unlock all 500 questions and timed exams for $49</h2>
+      <p>All 500 scenario-based questions across five CCAR-F domains, four timed exam modes, and every answer fully explained.</p>
       <button class="btn-primary" onclick="openPaymentModal()">Unlock full access: $49</button>
       <p class="q-paywall-altlink">Not sure yet? <a href="/diagnostic/">Take the free diagnostic</a> to see your weakest domain first</p>
       <div class="q-paywall-sub">One-time payment · Lifetime access · 10-day money-back guarantee</div>

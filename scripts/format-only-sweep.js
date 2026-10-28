@@ -9,7 +9,7 @@
  *
  *   A. FORMAT-ONLY: the PAID product described by format alone — a question
  *      count, a duration, a domain weighting, "full-length", "timed" — with
- *      nothing in the same block naming the 400-question bank it draws from.
+ *      nothing in the same block naming the 500-question bank it draws from.
  *      Four commits on 3 Sep 2026 fixed this class one screenshot at a time;
  *      run against the pre-fix bytes this detector found all four sites.
  *

@@ -209,8 +209,8 @@ function showFocusedPaywall() {
   document.getElementById('question-area').innerHTML = \`
     <div class="q-paywall">
       <div class="q-paywall-icon">🔓</div>
-      <h2>You've seen the first 5 — unlock all 400 questions and timed exams for $49</h2>
-      <p>All 400 scenario-based questions across five CCA domains, four timed exam modes, and every answer fully explained.</p>
+      <h2>You've seen the first 5 — unlock all 500 questions and timed exams for $49</h2>
+      <p>All 500 scenario-based questions across five CCA domains, four timed exam modes, and every answer fully explained.</p>
       <button class="btn-primary" onclick="openPaymentModal()">Unlock full access — $49</button>
       <div class="q-paywall-sub">One-time payment · Lifetime access · 10-day money-back guarantee</div>
     </div>\`;

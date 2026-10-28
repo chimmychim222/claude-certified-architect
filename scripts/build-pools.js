@@ -53,7 +53,7 @@ function die(msg) {
 // is dropped so FREE_POOL stays byte-for-byte what the old stem resolution
 // produced. app.js is still read for FREE_PREVIEW_MR_EXCLUDE and written for
 // FREE_POOL and BANK_DOMAIN_COUNTS.
-const BANK_SIZE = 400;   // the bank is 400 by decision (primer §0); a different count is a bank edit that must be deliberate
+const BANK_SIZE = 500;   // the bank is 500 by decision (28 Oct 2026 expansion) (primer §0); a different count is a bank edit that must be deliberate
 const BANK_DIR  = process.env.BANK_DIR || path.join(ROOT, '..', 'cca-question-banks');
 if (!fs.existsSync(path.join(BANK_DIR, 'lib.js'))) die('bank repository not found at ' + BANK_DIR + ' (clone cca-question-banks beside this repo, or set BANK_DIR)');
 const bankLib = require(path.join(BANK_DIR, 'lib.js'));

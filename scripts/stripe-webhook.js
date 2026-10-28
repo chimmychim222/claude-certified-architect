@@ -1619,7 +1619,7 @@ ${domainRows}
 
 ${weakestLine}
 
-Want to close the gap? The full 400-question practice bank covers every domain at real exam weightings, with detailed explanations for every answer.
+Want to close the gap? The full 500-question practice bank covers every domain at real exam weightings, with detailed explanations for every answer.
 
 👉 ${nurtureCtaUrl('results')}
 
@@ -2065,7 +2065,7 @@ function buildEmail2(results, unsubUrl) {
     '',
     stakesPara,
     '',
-    '$49 for 400 practice questions is the straightforward hedge against that outcome. Here’s a taste of what those questions look like:',
+    '$49 for 500 practice questions is the straightforward hedge against that outcome. Here’s a taste of what those questions look like:',
     '',
     sampleLabel,
     '',
@@ -2079,7 +2079,7 @@ function buildEmail2(results, unsubUrl) {
     '',
     '── The full bank ──',
     '',
-    '400 questions exactly like this, across all five exam domains. Every question has a written explanation of the correct answer, and many also walk through why the other options fall short.',
+    '500 questions exactly like this, across all five exam domains. Every question has a written explanation of the correct answer, and many also walk through why the other options fall short.',
     '',
     '$49. 10-day money-back guarantee: if you are not satisfied, email us for a full refund.',
     '',
@@ -2123,9 +2123,9 @@ function buildEmail2(results, unsubUrl) {
 
   const bodyHtml =
     eP('Hi,') + stakesHtml +
-    eP('$49 for 400 practice questions is the straightforward hedge. Here’s a taste:') +
+    eP('$49 for 500 practice questions is the straightforward hedge. Here’s a taste:') +
     questionBlockOut +
-    eP('400 questions like this, across all five domains. Every question has a written explanation of the correct answer, and many also walk through why the other options fall short.') +
+    eP('500 questions like this, across all five domains. Every question has a written explanation of the correct answer, and many also walk through why the other options fall short.') +
     eP('$49. 10-day money-back guarantee: if you are not satisfied, email us for a full refund.', 'font-weight:700') +
     eBtn('Unlock access: $49', cta);
 
@@ -2154,7 +2154,7 @@ function buildEmail3(results, unsubUrl) {
     '',
     opening,
     '',
-    'If you’ve been studying, great. The full practice bank is the best thing you can add at this point: 400 scenario-based questions, domain-weighted exactly like the real exam, every answer fully explained.',
+    'If you’ve been studying, great. The full practice bank is the best thing you can add at this point: 500 scenario-based questions, domain-weighted exactly like the real exam, every answer fully explained.',
     '',
     `If now isn’t the right time, that’s fine. Come back when you’re ready:\n${cta}`,
     '',
@@ -2184,14 +2184,14 @@ function buildEmail3(results, unsubUrl) {
   const riskBlock =
     `<div style="background:#f0fdf4;border:1.5px solid #a7f3d0;border-radius:8px;padding:18px 20px;margin:20px 0">` +
     `<p style="font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.88rem;color:#191918;line-height:1.65;margin:0">` +
-    `<strong style="color:#1a4d3a">10-day money-back guarantee.</strong> Try the full 400-question bank for a week. ` +
+    `<strong style="color:#1a4d3a">10-day money-back guarantee.</strong> Try the full 500-question bank for a week. ` +
     `If you don’t feel more confident in ${domainH}, get a full refund: email us within 10 days of purchase.</p>` +
     `</div>`;
   const riskBlockOut = perfect ? riskBlock.replace(`confident in ${domainH},`, 'confident going into the exam,') : riskBlock;
 
   const bodyHtml =
     eP('Hi,') + openingHtml +
-    eP('The full practice bank is the best thing you can add at this stage: 400 scenario-based questions, domain-weighted exactly like the real exam, every answer fully explained.') +
+    eP('The full practice bank is the best thing you can add at this stage: 500 scenario-based questions, domain-weighted exactly like the real exam, every answer fully explained.') +
     riskBlockOut +
     eP('If now isn’t the right time, come back when you’re ready. Good luck with the exam.') +
     eBtn('Close the gap: $49', cta);
@@ -2588,7 +2588,7 @@ function buildAbandonerB(unsubUrl) {
   const preview = 'Straight answers before you decide.';
   const QA = [
     ['"Is it worth $49?"',
-     'The exam costs $125 per attempt, and a retake costs the full $125 again. The practice bank is a single $49 payment for 400 scenario-based questions across all five exam domains, every one with a written explanation, plus a full 60-question mock exam. If it helps you pass on your first attempt, it costs less than half of a retake.'],
+     'The exam costs $125 per attempt, and a retake costs the full $125 again. The practice bank is a single $49 payment for 500 scenario-based questions across all five exam domains, every one with a written explanation, plus a full 60-question mock exam. If it helps you pass on your first attempt, it costs less than half of a retake.'],
     ['"Can I try it first?"',
      'Yes. The free diagnostic and the free Quick Sprint use questions from the same bank, so you can see the style and difficulty before you pay.'],
     ['"My payment didn\'t go through."',

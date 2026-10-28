@@ -140,7 +140,7 @@ const SECTION = `<!-- ═══════ SAMPLE QUESTIONS ══════�
   <div class="container">
     <div class="sample-q-header reveal">
       <h2>See the question quality before you buy</h2>
-      <p>Real scenario-based questions, every answer fully explained &mdash; just like the 400 in the full bank.</p>
+      <p>Real scenario-based questions, every answer fully explained &mdash; just like the 500 in the full bank.</p>
     </div>
     <div class="sample-q-grid">
 ${QS.map(buildCard).join('\n')}
@@ -184,7 +184,7 @@ console.log('JS injected');
 // ── Verify ────────────────────────────────────────────────────────────────
 const checks = [
   'See the question quality before you buy',
-  'just like the 400 in the full bank',
+  'just like the 500 in the full bank',
   'stop_reason',
   'sq-correct',
   'sq-toggle',

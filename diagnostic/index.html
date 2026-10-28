@@ -285,7 +285,7 @@ footer a{color:var(--text3);text-decoration:underline}
     <div class="cnav-dd"><button type="button" class="cnav-item on" aria-expanded="false" aria-haspopup="true">Architect <svg class="cnav-chev" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
       <div class="cnav-panel">
         <div class="cnav-ph">CLAUDE CERTIFIED ARCHITECT (CCAR-F)</div>
-        <div class="cnav-row"><a href="/cca-practice-questions/" class="cnav-rl">CCAR-F Practice Questions</a><div class="cnav-rd">400 practice questions with explanations</div></div>
+        <div class="cnav-row"><a href="/cca-practice-questions/" class="cnav-rl">CCAR-F Practice Questions</a><div class="cnav-rd">500 practice questions with explanations</div></div>
         <div class="cnav-row"><a href="/?hub=practice-tests" class="cnav-rl">Practice Dashboard</a><div class="cnav-rd">All CCAR-F test modes in one place</div></div>
         <div class="cnav-row"><a href="/?startTest=quick" class="cnav-rl">Free 10-Question Sprint</a><div class="cnav-rd">Try the question style, no account needed</div></div>
         <div class="cnav-row"><a href="/cca-foundations-exam/" class="cnav-rl">Full Mock Exam</a><div class="cnav-rd">60 questions in 120 minutes</div></div>
@@ -424,7 +424,7 @@ footer a{color:var(--text3);text-decoration:underline}
       </div>
 
       <button class="btn-primary" onclick="startDiagnostic()">Start Diagnostic →</button>
-      <p class="intro-note">Ten questions in the same format as the full 400-item bank.</p>
+      <p class="intro-note">Ten questions in the same format as the full 500-item bank.</p>
     </div>
 
     <div class="domain-grid" aria-label="Exam domains covered">
@@ -817,10 +817,10 @@ function showResults() {
         : 'You scored <strong>' + estimatedScore + ' / 1,000</strong>, <strong>' + ctaGap + ' points below passing</strong>. Your weakest domain is <strong>' + weakest.label + '</strong>; the full bank has <strong>' + ctaN + ' questions</strong> targeting exactly that. Don’t walk into the real exam unprepared.';
     document.getElementById('cta-anchor-line').textContent = 'The official exam costs $125 and has a mandatory waiting period between retakes, so $49 now is cheap insurance against an attempt you can’t immediately redo.';
   } catch(e) {
-    document.getElementById('cta-headline').textContent = 'Close the gap with the full 400-question bank — $49';
+    document.getElementById('cta-headline').textContent = 'Close the gap with the full 500-question bank — $49';
     document.getElementById('cta-personal-line').innerHTML = noWeakArea
-      ? 'You answered all 10 correctly. The full 400-question bank gives you longer, harder practice across all five domains at their real exam weightings.'
-      : 'Your diagnostic shows <strong>' + (weakest && weakest.label || 'your weakest domain') + '</strong> as your weakest area. The full 400-question bank gives you focused, domain-weighted practice to close that gap before exam day.';
+      ? 'You answered all 10 correctly. The full 500-question bank gives you longer, harder practice across all five domains at their real exam weightings.'
+      : 'Your diagnostic shows <strong>' + (weakest && weakest.label || 'your weakest domain') + '</strong> as your weakest area. The full 500-question bank gives you focused, domain-weighted practice to close that gap before exam day.';
     document.getElementById('cta-anchor-line').textContent = '';
   }
 
