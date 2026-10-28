@@ -3195,7 +3195,7 @@ function domainDrillEntry(type) {
 // other surfaces publish per-domain counts and one of them was wrong for
 // four weeks; this is the one the engine trusts.
 // cca:bank-domain-counts:start
-const BANK_DOMAIN_COUNTS = {"Agentic Architecture & Orchestration":109,"Claude Code Configuration":80,"Prompt Engineering & Structured Output":79,"Tool Design & MCP Integration":72,"Context Management & Reliability":60};
+const BANK_DOMAIN_COUNTS = {"Agentic Architecture & Orchestration":135,"Claude Code Configuration":100,"Prompt Engineering & Structured Output":100,"Tool Design & MCP Integration":90,"Context Management & Reliability":75};
 // cca:bank-domain-counts:end
 // cca:ccdv-bank-domain-counts:start
 const CCDV_BANK_DOMAIN_COUNTS = {"Agents and Workflows":57,"Applications and Integration":129,"Claude Code":18,"Eval, Testing, and Debugging":12,"Model Selection and Optimization":66,"Prompt and Context Engineering":44,"Security and Safety":33,"Tools and MCPs":41};
