@@ -3198,7 +3198,7 @@ function domainDrillEntry(type) {
 const BANK_DOMAIN_COUNTS = {"Agentic Architecture & Orchestration":135,"Claude Code Configuration":100,"Prompt Engineering & Structured Output":100,"Tool Design & MCP Integration":90,"Context Management & Reliability":75};
 // cca:bank-domain-counts:end
 // cca:ccdv-bank-domain-counts:start
-const CCDV_BANK_DOMAIN_COUNTS = {"Agents and Workflows":57,"Applications and Integration":129,"Claude Code":18,"Eval, Testing, and Debugging":12,"Model Selection and Optimization":66,"Prompt and Context Engineering":44,"Security and Safety":33,"Tools and MCPs":41};
+const CCDV_BANK_DOMAIN_COUNTS = {"Agents and Workflows":72,"Applications and Integration":162,"Claude Code":21,"Eval, Testing, and Debugging":14,"Model Selection and Optimization":83,"Prompt and Context Engineering":55,"Security and Safety":41,"Tools and MCPs":52};
 // cca:ccdv-bank-domain-counts:end
 function domainQuestionCount(key, product) {
   product = product === 'ccdv' ? 'ccdv' : 'ccar';
