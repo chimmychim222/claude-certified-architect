@@ -1651,7 +1651,7 @@ app.get('/', (req, res) => res.send('Webhook server running.'));
 // ══════════════════════════════════════════════════════════════════════════════
 
 // Per-domain question counts. THE BANK IS THE SOURCE: q.d in app.js's QUESTIONS
-// and in diagnostic/index.html's POOL, both 109/80/79/72/60 = 400 at HEAD, and
+// and in diagnostic/index.html's POOL, both 135/100/100/90/75 = 500 since the 500-item launch (previously 109/80/79/72/60), and
 // diagnostic/index.html's DOMAIN_Q_COUNT mirrors them. Prompt Engineering read
 // 80 here for three weeks after ed21c55 corrected the two Pages surfaces: this
 // file was out of that commit's scope because it deploys to Render, not Pages.

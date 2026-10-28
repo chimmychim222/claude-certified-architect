@@ -126,7 +126,7 @@ footer a:hover{color:var(--accent-text)}
     <div class="cnav-dd"><button type="button" class="cnav-item" aria-expanded="false" aria-haspopup="true">Developer <svg class="cnav-chev" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
       <div class="cnav-panel">
         <div class="cnav-ph">CLAUDE CERTIFIED DEVELOPER (CCDV-F)</div>
-        <div class="cnav-row"><a href="/ccdv-f-practice-questions/" class="cnav-rl">CCDV-F Practice Questions</a><div class="cnav-rd">400 questions across all eight domains</div></div>
+        <div class="cnav-row"><a href="/ccdv-f-practice-questions/" class="cnav-rl">CCDV-F Practice Questions</a><div class="cnav-rd">500 questions across all eight domains</div></div>
         <div class="cnav-row"><a href="/?hub=practice-tests&product=ccdv" class="cnav-rl">Practice Dashboard</a><div class="cnav-rd">All CCDV-F test modes in one place</div></div>
         <div class="cnav-row"><a href="/?startTest=quick&product=ccdv" class="cnav-rl">Free 10-Question Sprint</a><div class="cnav-rd">Try the question style, no payment</div></div>
         <div class="cnav-row"><a href="/ccdv-f-mock-exam/" class="cnav-rl">Full Mock Exam</a><div class="cnav-rd">53 questions in 120 minutes</div></div>
@@ -266,7 +266,7 @@ footer a:hover{color:var(--accent-text)}
     <ul>
       <li><strong>Self-assess against the blueprint.</strong> Mark each of the 25 skills in Section 6 as strong, partial or new, and start with the new ones in the heaviest domains.</li>
       <li><strong>Build one real application.</strong> Section 7 recommends building and operating at least one Claude application that uses the API, integrates one or more tools, and includes basic prompt and context engineering, security and evaluation practices.</li>
-      <li><strong>Practice in short sessions.</strong> Use Quick Sprint to find weak domains. Without an account it draws from a 28-question free sample; enrolled accounts draw from all 400.</li>
+      <li><strong>Practice in short sessions.</strong> Use Quick Sprint to find weak domains. Without an account it draws from a 28-question free sample; enrolled accounts draw from all 500.</li>
       <li><strong>Simulate real conditions.</strong> Take the full 53-question, 120-minute mock at least once before your exam date.</li>
     </ul>
     <p>For a week-by-week version, see our <a href="/blog/ccdv-f-study-plan/">domain-by-domain CCDV-F study plan</a>.</p>
@@ -283,7 +283,7 @@ footer a:hover{color:var(--accent-text)}
       <li>D. Add a system prompt instruction requiring the value in uppercase, so that the application needs a single string comparison.</li>
     </ul>
     <p><strong>Correct answer: A.</strong> The define tools page's example tool expects an input object with a required location string and an optional unit string that must be either celsius or fahrenheit, which is the schema itself stating the allowed values, and the prompting best practices page says that for classification tasks you should use either tools with an enum field containing your valid labels or structured outputs. Why a description alone is wrong: the define tools page says the description explains what the tool does, when to use it and how it behaves, while the input_schema is what defines the expected parameters, so a free string stays free. Why an integer code is wrong: an unconstrained integer is as open as an unconstrained string, and the page's mechanism for a fixed set of values is the enum. Why an uppercase instruction is wrong: it asks the model to follow a convention instead of letting the schema define the accepted values, so the application still cannot rely on what arrives.</p>
-    <p>That's one of 400 questions across all eight domains in our <a href="/ccdv-f-practice-questions/">CCDV-F practice questions</a>. Every one explains the correct answer and why each other option is wrong.</p>
+    <p>That's one of 500 questions across all eight domains in our <a href="/ccdv-f-practice-questions/">CCDV-F practice questions</a>. Every one explains the correct answer and why each other option is wrong.</p>
 
     <h2>Study Timeline</h2>
     <p>How long you need depends on how much of the recommended background you already have. Section 4 recommends one to five years of software engineering experience, at least six months of hands-on work with Claude or a comparable LLM system, proficiency in Python or TypeScript, and fluency with REST APIs and command line tools.</p>
@@ -339,8 +339,8 @@ footer a:hover{color:var(--accent-text)}
 
     <div class="cta-box">
       <h2>Start Your CCDV-F Preparation</h2>
-      <p>400 practice questions across all eight domains, a full 53-question mock exam, and explanations that cover why each other option is wrong.</p>
-      <a href="/?checkout=ccdv" class="btn-primary">Unlock all 400 CCDV-F questions: $69</a>
+      <p>500 practice questions across all eight domains, a full 53-question mock exam, and explanations that cover why each other option is wrong.</p>
+      <a href="/?checkout=ccdv" class="btn-primary">Unlock all 500 CCDV-F questions: $69</a>
       <p style="margin:10px 0 0;font-family:-apple-system,system-ui,'Segoe UI',sans-serif;font-size:.78rem;color:var(--text3)">10-day money-back guarantee &middot; or <a href="/?startTest=quick&amp;product=ccdv">try 10 free questions</a></p>
       <p style="margin:14px 0 0;font-size:.9rem;color:var(--text2)">Preparing for both exams? Get the CCAR-F and CCDV-F banks for $99. Already enrolled in CCAR-F? Your price is $50. Log in to add CCDV-F.</p>
     </div>

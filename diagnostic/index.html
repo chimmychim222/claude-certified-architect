@@ -296,7 +296,7 @@ footer a{color:var(--text3);text-decoration:underline}
     <div class="cnav-dd"><button type="button" class="cnav-item" aria-expanded="false" aria-haspopup="true">Developer <svg class="cnav-chev" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
       <div class="cnav-panel">
         <div class="cnav-ph">CLAUDE CERTIFIED DEVELOPER (CCDV-F)</div>
-        <div class="cnav-row"><a href="/ccdv-f-practice-questions/" class="cnav-rl">CCDV-F Practice Questions</a><div class="cnav-rd">400 questions across all eight domains</div></div>
+        <div class="cnav-row"><a href="/ccdv-f-practice-questions/" class="cnav-rl">CCDV-F Practice Questions</a><div class="cnav-rd">500 questions across all eight domains</div></div>
         <div class="cnav-row"><a href="/?hub=practice-tests&product=ccdv" class="cnav-rl">Practice Dashboard</a><div class="cnav-rd">All CCDV-F test modes in one place</div></div>
         <div class="cnav-row"><a href="/?startTest=quick&product=ccdv" class="cnav-rl">Free 10-Question Sprint</a><div class="cnav-rd">Try the question style, no payment</div></div>
         <div class="cnav-row"><a href="/ccdv-f-mock-exam/" class="cnav-rl">Full Mock Exam</a><div class="cnav-rd">53 questions in 120 minutes</div></div>
@@ -500,7 +500,7 @@ footer a{color:var(--text3);text-decoration:underline}
       <p id="cta-personal-line" class="cta-personal-line"></p>
       <p id="cta-anchor-line" class="cta-anchor-line"></p>
       <div class="cta-features">
-        <span class="cta-feat">400 exam-format questions</span>
+        <span class="cta-feat">500 exam-format questions</span>
         <span class="cta-feat">All 5 domains at real weightings</span>
         <span class="cta-feat">4 timed practice modes</span>
         <span class="cta-feat">Lifetime access</span>
@@ -805,7 +805,7 @@ function showResults() {
   // "built for the gap you just saw" rather than a generic upsell.
   try {
     const ctaGap  = passScore - estimatedScore;
-    const ctaN    = DOMAIN_Q_COUNT[weakest.key] || Math.round(weakest.pct / 100 * 400);
+    const ctaN    = DOMAIN_Q_COUNT[weakest.key] || Math.round(weakest.pct / 100 * 500);
     const ctaOver = estimatedScore >= passScore;
     document.getElementById('cta-headline').textContent = ctaOver
       ? 'You’re at passing level — lock it in with more practice'

@@ -171,7 +171,7 @@ const NAV2_ARCH = [
 ];
 // B3 (Oct 2026): the Developer dropdown that fills the slot N1 left empty.
 const NAV2_DEV = [
-  ['/ccdv-f-practice-questions/', 'CCDV-F Practice Questions', '400 questions across all eight domains', ''],
+  ['/ccdv-f-practice-questions/', 'CCDV-F Practice Questions', '500 questions across all eight domains', ''],
   ['/?hub=practice-tests&product=ccdv', 'Practice Dashboard', 'All CCDV-F test modes in one place', ''],
   ['/?startTest=quick&product=ccdv', 'Free 10-Question Sprint', 'Try the question style, no payment', ''],
   ['/ccdv-f-mock-exam/', 'Full Mock Exam', '53 questions in 120 minutes', ''],

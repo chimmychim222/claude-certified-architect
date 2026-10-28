@@ -9,7 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const BANK_SIZE = 400;
+const BANK_SIZE = 500;
 function die(msg) { console.error('\nABORT — ' + msg); process.exit(1); }
 
 const BANK_DIR = process.env.BANK_DIR || path.join(__dirname, '..', '..', 'cca-question-banks');

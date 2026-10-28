@@ -621,7 +621,7 @@ function providerOf(user) {
 }
 function bankExpectedItems(product) {
   const table = product === 'ccdv' ? CCDV_BANK_DOMAIN_COUNTS : BANK_DOMAIN_COUNTS;
-  try { return Object.keys(table).reduce(function (n, k) { return n + table[k]; }, 0); } catch (e) { return product === 'ccdv' ? 400 : 500; }
+  try { return Object.keys(table).reduce(function (n, k) { return n + table[k]; }, 0); } catch (e) { return 500; }
 }
 function bankLoadError(code, attempts) {
   try { if (typeof gtag !== 'undefined') gtag('event', 'bank_load_error', { error_code: String(code || 'none').slice(0, 40), attempts: attempts, provider: providerOf(currentUser) }); } catch (e) {}
@@ -1156,9 +1156,9 @@ function initAuthListener() {
 // swapped for the CCDV-F copy below and restored from a snapshot when the
 // Architect tab comes back. Nothing here runs before the launch.
 const CCDV_CARD_HTML = {
-  'card-quick': '<div class="icon">⚡</div><h3>Quick Sprint <span class="lock-badge unlocked">FREE</span></h3><p><span class="when-free">A fast 10-question drill. Free accounts draw from a 28-question sample of the CCDV-F bank; enrolled accounts draw from all 400.</span><span class="when-enrolled">A fast 10-question drill drawn from the full 400-question CCDV-F bank. Great for daily practice.</span></p><div class="meta"><span>10 Questions</span><span>23 Minutes</span></div><button class="btn-primary btn-sm" onclick="startTest(\'quick\', \'ccdv\')">Start Sprint</button>',
-  'card-focused': '<div class="icon">🔥</div><h3>Focused Session <span class="lock-badge unlocked">5 FREE</span></h3><p><span class="when-free">A timed 20-question session from all 400 CCDV-F questions. The first five are free and come from the 28-question sample.</span><span class="when-enrolled">A timed 20-question session drawn from the full 400-question CCDV-F bank.</span></p><div class="meta"><span>20 Questions</span><span>46 Minutes</span></div><button class="btn-primary btn-sm" onclick="startTest(\'focused\', \'ccdv\')">Start Session</button>',
-  'card-deep': '<div class="icon">🎯</div><h3>Deep Practice <span class="lock-badge">LOCKED</span></h3><p>A 30-question session drawn from all 400 questions across the eight domains, in one sitting.</p><div class="meta"><span>30 Questions</span><span>68 Minutes</span></div><button class="btn-primary btn-sm" onclick="startTest(\'deep\', \'ccdv\')">Unlock for $69</button><p class="dash-unlock-note">Unlocks every mode · 10-day money-back guarantee</p>',
+  'card-quick': '<div class="icon">⚡</div><h3>Quick Sprint <span class="lock-badge unlocked">FREE</span></h3><p><span class="when-free">A fast 10-question drill. Free accounts draw from a 28-question sample of the CCDV-F bank; enrolled accounts draw from all 500.</span><span class="when-enrolled">A fast 10-question drill drawn from the full 500-question CCDV-F bank. Great for daily practice.</span></p><div class="meta"><span>10 Questions</span><span>23 Minutes</span></div><button class="btn-primary btn-sm" onclick="startTest(\'quick\', \'ccdv\')">Start Sprint</button>',
+  'card-focused': '<div class="icon">🔥</div><h3>Focused Session <span class="lock-badge unlocked">5 FREE</span></h3><p><span class="when-free">A timed 20-question session from all 500 CCDV-F questions. The first five are free and come from the 28-question sample.</span><span class="when-enrolled">A timed 20-question session drawn from the full 500-question CCDV-F bank.</span></p><div class="meta"><span>20 Questions</span><span>46 Minutes</span></div><button class="btn-primary btn-sm" onclick="startTest(\'focused\', \'ccdv\')">Start Session</button>',
+  'card-deep': '<div class="icon">🎯</div><h3>Deep Practice <span class="lock-badge">LOCKED</span></h3><p>A 30-question session drawn from all 500 questions across the eight domains, in one sitting.</p><div class="meta"><span>30 Questions</span><span>68 Minutes</span></div><button class="btn-primary btn-sm" onclick="startTest(\'deep\', \'ccdv\')">Unlock for $69</button><p class="dash-unlock-note">Unlocks every mode · 10-day money-back guarantee</p>',
   'card-domain': '<div class="icon">📊</div><h3>Domain Drill <span class="lock-badge">LOCKED</span></h3><p>Practice one domain at a time: up to 20 questions, or the whole domain where it is smaller. Timed at the exam\'s own pace.</p><div class="meta"><span id="domain-drill-meta">20 Questions</span><span id="domain-drill-minutes">46 Minutes</span></div><select id="domain-drill-select" aria-label="Choose an exam domain to drill" onchange="updateDomainDrillMeta()"></select><button class="btn-primary btn-sm" onclick="startDomainDrill()">Unlock for $69</button><p class="dash-unlock-note">Unlocks every mode · 10-day money-back guarantee</p>',
   'card-full': '<div class="icon">🏆</div><h3>Full Mock Exam <span class="lock-badge">LOCKED</span></h3><p>53 questions in 120 minutes, drawn fresh each attempt at the guide\'s domain weights: 17 Applications, 9 Model Selection, 8 Agents, 6 Prompt and Context, 6 Tools, 4 Security, 2 Claude Code, 1 Eval.</p><div class="meta"><span>53 Questions</span><span>120 Minutes</span></div><button class="btn-primary btn-sm" onclick="startTest(\'full\', \'ccdv\')">Unlock for $69</button><p class="dash-unlock-note">Unlocks every mode · 10-day money-back guarantee</p>'
 };
@@ -1216,7 +1216,7 @@ function renderDashProductTabs() {
   if (p === 'ccdv') {
     if (!owns('ccdv')) {
       html += owns('ccar')
-        ? '<div class="dash-upsell"><div class="kicker">YOU\'RE ENROLLED IN CCAR-F</div><h3>Add the developer exam to your prep</h3><p>400 more scenario-based questions across the eight CCDV-F domains, each explaining the correct answer and why every other option is wrong, plus a 53-question mock exam drawn fresh each attempt. It sits in this same dashboard, next to your CCAR-F tab.</p><button class="btn-primary" onclick="openPaymentModal(\'ccdv\')">Add CCDV-F: $50</button><p class="fine">Your CCAR-F price: $50 instead of $69, so both banks total $99. 10-day money-back guarantee.</p></div>'
+        ? '<div class="dash-upsell"><div class="kicker">YOU\'RE ENROLLED IN CCAR-F</div><h3>Add the developer exam to your prep</h3><p>500 more scenario-based questions across the eight CCDV-F domains, each explaining the correct answer and why every other option is wrong, plus a 53-question mock exam drawn fresh each attempt. It sits in this same dashboard, next to your CCAR-F tab.</p><button class="btn-primary" onclick="openPaymentModal(\'ccdv\')">Add CCDV-F: $50</button><p class="fine">Your CCAR-F price: $50 instead of $69, so both banks total $99. 10-day money-back guarantee.</p></div>'
         : '';
     }
     html += '<div class="dash-exam-strip"><span><b>53</b>items</span><span><b>120</b>minutes</span><span><b>MC + MR</b>multiple-choice and multiple-response</span><span><b>Scaled 720</b>to pass</span><span><b>8</b>domains</span><span class="strip-note">Section 5 of the exam guide (CCDV-F).' + (owns('ccdv') ? '' : ' Not sure which to start with? Try a free 10-question CCDV-F sprint and see the question style first.') + '</span></div>';
@@ -3157,7 +3157,7 @@ const PRODUCTS = {
   ccar: { code: 'ccar', short: 'CCAR-F', items: 500, pass: 720, domains: PROGRESS_DOMAINS, drillDomains: DOMAIN_DRILL_DOMAINS, lessons: true,
           modes: { quick: { name: 'Quick Sprint', questions: 10, minutes: 20 }, focused: { name: 'Focused Session', questions: 20, minutes: 40 }, deep: { name: 'Deep Practice', questions: 30, minutes: 60 }, full: { name: 'Full Certification Exam', questions: 60, minutes: 120 } },
           drillMinutes: function () { return DOMAIN_DRILL_MINUTES; } },
-  ccdv: { code: 'ccdv', short: 'CCDV-F', items: 400, pass: 720, domains: CCDV_DOMAINS, drillDomains: CCDV_DRILL_DOMAINS, lessons: false,
+  ccdv: { code: 'ccdv', short: 'CCDV-F', items: 500, pass: 720, domains: CCDV_DOMAINS, drillDomains: CCDV_DRILL_DOMAINS, lessons: false,
           modes: { quick: { name: 'Quick Sprint', questions: 10, minutes: 23 }, focused: { name: 'Focused Session', questions: 20, minutes: 46 }, deep: { name: 'Deep Practice', questions: 30, minutes: 68 }, full: { name: 'Full Mock Exam', questions: 53, minutes: 120 } },
           drillMinutes: function (q) { return Math.ceil(q * 120 / 53); } },
 };
@@ -4486,8 +4486,8 @@ function showFocusedPaywall() {
     document.getElementById('question-area').innerHTML = `
     <div class="q-paywall">
       <div class="q-paywall-icon">🔓</div>
-      <h2>You've seen the first 5. Unlock all 400 CCDV-F questions and timed exams for ${owns('ccar') ? '$50' : '$69'}</h2>
-      <p>All 400 scenario-based questions across the eight CCDV-F domains, five timed modes including the 53-question mock exam, each explaining the correct answer and why every other option is wrong.</p>
+      <h2>You've seen the first 5. Unlock all 500 CCDV-F questions and timed exams for ${owns('ccar') ? '$50' : '$69'}</h2>
+      <p>All 500 scenario-based questions across the eight CCDV-F domains, five timed modes including the 53-question mock exam, each explaining the correct answer and why every other option is wrong.</p>
       <button class="btn-primary" onclick="openPaymentModal('ccdv')">${label}</button>
       <div class="q-paywall-sub">One-time payment · Lifetime access · 10-day money-back guarantee</div>
     </div>`;
