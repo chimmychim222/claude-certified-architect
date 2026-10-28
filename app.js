@@ -3154,7 +3154,7 @@ const CCDV_DRILL_DOMAINS = CCDV_DOMAINS.slice().sort((a, b) => b.weight - a.weig
 // for 53 items, 2.26 min per item): 23, 46 and 68 minutes; a drill scales with
 // its count. CCAR-F keeps its shipped shapes.
 const PRODUCTS = {
-  ccar: { code: 'ccar', short: 'CCAR-F', items: 400, pass: 720, domains: PROGRESS_DOMAINS, drillDomains: DOMAIN_DRILL_DOMAINS, lessons: true,
+  ccar: { code: 'ccar', short: 'CCAR-F', items: 500, pass: 720, domains: PROGRESS_DOMAINS, drillDomains: DOMAIN_DRILL_DOMAINS, lessons: true,
           modes: { quick: { name: 'Quick Sprint', questions: 10, minutes: 20 }, focused: { name: 'Focused Session', questions: 20, minutes: 40 }, deep: { name: 'Deep Practice', questions: 30, minutes: 60 }, full: { name: 'Full Certification Exam', questions: 60, minutes: 120 } },
           drillMinutes: function () { return DOMAIN_DRILL_MINUTES; } },
   ccdv: { code: 'ccdv', short: 'CCDV-F', items: 400, pass: 720, domains: CCDV_DOMAINS, drillDomains: CCDV_DRILL_DOMAINS, lessons: false,
