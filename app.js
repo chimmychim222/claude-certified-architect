@@ -633,8 +633,8 @@ async function loadActiveBankOnce(product) {
   const hasLessons = product === 'ccar';
   const loaded = await withTimeout(Promise.all([loadBank(product), hasLessons ? loadLessons(product) : Promise.resolve([])]), BANK_LOAD_TIMEOUT_MS, 'timeout');
   const bank = loaded[0], mods = loaded[1];
-  const legacyBankCount = 400; // transition allowance (28 Oct 2026): the previous bank size stays accepted until both 500-item banks are uploaded; remove in the clean-up commit after launch
-  if ((bank.length !== bankExpectedItems(product) && bank.length !== legacyBankCount) || (hasLessons && mods.length !== LESSONS_EXPECTED)) throw Object.assign(new Error('bad count'), { code: 'bad-count' });
+  const transitionBankCounts = [400, 500]; // transition allowance (28 Oct 2026, corrected): the previous bank size and the expanded bank size are both accepted alongside the count-table total, so the 500-item banks can be served before the launch copy that re-stamps the table is live; remove in the clean-up commit after launch
+  if ((bank.length !== bankExpectedItems(product) && !transitionBankCounts.includes(bank.length)) || (hasLessons && mods.length !== LESSONS_EXPECTED)) throw Object.assign(new Error('bad count'), { code: 'bad-count' });
   if (!bank.every(function (q) { return q && typeof q.q === 'string' && Array.isArray(q.o) && q.a !== undefined; })) throw Object.assign(new Error('bad item'), { code: 'bad-item' });
   return { bank: bank, lessons: mods, source: 'firestore' };
 }
