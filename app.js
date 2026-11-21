@@ -218,6 +218,9 @@ function ownsAny() { return owns('ccar') || owns('ccdv'); }
 function applyProductClaims(claims) {
   const p = (claims && claims.products) || {};
   ownedProducts = { ccar: p.ccar === true || !!(claims && claims.enrolled), ccdv: p.ccdv === true };
+  // Guest-return fix: an account with access has signed in, so the 24-hour
+  // repeat-purchase record of this browser has done its job.
+  if (ownsAny()) clearPaidFlag();
   try { if (ownsAny()) localStorage.setItem('cca_products', owns('ccar') && owns('ccdv') ? 'both' : owns('ccdv') ? 'ccdv' : 'ccar'); else localStorage.removeItem('cca_products'); } catch (e) {}
 }
 function resetOwnership() { ownedProducts = { ccar: false, ccdv: false }; activeProduct = 'ccar'; }
@@ -1105,6 +1108,21 @@ function initAuthListener() {
           banner.innerHTML = pendingPurchaseMsg();
           banner.style.display = 'block';
         }
+        // Guest-return fix: time-stamp this return for the 24-hour
+        // repeat-purchase guard (repeatPurchaseBlock), with the product this
+        // browser recorded on the way out to Stripe when it recorded one, then
+        // open the sign-up box so the one step left is in front of the buyer.
+        // The bar above stays up.
+        let _paidProduct = null;
+        try {
+          const _out = JSON.parse(localStorage.getItem(GUEST_CHECKOUT_PRODUCT_KEY) || 'null');
+          const _outAge = (_out && typeof _out.t === 'number') ? Date.now() - _out.t : NaN;
+          if (_outAge >= 0 && _outAge <= PAID_FLAG_TTL_MS && (_out.product === 'ccar' || _out.product === 'ccdv' || _out.product === 'bundle')) _paidProduct = _out.product;
+          localStorage.removeItem(GUEST_CHECKOUT_PRODUCT_KEY);
+        } catch (e) {}
+        try { localStorage.setItem(PAID_FLAG_META_KEY, JSON.stringify({ t: Date.now(), product: _paidProduct })); } catch (e) {}
+        showPaidSignupBox(null);
+        if (typeof gtag !== 'undefined') { try { gtag('event', 'guest_return_signup_open', { product: _paidProduct || 'unknown' }); } catch (e) {} }
       }
       // Logged-out user arrived via ?startTest=. startTest() is enrollment-aware:
       // a free type (quick, focused) starts for a guest exactly as the dashboard
@@ -1951,6 +1969,20 @@ async function maybeFireExamPurchaseEvent(user) {
 // by markEnrolled below.
 const PAYMENT_NEEDS_REVIEW_KEY = 'cca_payment_needs_review';
 const PENDING_PURCHASE_KEY = 'cca_pending_purchase';
+// Guest-return fix (21 Nov 2026). A second record beside PENDING_PURCHASE_KEY,
+// which stays a bare '1' because three readers compare it to '1'. This one
+// carries WHEN this browser came back from Stripe with ?paid=true and, when
+// known, WHICH product the guest had clicked. It is what stops a second trip
+// to Stripe from the same browser (see repeatPurchaseBlock). It is removed the
+// moment access is found (markEnrolled, applyProductClaims) and is ignored and
+// removed once it is older than 24 hours. A browser that carries only the old
+// '1' key, which has no time in it, is never held back.
+const PAID_FLAG_META_KEY = 'cca_pending_purchase_meta';
+// Written just before a guest leaves for Stripe, so the return can tell which
+// product the payment was for: all three Payment Links come back to the same
+// ?paid=true address.
+const GUEST_CHECKOUT_PRODUCT_KEY = 'cca_guest_checkout_product';
+const PAID_FLAG_TTL_MS = 24 * 60 * 60 * 1000;
 
 function paymentDismissBtn() {
   return "<button onclick=\"document.getElementById('success-banner').style.display='none'\" style=\"margin-left:16px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px\">Dismiss</button>";
@@ -2014,9 +2046,80 @@ function paymentSuccessMsg() {
 // the boot-time restore and the original guest branch render byte-identical
 // markup instead of duplicating the string.
 function pendingPurchaseMsg() {
-  return 'Payment received! Create a free account using <strong>the same email you checked out with</strong> to unlock your purchase. ' +
-    '<button onclick="openAuthModal(\'signup\')" style="margin-left:8px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px">Create my account</button>' +
+  return 'Payment received. One step left: create your free account with <strong>the same email you used at checkout</strong>, and your access opens right away. No need to pay again. ' +
+    '<button onclick="showPaidSignupBox(null)" style="margin-left:8px;color:var(--green);text-decoration:underline;font-size:.85rem;min-height:44px">Create my account</button>' +
     paymentDismissBtn();
+}
+
+// The same sentence as plain text, for the sign-up box (showPaidSignupBox).
+function pendingPurchaseText() {
+  return 'Payment received. One step left: create your free account with the same email you used at checkout, and your access opens right away. No need to pay again.';
+}
+
+// The 24-hour record described at PAID_FLAG_META_KEY, or null when there is
+// none, when it cannot be read, or when it is older than 24 hours (it is then
+// removed). product is 'ccar', 'ccdv', 'bundle' or null (not known).
+function readPaidFlag() {
+  try {
+    const raw = localStorage.getItem(PAID_FLAG_META_KEY);
+    if (!raw) return null;
+    const m = JSON.parse(raw);
+    const age = (m && typeof m.t === 'number') ? Date.now() - m.t : NaN;
+    if (!(age >= 0 && age <= PAID_FLAG_TTL_MS)) { localStorage.removeItem(PAID_FLAG_META_KEY); return null; }
+    return { t: m.t, product: (m.product === 'ccar' || m.product === 'ccdv' || m.product === 'bundle') ? m.product : null };
+  } catch (e) { return null; }
+}
+
+function clearPaidFlag() {
+  try { localStorage.removeItem(PAID_FLAG_META_KEY); localStorage.removeItem(GUEST_CHECKOUT_PRODUCT_KEY); } catch (e) {}
+}
+
+// Whether a signed-out click on a buy button for `product` is held back
+// because this browser paid as a guest in the last 24 hours and no account
+// with access has signed in since. null = not held back, which is the answer
+// in every browser that has no record. When the record names the product,
+// only that product is held back (a bundle payment covers all three buttons).
+// When it does not, every button is held back and the box offers a way on.
+function repeatPurchaseBlock(product) {
+  const f = readPaidFlag();
+  if (!f) return null;
+  if (!f.product) return { known: false, paid: null };
+  if (f.product === 'bundle' || f.product === product) return { known: true, paid: f.product };
+  return null;
+}
+
+// The sign-up box with the payment message above the form: opened on the
+// guest return from Stripe, from the bar's button, and in place of a second
+// trip to Stripe. continueProduct, when given, adds the small link that goes
+// on to checkout for that product exactly as a click did before this fix.
+function showPaidSignupBox(continueProduct) {
+  openAuthModal('signup');
+  const sub = document.getElementById('auth-modal-subtitle');
+  if (!sub) return;
+  sub.textContent = pendingPurchaseText();
+  if (continueProduct) {
+    const more = document.createElement('button');
+    more.type = 'button';
+    more.textContent = 'Buying a different product? Continue to checkout';
+    more.style.cssText = 'display:block;margin:6px 0 0;padding:0;background:none;border:none;color:var(--text2);text-decoration:underline;font-size:.8rem;line-height:1.5;cursor:pointer;min-height:44px;text-align:left';
+    more.onclick = function () { window.__allowRepeatCheckout = true; openPaymentModal(continueProduct); };
+    sub.appendChild(more);
+  }
+  sub.style.display = 'block';
+  // #success-banner is fixed at z-index 210 and the modal overlay is 200, so
+  // the bar would lie across the top of this box and cover its title and the
+  // message above (all of both at phone width). While the box is open the bar
+  // goes behind the overlay; it comes back the moment the box closes.
+  const bar = document.getElementById('success-banner');
+  const modal = document.getElementById('auth-modal');
+  if (bar && modal && typeof MutationObserver !== 'undefined' && bar.style.zIndex !== '190') {
+    const barZ = bar.style.zIndex;
+    bar.style.zIndex = '190';
+    const watch = new MutationObserver(function () {
+      if (!modal.classList.contains('show')) { bar.style.zIndex = barZ; watch.disconnect(); }
+    });
+    watch.observe(modal, { attributes: true, attributeFilter: ['class'] });
+  }
 }
 
 // Body split out from the message so the modal fallback can render the same
@@ -2088,6 +2191,7 @@ function markEnrolled(user) {
   // branch's write if both flags were somehow set in the same call — the key
   // and flag still clear either way.
   try { localStorage.removeItem(PENDING_PURCHASE_KEY); } catch(e) {}
+  clearPaidFlag();
   if (window.__pendingPurchaseShown) {
     window.__pendingPurchaseShown = false;
     if (!bannerRewritten) {
@@ -2812,6 +2916,26 @@ function openPaymentModal(product) {
     // attempt either: it just proceeds to Stripe. A guest who abandoned
     // Stripe and clicks buy again gets a fresh redirect, not a banner that
     // falsely implies a charge may be in flight.
+    // Guest-return fix: this browser came back from Stripe with ?paid=true in
+    // the last 24 hours and no account with access has signed in since. A buy
+    // button then opens the sign-up box with the payment message instead of
+    // going to Stripe a second time (13 Nov 2026: one guest paid twice in
+    // three minutes). repeatPurchaseBlock() answers null in every browser
+    // without that record, so those reach the lines below unchanged. The
+    // "different product" link in the box sets __allowRepeatCheckout for one
+    // call and lands on the same lines.
+    const _allowRepeat = window.__allowRepeatCheckout === true;
+    window.__allowRepeatCheckout = false;
+    const _repeat = _allowRepeat ? null : repeatPurchaseBlock(product);
+    if (_repeat) {
+      // No checkout intent may outlive this, or the sign-up that follows
+      // would resume it and send the new account to Stripe.
+      window.__pendingCheckout = false;
+      try { sessionStorage.removeItem('cca_checkout_intent'); sessionStorage.removeItem('cca_checkout_product'); } catch (e) {}
+      showPaidSignupBox(_repeat.known ? null : product);
+      if (typeof gtag !== 'undefined') { try { gtag('event', 'repeat_purchase_blocked', { product: _repeat.paid || 'unknown', clicked_product: product, page_path: location.pathname }); } catch (e) {} }
+      return;
+    }
     if (!paymentLinkFor(product)) { showCheckoutNotOpen(); return; }
     openAuthModalLoading('Redirecting to secure checkout…');
     const guestUrl = new URL(paymentLinkFor(product));
@@ -2820,6 +2944,9 @@ function openPaymentModal(product) {
     // at checkout, and the webhook's email-keyed pending_enrollments path
     // reconciles it once this buyer creates/logs into a matching account.
     if (typeof gtag !== 'undefined') { gtag('event', 'guest_checkout_redirect', {}); }
+    // Guest-return fix: remember which product this guest is leaving to pay
+    // for, so the ?paid=true return can name it (see GUEST_CHECKOUT_PRODUCT_KEY).
+    try { localStorage.setItem(GUEST_CHECKOUT_PRODUCT_KEY, JSON.stringify({ t: Date.now(), product: product })); } catch (e) {}
     trackCheckoutAndGo(guestUrl.toString());
     return;
   }
